@@ -1,0 +1,35 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:@typescript-eslint/recommended-type-checked",
+    "plugin:jsx-a11y/recommended"
+  ],
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "rules": {
+    "@typescript-eslint/consistent-type-imports": "error",
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+    ],
+    "@typescript-eslint/no-misused-promises": [
+      "error",
+      { "checksVoidReturn": { "attributes": false } }
+    ],
+    "react/jsx-curly-brace-presence": ["warn", "never"],
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["**/lib/supabase/admin*"],
+            "importNames": ["adminClient", "createAdminClient"],
+            "message": "Service-role client is server-only. Import from app/api/* or lib/admin/* only."
+          }
+        ]
+      }
+    ]
+  },
+  "ignorePatterns": ["_design/**", "node_modules", ".next", "out", "coverage"]
+}

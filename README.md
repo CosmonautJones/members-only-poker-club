@@ -41,7 +41,35 @@ See [`docs/spec.md`](docs/spec.md) for full detail.
 
 ## Local development
 
-(Bootstrap pending — the second commit lays down the Next.js scaffold and a working `pnpm dev`. This commit is documentation-only.)
+### Prerequisites
+
+- Node 20.11+ (`.nvmrc` pins; `nvm use` will switch)
+- pnpm 9+ (`corepack enable && corepack prepare pnpm@9.14.2 --activate`)
+- Docker Desktop (for `supabase start`)
+- Supabase CLI (`pnpm i -g supabase` or [official install](https://supabase.com/docs/guides/cli/getting-started))
+
+### First-time setup
+
+```bash
+pnpm install                            # install deps
+cp .env.local.example .env.local        # fill in keys; see ADR-007 for boundary rules
+supabase start                          # spin up local Postgres + Studio
+pnpm dev                                # http://localhost:3000
+```
+
+### Common commands
+
+| Task | Command |
+|---|---|
+| Dev server | `pnpm dev` |
+| Typecheck | `pnpm typecheck` |
+| Lint | `pnpm lint` (or `lint:fix`) |
+| Format | `pnpm format` (or `format:check`) |
+| Unit tests | `pnpm test` (or `test:watch`, `test:coverage`) |
+| E2E tests | `pnpm test:e2e` |
+| Reset local DB | `pnpm db:reset` |
+| Generate migration | `pnpm db:diff -f <name>` |
+| Production build | `pnpm build && pnpm start` |
 
 ## License
 

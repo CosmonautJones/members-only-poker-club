@@ -1,0 +1,250 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Members Only Poker Social Club — Brand Tokens (CSS variables)
+   See docs/design-system.md for the canonical reference.
+   ============================================================ */
+
+@layer base {
+  :root {
+    /* INK */
+    --ink-900: #0b0b0b;
+    --ink-850: #121110;
+    --ink-800: #1a1816;
+    --ink-750: #221f1b;
+    --ink-700: #2b2722;
+    --ink-600: #3a342c;
+    --ink-500: #524a3f;
+
+    /* GOLD */
+    --gold-100: #f8e6b6;
+    --gold-200: #f4d27a;
+    --gold-300: #e5ba63;
+    --gold-400: #c9a24a;
+    --gold-500: #a8842f;
+    --gold-600: #6e5520;
+
+    /* IVORY */
+    --ivory-100: #fbf7ee;
+    --ivory-200: #f4ede0;
+    --ivory-300: #e8dfcc;
+    --ivory-400: #c9bfa9;
+    --ivory-500: #8c8470;
+
+    /* ACCENT */
+    --crimson: #b43a2e;
+    --crimson-light: #d6584c;
+    --felt-green: #1f3a2e;
+    --felt-green-2: #2a4a3c;
+
+    /* SEMANTIC */
+    --bg: var(--ink-900);
+    --bg-panel: var(--ink-850);
+    --bg-card: var(--ink-800);
+    --bg-card-hover: var(--ink-750);
+    --bg-elevated: #16140f;
+    --text: var(--ivory-200);
+    --text-muted: var(--ivory-500);
+    --text-dim: #6b6356;
+    --border: rgba(201, 162, 74, 0.18);
+    --border-strong: rgba(201, 162, 74, 0.35);
+    --border-faint: rgba(244, 237, 224, 0.06);
+    --success: #6f9e6f;
+    --warning: var(--gold-400);
+    --danger: var(--crimson);
+
+    /* GRADIENTS */
+    --gold-grad: linear-gradient(
+      135deg,
+      #f4d27a 0%,
+      #e5ba63 35%,
+      #c9a24a 60%,
+      #a8842f 100%
+    );
+    --gold-grad-soft: linear-gradient(180deg, #f4d27a 0%, #c9a24a 100%);
+    --gold-grad-brushed: linear-gradient(
+      180deg,
+      #c9a24a 0%,
+      #f4d27a 30%,
+      #c9a24a 50%,
+      #a8842f 100%
+    );
+
+    /* SHADOWS */
+    --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.5),
+      0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 12px 32px -10px rgba(0, 0, 0, 0.7),
+      0 2px 6px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 32px 80px -20px rgba(0, 0, 0, 0.8),
+      0 4px 12px rgba(0, 0, 0, 0.5);
+    --gold-glow: 0 0 0 1px rgba(201, 162, 74, 0.5),
+      0 0 24px -4px rgba(201, 162, 74, 0.4);
+    --gold-glow-soft: 0 0 16px -4px rgba(201, 162, 74, 0.25);
+
+    /* MOTION */
+    --ease: cubic-bezier(0.2, 0.6, 0.2, 1);
+    --ease-press: cubic-bezier(0.4, 0, 0.4, 1);
+    --dur-fast: 140ms;
+    --dur: 220ms;
+    --dur-slow: 380ms;
+    --dur-cinematic: 720ms;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    @apply bg-ink-900 text-ivory-200 font-sans;
+    font-feature-settings: 'ss01', 'cv01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display text-ivory-200;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--ink-900);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--ink-700);
+    border-radius: 5px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--gold-600);
+  }
+}
+
+/* ============================================================
+   Brand utility classes — too specific for Tailwind utilities
+   ============================================================ */
+
+@layer components {
+  .gold-text {
+    background: var(--gold-grad-brushed);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .gold-rule {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--gold-400) 50%,
+      transparent 100%
+    );
+    border: 0;
+  }
+
+  .gold-rule-short {
+    width: 80px;
+    height: 1px;
+    background: var(--gold-grad);
+    border: 0;
+    margin: 0 auto;
+  }
+
+  .diamond-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--gold-400);
+    font-size: 8px;
+  }
+  .diamond-divider::before,
+  .diamond-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--gold-400) 50%,
+      transparent
+    );
+  }
+
+  .grain {
+    position: relative;
+  }
+  .grain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.85 0 0 0 0 0.6 0 0 0 0.7 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    z-index: 1;
+  }
+
+  .eyebrow {
+    @apply text-xs uppercase font-medium font-sans;
+    letter-spacing: 0.32em;
+    color: var(--gold-300);
+  }
+
+  .field-label {
+    @apply text-xs uppercase font-medium font-sans;
+    letter-spacing: 0.18em;
+    color: var(--gold-300);
+  }
+
+  .section-title {
+    @apply font-display text-3xl font-medium leading-[1.05];
+    letter-spacing: -0.01em;
+  }
+  .section-title em {
+    font-style: italic;
+    color: var(--gold-300);
+  }
+
+  .suit-red {
+    color: var(--crimson-light);
+  }
+  .suit-black {
+    color: var(--ivory-200);
+  }
+}
+
+/* ============================================================
+   Reduced motion
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .grain::before {
+    display: none;
+  }
+}

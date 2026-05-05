@@ -1,0 +1,4 @@
+-- Seed data for local development.
+-- Production seeding (e.g., owner role assignment) happens via a one-shot
+-- migration, not this file.
+-- Slice 1 will populate this with a few sample tournaments + content_blocks.
