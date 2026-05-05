@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Members Only Poker Social Club — Prototype (Print)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="brand.css"/>
+<style>
+  html, body { background: #0B0B0B; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .print-page {
+    width: 100%;
+    background: #0B0B0B;
+    page-break-after: always;
+    break-after: page;
+    border-bottom: 1px dashed rgba(201,162,74,0.2);
+  }
+  .print-page:last-child { page-break-after: auto; break-after: auto; border-bottom: none; }
+
+  .print-cover {
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; padding: 80px;
+    background: radial-gradient(ellipse at center, #1A1816, #0B0B0B 80%);
+    color: #F4EDE0;
+  }
+
+  .print-label {
+    position: sticky; top: 0; z-index: 10;
+    background: linear-gradient(180deg, #15140F, #0B0B0B);
+    border-bottom: 1px solid rgba(201,162,74,0.4);
+    padding: 14px 24px;
+    display: flex; justify-content: space-between; align-items: baseline;
+    color: #F4D27A;
+    font-family: 'Cormorant Garamond', serif;
+  }
+  .print-label .eyebrow-print {
+    font-family: Inter, sans-serif; font-size: 10px;
+    letter-spacing: 0.24em; text-transform: uppercase; color: #8C8470;
+  }
+
+  /* Hide the floating route picker, sticky nav offset, etc */
+  @media print {
+    @page { size: A4 portrait; margin: 0; }
+    html, body { background: #0B0B0B !important; }
+    .no-print, [data-no-print] { display: none !important; }
+    nav[data-public-nav], .public-nav { position: static !important; }
+    .print-page { page-break-after: always; break-after: page; border-bottom: none; }
+    /* Avoid splitting cards mid-page where reasonable */
+    .card, table, .membership-card { break-inside: avoid; }
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="primitives.jsx"></script>
+<script type="text/babel" src="signature.jsx"></script>
+<script type="text/babel" src="screens-public-1.jsx"></script>
+<script type="text/babel" src="screens-public-2.jsx"></script>
+<script type="text/babel" src="screens-public-3.jsx"></script>
+<script type="text/babel" src="screens-auth.jsx"></script>
+<script type="text/babel" src="screens-portal-1.jsx"></script>
+<script type="text/babel" src="screens-portal-2.jsx"></script>
+<script type="text/babel" src="screens-system.jsx"></script>
+<script type="text/babel">
+const noop = () => {};
+
+const PAGES = [
+  { id: "home", label: "Home", group: "Public", Comp: () => <HomeScreen onNav={noop}/> },
+  { id: "club", label: "The Club", group: "Public", Comp: () => <ClubScreen onNav={noop}/> },
+  { id: "games", label: "Games & Tournaments", group: "Public", Comp: () => <GamesScreen onNav={noop}/> },
+  { id: "membership", label: "Membership", group: "Public", Comp: () => <MembershipScreen onNav={noop}/> },
+  { id: "contact", label: "Find Us", group: "Public", Comp: () => <ContactScreen onNav={noop}/> },
+  { id: "signup", label: "Sign Up", group: "Auth", Comp: () => <SignupScreen onNav={noop}/> },
+  { id: "login", label: "Sign In", group: "Auth", Comp: () => <LoginScreen onNav={noop}/> },
+  { id: "dashboard", label: "Member Dashboard", group: "Portal", portal: true, Comp: () => <DashboardScreen onNav={noop}/> },
+  { id: "buytime", label: "Buy Time", group: "Portal", portal: true, Comp: () => <BuyTimeScreen onNav={noop}/> },
+  { id: "billing", label: "Billing", group: "Portal", portal: true, Comp: () => <BillingScreen onNav={noop}/> },
+  { id: "activity", label: "Activity", group: "Portal", portal: true, Comp: () => <ActivityScreen onNav={noop}/> },
+  { id: "profile", label: "Profile", group: "Portal", portal: true, Comp: () => <ProfileScreen onNav={noop}/> },
+  { id: "admin", label: "Admin · Members", group: "Admin", Comp: () => <AdminScreen onNav={noop}/> },
+  { id: "system", label: "Design System", group: "Reference", Comp: () => <DesignSystemScreen/> },
+];
+
+function Cover() {
+  return (
+    <div className="print-cover">
+      <Chip size={120}/>
+      <div style={{ marginTop: 32 }}>
+        <Wordmark size="lg"/>
+      </div>
+      <div className="diamond-divider" style={{ maxWidth: 280, margin: "32px auto" }}><Suit kind="diamond" size={10} color="#C9A24A"/></div>
+      <h1 style={{ fontFamily: "Cormorant Garamond, serif", fontSize: 64, lineHeight: 1.05, margin: "0 0 16px", color: "#F4EDE0" }}>
+        Members Only <em className="gold-text" style={{ fontStyle: "italic" }}>Poker Social Club</em>
+      </h1>
+      <p style={{ color: "#8C8470", fontSize: 14, letterSpacing: "0.16em", textTransform: "uppercase", margin: 0 }}>
+        Brand · Public Site · Member Portal · Admin · Design System
+      </p>
+      <div style={{ marginTop: 64, color: "#8C8470", fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+        Prototype Document · MMXXIV
+      </div>
+      <div style={{ marginTop: 12, color: "#5C5648", fontSize: 11 }}>{PAGES.length + 1} pages</div>
+    </div>
+  );
+}
+
+function PrintApp() {
+  return (
+    <div>
+      <div className="print-page"><Cover/></div>
+      {PAGES.map((p, i) => (
+        <div key={p.id} className="print-page" data-screen-label={p.id}>
+          <div className="print-label">
+            <span className="eyebrow-print">{String(i + 1).padStart(2, "0")} · {p.group}</span>
+            <span style={{ fontSize: 18, color: "#F4D27A" }}>{p.label}</span>
+            <span className="eyebrow-print">Members Only · Prototype</span>
+          </div>
+          {p.portal
+            ? <PortalShell current={p.id} onNav={noop}>{p.Comp()}</PortalShell>
+            : p.Comp()}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<PrintApp/>);
+
+// Auto-print once fonts + Babel + JSX components have all loaded
+(async () => {
+  try {
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
+  } catch (e) { /* ignore */ }
+  // Wait for component definitions to be registered on window
+  const wait = (ms) => new Promise(r => setTimeout(r, ms));
+  for (let i = 0; i < 60; i++) {
+    if (window.HomeScreen && window.DashboardScreen && window.DesignSystemScreen && window.PortalShell) break;
+    await wait(100);
+  }
+  await wait(800);
+  window.print();
+})();
+</script>
+</body>
+</html>

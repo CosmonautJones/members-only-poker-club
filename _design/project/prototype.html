@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Members Only Poker Social Club — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="brand.css"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="primitives.jsx"></script>
+<script type="text/babel" src="signature.jsx"></script>
+<script type="text/babel" src="screens-public-1.jsx"></script>
+<script type="text/babel" src="screens-public-2.jsx"></script>
+<script type="text/babel" src="screens-public-3.jsx"></script>
+<script type="text/babel" src="screens-auth.jsx"></script>
+<script type="text/babel" src="screens-portal-1.jsx"></script>
+<script type="text/babel" src="screens-portal-2.jsx"></script>
+<script type="text/babel" src="screens-system.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+function App() {
+  const [route, setRoute] = useState("home");
+  useEffect(() => {
+    const h = window.location.hash.replace("#", "");
+    if (h) setRoute(h);
+  }, []);
+  useEffect(() => { window.location.hash = route; window.scrollTo(0, 0); }, [route]);
+
+  const portalRoutes = ["dashboard", "buytime", "billing", "profile", "activity"];
+  const authRoutes = ["signup", "login"];
+  const fullScreenRoutes = ["admin", "system", ...authRoutes];
+
+  const isPortal = portalRoutes.includes(route);
+  const isAuth = authRoutes.includes(route);
+  const isFull = fullScreenRoutes.includes(route);
+
+  return (
+    <div data-screen-label={route}>
+      {!isPortal && !isFull && <PublicNav current={route} onNav={setRoute}/>}
+      {route === "home" && <HomeScreen onNav={setRoute}/>}
+      {route === "club" && <ClubScreen onNav={setRoute}/>}
+      {route === "games" && <GamesScreen onNav={setRoute}/>}
+      {route === "membership" && <MembershipScreen onNav={setRoute}/>}
+      {route === "contact" && <ContactScreen onNav={setRoute}/>}
+      {route === "signup" && <SignupScreen onNav={setRoute}/>}
+      {route === "login" && <LoginScreen onNav={setRoute}/>}
+      {isPortal && (
+        <PortalShell current={route} onNav={setRoute}>
+          {route === "dashboard" && <DashboardScreen onNav={setRoute}/>}
+          {route === "buytime" && <BuyTimeScreen onNav={setRoute}/>}
+          {route === "billing" && <BillingScreen onNav={setRoute}/>}
+          {route === "profile" && <ProfileScreen onNav={setRoute}/>}
+          {route === "activity" && <ActivityScreen onNav={setRoute}/>}
+        </PortalShell>
+      )}
+      {route === "admin" && <AdminScreen onNav={setRoute}/>}
+      {route === "system" && <DesignSystemScreen/>}
+      {!isPortal && !isFull && <PublicFooter onNav={setRoute}/>}
+
+      {/* Floating route picker */}
+      <RoutePicker route={route} setRoute={setRoute}/>
+    </div>
+  );
+}
+
+function RoutePicker({ route, setRoute }) {
+  const [open, setOpen] = useState(false);
+  const groups = [
+    { label: "Public", items: [["home","Home"],["club","The Club"],["games","Games & Tournaments"],["membership","Membership"],["contact","Find Us"]] },
+    { label: "Auth",   items: [["signup","Sign Up"],["login","Sign In"]] },
+    { label: "Portal", items: [["dashboard","Dashboard"],["buytime","Buy Time"],["billing","Billing"],["activity","Activity"],["profile","Profile"]] },
+    { label: "Admin",  items: [["admin","Members List"]] },
+    { label: "Reference", items: [["system","Design System"]] },
+  ];
+  return (
+    <div style={{ position: "fixed", left: 16, bottom: 16, zIndex: 1000, fontFamily: "Inter, sans-serif" }}>
+      {open && (
+        <div style={{
+          background: "rgba(11,11,11,0.96)", backdropFilter: "blur(12px)",
+          border: "1px solid rgba(201,162,74,0.3)", borderRadius: 10, padding: 14,
+          marginBottom: 8, minWidth: 240,
+          boxShadow: "0 24px 60px -12px rgba(0,0,0,0.7)",
+        }}>
+          {groups.map((g, gi) => (
+            <div key={gi} style={{ marginBottom: gi < groups.length-1 ? 12 : 0 }}>
+              <div style={{ fontSize: 9, letterSpacing: "0.24em", textTransform: "uppercase", color: "#C9A24A", marginBottom: 6 }}>{g.label}</div>
+              {g.items.map(([id, label]) => (
+                <a key={id} onClick={() => { setRoute(id); setOpen(false); }} style={{
+                  display: "block", padding: "5px 8px", borderRadius: 4, cursor: "pointer", fontSize: 13,
+                  color: route === id ? "#F4D27A" : "#F4EDE0",
+                  background: route === id ? "rgba(201,162,74,0.1)" : "transparent",
+                }}>{label}</a>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+      <button onClick={() => setOpen(!open)} style={{
+        background: "rgba(11,11,11,0.96)", backdropFilter: "blur(12px)",
+        border: "1px solid rgba(201,162,74,0.4)", borderRadius: 999, padding: "8px 16px",
+        color: "#F4D27A", fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase",
+        cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontFamily: "inherit",
+      }}>
+        <span style={{ fontFamily: "Cormorant Garamond, serif", fontSize: 14 }}>◆</span>
+        Screens · {route}
+      </button>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

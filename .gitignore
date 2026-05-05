@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Builds
+build/
+dist/
+
+# Environment / secrets — committed examples are explicitly allowed
+.env
+.env.local
+.env*.local
+!.env.example
+!.env.local.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Coverage and test artifacts
+coverage/
+playwright-report/
+test-results/
+.nyc_output/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Vercel
+.vercel/
+
+# TypeScript
+*.tsbuildinfo
+
+# Supabase local CLI artifacts
+supabase/.branches
+supabase/.temp
+
+# Sentry build-time auth (never commit)
+.sentryclirc
+
+# Misc
+tmp/
+temp/
+*.local
