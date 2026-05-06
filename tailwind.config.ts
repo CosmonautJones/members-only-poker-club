@@ -1,11 +1,7 @@
 import type { Config } from 'tailwindcss';
 
 const config: Config = {
-  content: [
-    './app/**/*.{ts,tsx,mdx}',
-    './components/**/*.{ts,tsx}',
-    './lib/**/*.{ts,tsx}',
-  ],
+  content: ['./app/**/*.{ts,tsx,mdx}', './components/**/*.{ts,tsx}', './lib/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -46,13 +42,7 @@ const config: Config = {
         danger: '#B43A2E',
       },
       fontFamily: {
-        display: [
-          '"Cormorant Garamond"',
-          '"Cormorant SC"',
-          '"Trajan Pro"',
-          'Georgia',
-          'serif',
-        ],
+        display: ['"Cormorant Garamond"', '"Cormorant SC"', '"Trajan Pro"', 'Georgia', 'serif'],
         serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
         sans: ['Inter', '-apple-system', '"Söhne"', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
@@ -97,15 +87,12 @@ const config: Config = {
         sm: '0 2px 8px -2px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)',
         md: '0 12px 32px -10px rgba(0,0,0,0.7), 0 2px 6px rgba(0,0,0,0.4)',
         lg: '0 32px 80px -20px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.5)',
-        'gold-glow':
-          '0 0 0 1px rgba(201,162,74,0.5), 0 0 24px -4px rgba(201,162,74,0.4)',
+        'gold-glow': '0 0 0 1px rgba(201,162,74,0.5), 0 0 24px -4px rgba(201,162,74,0.4)',
         'gold-glow-soft': '0 0 16px -4px rgba(201,162,74,0.25)',
       },
       backgroundImage: {
-        'gold-grad':
-          'linear-gradient(135deg, #F4D27A 0%, #E5BA63 35%, #C9A24A 60%, #A8842F 100%)',
-        'gold-grad-soft':
-          'linear-gradient(180deg, #F4D27A 0%, #C9A24A 100%)',
+        'gold-grad': 'linear-gradient(135deg, #F4D27A 0%, #E5BA63 35%, #C9A24A 60%, #A8842F 100%)',
+        'gold-grad-soft': 'linear-gradient(180deg, #F4D27A 0%, #C9A24A 100%)',
         'gold-grad-brushed':
           'linear-gradient(180deg, #C9A24A 0%, #F4D27A 30%, #C9A24A 50%, #A8842F 100%)',
       },
