@@ -62,3 +62,4 @@ Anything surprising, any gotchas, anything that would have saved time today.
 | 2026-05-05 | [02 — Foundation ADRs 0002–0008 ratification](2026-05-05-02-foundation-adrs-0002-0008.md) | 0002–0008 | ratification |
 | 2026-05-05 | [03 — About Us copy refresh on ClubScreen](2026-05-05-03-about-us-content-update.md) | — | implementation (corrected by 04) |
 | 2026-05-05 | [04 — Brand correction + BYOB ratification + domain cascade](2026-05-05-04-brand-correction-byob-domain-cascade.md) | 0009, 0033 | fix |
+| 2026-05-05 | [05 — Conductor harness scaffolding](2026-05-05-05-conductor-harness.md) | — | infra |
