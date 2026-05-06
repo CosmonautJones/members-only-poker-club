@@ -8,7 +8,10 @@ export default defineConfig({
     environment: 'happy-dom',
     globals: true,
     setupFiles: ['./tests/setup.ts'],
-    include: ['{lib,components,app}/**/*.{test,spec}.{ts,tsx}'],
+    include: [
+      '{lib,components,app}/**/*.{test,spec}.{ts,tsx}',
+      'scripts/**/*.{test,spec}.{ts,tsx}',
+    ],
     exclude: ['node_modules', '.next', '_design', 'tests/e2e'],
     coverage: {
       provider: 'v8',

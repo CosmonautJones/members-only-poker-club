@@ -1,0 +1,6 @@
+{
+  "pass": false,
+  "failed_step": "tsc",
+  "first_error_loc": "src/lib/time-bank.ts:42",
+  "summary_path": ".conductor/0011/dispatches/0014-validator.md"
+}
