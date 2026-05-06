@@ -56,13 +56,7 @@
     --danger: var(--crimson);
 
     /* GRADIENTS */
-    --gold-grad: linear-gradient(
-      135deg,
-      #f4d27a 0%,
-      #e5ba63 35%,
-      #c9a24a 60%,
-      #a8842f 100%
-    );
+    --gold-grad: linear-gradient(135deg, #f4d27a 0%, #e5ba63 35%, #c9a24a 60%, #a8842f 100%);
     --gold-grad-soft: linear-gradient(180deg, #f4d27a 0%, #c9a24a 100%);
     --gold-grad-brushed: linear-gradient(
       180deg,
@@ -74,14 +68,10 @@
 
     /* SHADOWS */
     --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.4);
-    --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.5),
-      0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 12px 32px -10px rgba(0, 0, 0, 0.7),
-      0 2px 6px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 32px 80px -20px rgba(0, 0, 0, 0.8),
-      0 4px 12px rgba(0, 0, 0, 0.5);
-    --gold-glow: 0 0 0 1px rgba(201, 162, 74, 0.5),
-      0 0 24px -4px rgba(201, 162, 74, 0.4);
+    --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 12px 32px -10px rgba(0, 0, 0, 0.7), 0 2px 6px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 32px 80px -20px rgba(0, 0, 0, 0.8), 0 4px 12px rgba(0, 0, 0, 0.5);
+    --gold-glow: 0 0 0 1px rgba(201, 162, 74, 0.5), 0 0 24px -4px rgba(201, 162, 74, 0.4);
     --gold-glow-soft: 0 0 16px -4px rgba(201, 162, 74, 0.25);
 
     /* MOTION */
@@ -104,7 +94,7 @@
   }
 
   body {
-    @apply bg-ink-900 text-ivory-200 font-sans;
+    @apply bg-ink-900 font-sans text-ivory-200;
     font-feature-settings: 'ss01', 'cv01';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -153,12 +143,7 @@
 
   .gold-rule {
     height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--gold-400) 50%,
-      transparent 100%
-    );
+    background: linear-gradient(90deg, transparent 0%, var(--gold-400) 50%, transparent 100%);
     border: 0;
   }
 
@@ -182,12 +167,7 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      var(--gold-400) 50%,
-      transparent
-    );
+    background: linear-gradient(90deg, transparent, var(--gold-400) 50%, transparent);
   }
 
   .grain {
@@ -205,13 +185,13 @@
   }
 
   .eyebrow {
-    @apply text-xs uppercase font-medium font-sans;
+    @apply font-sans text-xs font-medium uppercase;
     letter-spacing: 0.32em;
     color: var(--gold-300);
   }
 
   .field-label {
-    @apply text-xs uppercase font-medium font-sans;
+    @apply font-sans text-xs font-medium uppercase;
     letter-spacing: 0.18em;
     color: var(--gold-300);
   }

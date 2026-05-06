@@ -1,20 +1,20 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // 8 operational phases (bootstrap..cleanup) plus 3 terminal states
 // (completed, aborted, escalated). Terminal states are written to
 // status.json when a run ends; phases describe in-flight progress.
 export const PHASES = [
-  "bootstrap",
-  "plan",
-  "build",
-  "integration",
-  "document",
-  "ship",
-  "retrospective",
-  "cleanup",
-  "completed",
-  "aborted",
-  "escalated",
+  'bootstrap',
+  'plan',
+  'build',
+  'integration',
+  'document',
+  'ship',
+  'retrospective',
+  'cleanup',
+  'completed',
+  'aborted',
+  'escalated',
 ] as const;
 
 export const StatusSchema = z.object({
@@ -34,7 +34,7 @@ export const TaskSchema = z.object({
   id: z.string(),
   title: z.string(),
   blockedBy: z.array(z.string()).default([]),
-  risk: z.enum(["low", "medium", "high"]),
+  risk: z.enum(['low', 'medium', 'high']),
   linked_adrs: z.array(z.string().regex(/^\d{4}$/)).default([]),
 });
 
@@ -86,7 +86,7 @@ export const PlanSchema = z
 
 export type Plan = z.infer<typeof PlanSchema>;
 
-export const ValidatorResultSchema = z.discriminatedUnion("pass", [
+export const ValidatorResultSchema = z.discriminatedUnion('pass', [
   z.object({
     pass: z.literal(true),
     summary_path: z.string(),
@@ -102,7 +102,7 @@ export const ValidatorResultSchema = z.discriminatedUnion("pass", [
 export type ValidatorResult = z.infer<typeof ValidatorResultSchema>;
 
 export const RoleSummarySchema = z.object({
-  status: z.enum(["ok", "blocked", "context_exhausted", "failed"]),
+  status: z.enum(['ok', 'blocked', 'context_exhausted', 'failed']),
   summary_path: z.string(),
   notes: z.string().optional(),
   files_touched: z.array(z.string()).default([]),
