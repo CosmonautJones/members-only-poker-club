@@ -55,6 +55,7 @@ ADRs remain immutable once Accepted. Specs iterate freely.
 | **Supporting** | `spec-writer` | one spec | spec path |
 | | `planner` | one spec | `plan.json` + TaskCreate calls |
 | | `task-splitter` | one stuck task | replacement subtasks for `plan.json` |
+| | `ratifier` | one Stub ADR | proposal path + open_questions_count |
 | | `shipper` | one PR | branch/PR URL |
 | **Critic-tier** | `critic` | post-spec & post-impl | `{verdict, concerns[]}` |
 | | `scope-judge` | end of slice | `{ship_ready: bool, missing[]}` |
@@ -79,7 +80,7 @@ Additional ADRs may be flagged in the paired spec via `risk: high` frontmatter.
 ```
 /conductor <N>
     ↓
-Phase 0  Bootstrap         read ADR (refuse if Status: Stub), init .conductor/<N>/, ensure spec exists
+Phase 0  Bootstrap         read ADR; init .conductor/<N>/; if Status: Stub or Proposed → ratifier → user approves → write back to docs/adr/; ensure spec exists
 Phase 1  Plan              critic(spec) → planner → premortem(high-risk, parallel)
 Phase 2  Build             per task: test-writer ║ worker → validator
                            on fail: append attempt, re-spawn worker w/ history
@@ -182,8 +183,9 @@ The orchestrator pauses and pings the user **only** for these triggers:
 2. **Login / OAuth / MFA / browser auth** required
 3. **Money decisions** — paid tier upgrades, purchases, billing
 4. **Done** — final completion notification at end of Phase 7. If a `skill-diff-proposal.md` was produced by the retrospective, the Done message includes the path and a one-line summary so the user can review.
-5. **Stuck** — validator-loop max-iters exceeded *and* auto-decomposition also failed; or critic-loop max-iters exceeded
-6. **Implicit guardrail (system-level)** — destructive ops on shared/production systems (force-push to main, drop tables, delete branches with unpushed work, etc.) always confirm
+5. **Ratification approval** — when `ratifier` produces a Stub→Accepted proposal at `.conductor/<N>/ratification-proposal.md`, pause and ask the user to accept (or request revisions) before any `docs/adr/` file is modified
+6. **Stuck** — validator-loop max-iters exceeded *and* auto-decomposition also failed; or critic-loop max-iters exceeded; or ratifier-revision loop max 3 iters
+7. **Implicit guardrail (system-level)** — destructive ops on shared/production systems (force-push to main, drop tables, delete branches with unpushed work, etc.) always confirm
 
 Notifications go to chat. If a Telegram channel is configured (`telegram:configure`), notifications also go there for trigger 4 and trigger 5 specifically (so the user can be away from the terminal).
 
@@ -268,6 +270,7 @@ These are not blockers for the design but need resolution during planning:
 - **Spec template** — exact frontmatter and section structure for `docs/specs/NNNN-*.md`
 - **Validator command set** — which commands constitute "the gauntlet" for this project (likely `pnpm typecheck`, `pnpm test`, `pnpm lint`, plus spec-defined acceptance commands)
 - **Skill-diff dry-run** — should the retrospective also produce a *test* of its proposed diff (e.g., simulate the run with the new skill), or is human review the only safety net? (Default: human review only, dry-run is future work.)
+- **Ratifier auto-accept policy** — currently the ratifier always pauses for user approval (escalation trigger #5). Future amendment could allow auto-accept on truly low-risk ADRs (single-paragraph, no cross-refs) to reduce interruptions. Defer until interruption-frequency data is available.
 
 ## 16. Done criteria
 
@@ -277,3 +280,9 @@ The skill is shipped when:
 - `/conductor resume` successfully recovers from a force-quit mid-Phase 2
 - The retrospective produces at least one skill-diff proposal that the user reviews
 - One full slice (Slice 1: marketing + auth skeleton) is shippable via repeated `/conductor` invocations within a single 250k session
+
+## 17. Amendments
+
+| Date | Section(s) | Change | Reason |
+|---|---|---|---|
+| 2026-05-05 | §4.1, §5, §10, §15 | Added `ratifier` role; Phase 0 dispatches ratifier on Stub/Proposed status instead of refusing; new escalation trigger #5 (ratification approval). | First real `/conductor` run (against ADR-0030, Stub) refused at Phase 0. Manual ratification of all slice-1 Stubs would have been ~3-4 hours of one-off work; folding ratification into the conductor pipeline is reusable across all 24 Stubs and matches Travis's stated philosophy of agent-driven work. |
