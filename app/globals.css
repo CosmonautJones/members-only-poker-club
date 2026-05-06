@@ -56,13 +56,7 @@
     --danger: var(--crimson);
 
     /* GRADIENTS */
-    --gold-grad: linear-gradient(
-      135deg,
-      #f4d27a 0%,
-      #e5ba63 35%,
-      #c9a24a 60%,
-      #a8842f 100%
-    );
+    --gold-grad: linear-gradient(135deg, #f4d27a 0%, #e5ba63 35%, #c9a24a 60%, #a8842f 100%);
     --gold-grad-soft: linear-gradient(180deg, #f4d27a 0%, #c9a24a 100%);
     --gold-grad-brushed: linear-gradient(
       180deg,
@@ -74,14 +68,10 @@
 
     /* SHADOWS */
     --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.4);
-    --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.5),
-      0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 12px 32px -10px rgba(0, 0, 0, 0.7),
-      0 2px 6px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 32px 80px -20px rgba(0, 0, 0, 0.8),
-      0 4px 12px rgba(0, 0, 0, 0.5);
-    --gold-glow: 0 0 0 1px rgba(201, 162, 74, 0.5),
-      0 0 24px -4px rgba(201, 162, 74, 0.4);
+    --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 12px 32px -10px rgba(0, 0, 0, 0.7), 0 2px 6px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 32px 80px -20px rgba(0, 0, 0, 0.8), 0 4px 12px rgba(0, 0, 0, 0.5);
+    --gold-glow: 0 0 0 1px rgba(201, 162, 74, 0.5), 0 0 24px -4px rgba(201, 162, 74, 0.4);
     --gold-glow-soft: 0 0 16px -4px rgba(201, 162, 74, 0.25);
 
     /* MOTION */
@@ -91,6 +81,27 @@
     --dur: 220ms;
     --dur-slow: 380ms;
     --dur-cinematic: 720ms;
+
+    /* TYPE SCALE — mirrors _design/project/brand.css */
+    --t-xs: 11px;
+    --t-sm: 12px;
+    --t-base: 14px;
+    --t-md: 15px;
+    --t-lg: 17px;
+    --t-xl: 20px;
+    --t-2xl: 26px;
+    --t-3xl: 36px;
+    --t-4xl: 52px;
+    --t-5xl: 72px;
+    --t-display: 96px;
+
+    /* RADII */
+    --r-sm: 2px;
+    --r: 4px;
+    --r-md: 6px;
+    --r-lg: 10px;
+    --r-xl: 14px;
+    --r-pill: 999px;
   }
 
   * {
@@ -104,7 +115,7 @@
   }
 
   body {
-    @apply bg-ink-900 text-ivory-200 font-sans;
+    @apply bg-ink-900 font-sans text-ivory-200;
     font-feature-settings: 'ss01', 'cv01';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -153,12 +164,7 @@
 
   .gold-rule {
     height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--gold-400) 50%,
-      transparent 100%
-    );
+    background: linear-gradient(90deg, transparent 0%, var(--gold-400) 50%, transparent 100%);
     border: 0;
   }
 
@@ -182,12 +188,7 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      var(--gold-400) 50%,
-      transparent
-    );
+    background: linear-gradient(90deg, transparent, var(--gold-400) 50%, transparent);
   }
 
   .grain {
@@ -205,13 +206,13 @@
   }
 
   .eyebrow {
-    @apply text-xs uppercase font-medium font-sans;
+    @apply font-sans text-xs font-medium uppercase;
     letter-spacing: 0.32em;
     color: var(--gold-300);
   }
 
   .field-label {
-    @apply text-xs uppercase font-medium font-sans;
+    @apply font-sans text-xs font-medium uppercase;
     letter-spacing: 0.18em;
     color: var(--gold-300);
   }
@@ -230,6 +231,108 @@
   }
   .suit-black {
     color: var(--ivory-200);
+  }
+
+  /* BUTTON — ported from _design/project/brand.css */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 22px;
+    font-family: var(--font-sans);
+    font-size: var(--t-base);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid var(--gold-400);
+    border-radius: var(--r);
+    background: transparent;
+    color: var(--gold-200);
+    cursor: pointer;
+    transition: all var(--dur) var(--ease);
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn:hover {
+    background: rgba(201, 162, 74, 0.08);
+    box-shadow: var(--gold-glow-soft);
+  }
+  .btn-primary {
+    background: var(--gold-grad);
+    color: var(--ink-900);
+    border-color: var(--gold-300);
+    font-weight: 600;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transform: translateX(-100%);
+    transition: transform var(--dur-cinematic) var(--ease);
+    pointer-events: none;
+  }
+  .btn-primary:hover::before {
+    transform: translateX(100%);
+  }
+  .btn-primary:hover {
+    box-shadow: var(--gold-glow);
+  }
+  .btn-ghost {
+    border-color: transparent;
+    color: var(--ivory-300);
+  }
+  .btn-ghost:hover {
+    border-color: var(--border);
+    background: var(--ink-800);
+  }
+  .btn-sm {
+    padding: 8px 14px;
+    font-size: var(--t-sm);
+  }
+  .btn-lg {
+    padding: 16px 32px;
+    font-size: var(--t-md);
+  }
+
+  /* PILL — ported from _design/project/brand.css */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(201, 162, 74, 0.08);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    font-size: var(--t-xs);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gold-200);
+  }
+  .pill-live {
+    background: rgba(111, 158, 111, 0.12);
+    border-color: rgba(111, 158, 111, 0.4);
+    color: #8fbe8f;
+  }
+  .pill-live::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #8fbe8f;
+    animation: pulse 2s var(--ease) infinite;
+  }
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
   }
 }
 

@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -11,26 +11,31 @@ import { type NextRequest, NextResponse } from 'next/server';
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(
-    process.env['NEXT_PUBLIC_SUPABASE_URL']!,
-    process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
-          );
-        },
-      },
+  const url = process.env['NEXT_PUBLIC_SUPABASE_URL'];
+  const anon = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+
+  // Marketing-only deploys (slice 1) can run without a real Supabase project.
+  // Skip the session refresh when env vars are absent or placeholder values.
+  // Once the member portal lands in slice 2, production env will always have
+  // real values and this guard becomes a no-op. See ADR-0002 + journal 05.
+  if (!url || !anon || url.includes('placeholder')) {
+    return response;
+  }
+
+  const cookies: CookieMethodsServer = {
+    getAll() {
+      return request.cookies.getAll();
     },
-  );
+    setAll(cookiesToSet) {
+      cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+      response = NextResponse.next({ request });
+      cookiesToSet.forEach(({ name, value, options }) =>
+        response.cookies.set(name, value, options),
+      );
+    },
+  };
+
+  const supabase = createServerClient(url, anon, { cookies });
 
   // Touch the session — triggers refresh-token rotation if needed.
   await supabase.auth.getUser();
