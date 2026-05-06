@@ -80,3 +80,9 @@ Each ADR captures one decision: **Context → Decision → Consequences → Alte
 |---|---|---|---|
 | [031](0031-vendor-lock-in-posture.md) | Vendor lock-in posture | Stub | 4 |
 | [032](0032-cost-model-and-scaling-thresholds.md) | Cost model & scaling thresholds | Stub | 4 |
+
+### Operations
+
+| # | Title | Status | Slice |
+|---|---|---|---|
+| [033](0033-alcohol-model-byob-pre-license.md) | Alcohol model — BYOB pre-license | Accepted | 1 |

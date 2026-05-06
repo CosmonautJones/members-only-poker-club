@@ -9,7 +9,7 @@ Mapping from the prototype's hash routes to Next.js App Router paths, the screen
 | Prototype route | Next.js path | Screen file | Auth | Primary ADRs |
 |---|---|---|---|---|
 | `#home` | `/` | `_design/screens-public-1.jsx` `HomeScreen` | none | 024 (cookie), 028 (analytics), 030 (SEO) |
-| `#club` | `/club` | `_design/screens-public-1.jsx` `ClubScreen` | none | 030 (SEO) |
+| `#club` | `/club` | `_design/screens-public-2.jsx` `ClubScreen` | none | 030 (SEO) |
 | `#games` | `/games` | `_design/screens-public-2.jsx` `GamesScreen` | none | 012 (tournaments — read-only listing in Slice 1, full registration in Slice 3) |
 | `#membership` | `/membership` | `_design/screens-public-2.jsx` `MembershipScreen` | none | 010 (membership pricing display), 022 (PCI — links to Stripe) |
 | `#contact` | `/contact` | `_design/screens-public-3.jsx` `ContactScreen` | none | 016 (rate limit on contact form), 023 (privacy of submitted data) |

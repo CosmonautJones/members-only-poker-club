@@ -8,26 +8,26 @@ const ClubScreen = ({ onNav }) => (
   <div>
     <section style={{ position: "relative", padding: "100px 40px 60px", borderBottom: "1px solid var(--border-faint)", textAlign: "center", maxWidth: 1280, margin: "0 auto" }}>
       <div className="eyebrow" style={{ marginBottom: 20 }}>About Us</div>
-      <h1 style={{ fontFamily: "Cormorant Garamond, serif", fontSize: 88, fontWeight: 500, lineHeight: 1, marginBottom: 24 }}>Members Only Social Club</h1>
+      <h1 style={{ fontFamily: "Cormorant Garamond, serif", fontSize: 88, fontWeight: 500, lineHeight: 1, marginBottom: 24 }}>The Club</h1>
       <hr className="gold-rule-short"/>
       <div style={{ maxWidth: 680, margin: "32px auto 0", textAlign: "left", color: "var(--ivory-300)", fontSize: 18, lineHeight: 1.7 }}>
         <p style={{ marginBottom: 20 }}>
-          Members Only Social Club is a premier private poker destination built for players who value comfort, competition, and community. Our goal is simple — to create an elevated poker experience where members feel welcomed, respected, and taken care of every time they walk through our doors.
+          Members Only Poker Social Club is a premier private poker destination built for players who value comfort, competition, and community. Our goal is simple — to create an elevated poker experience where members feel welcomed, respected, and taken care of every time they walk through our doors.
         </p>
         <p style={{ marginBottom: 20 }}>
           We offer professionally run cash games and tournaments in a well-designed, upscale environment tailored to serious players and recreational members alike. From our table setup to our service, every detail is focused on delivering a smooth, fair, and enjoyable game.
         </p>
         <p style={{ marginBottom: 20 }}>
-          Members Only Social Club proudly operates as a BYOB establishment while we complete the process of obtaining our liquor license, allowing our members the flexibility to enjoy their preferred beverages in a relaxed setting.
+          Members Only Poker Social Club proudly operates as a BYOB establishment while we complete the process of obtaining our liquor license, allowing our members the flexibility to enjoy their preferred beverages in a relaxed setting.
         </p>
         <p style={{ marginBottom: 20 }}>
-          We believe in giving back to our players. That's why we consistently host promotions, giveaways, and special events designed to reward loyalty and keep the action exciting. Whether it's high-hand bonuses, freerolls, or exclusive member perks, there's always something happening at Members Only Social Club.
+          We believe in giving back to our players. That's why we consistently host promotions, giveaways, and special events designed to reward loyalty and keep the action exciting. Whether it's high-hand bonuses, freerolls, or exclusive member perks, there's always something happening at Members Only Poker Social Club.
         </p>
         <p style={{ marginBottom: 20 }}>
           Above all, we pride ourselves on player-first service. Our staff is trained to ensure games run efficiently, fairly, and professionally, while creating an atmosphere where everyone feels like a valued member of the club.
         </p>
         <p style={{ marginBottom: 0 }}>
-          At Members Only Social Club, you're not just playing poker — you're part of a community.
+          At Members Only Poker Social Club, you're not just playing poker — you're part of a community.
         </p>
       </div>
     </section>

@@ -6,7 +6,7 @@
 
 ## Context
 
-The club is members-only and **21+** (TX liquor license). Every signup must verify date of birth and identity. The PokerAtlas equipment bundle includes a physical ID scanner at the door, but online signup happens before a member ever shows up.
+The club is members-only and **21+** (house policy; will sync with TABC requirements once the liquor license is issued — see ADR-0033). Every signup must verify date of birth and identity. The PokerAtlas equipment bundle includes a physical ID scanner at the door, but online signup happens before a member ever shows up.
 
 We need to:
 

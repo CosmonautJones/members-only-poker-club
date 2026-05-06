@@ -4,11 +4,11 @@
 
 ## Context
 
-A new Texas-style social poker club is opening with a full bar (TABC license). The owner needs a public-facing website and a member-facing app that handles membership signup, recurring billing (with an autopay discount), prepaid time-bank purchases, tournament listings + registration, and 21+ ID verification. The room runs PokerAtlas TableCaptain hardware/software for in-room operations (waitlist, dealer rotation, tournament management, ID scanning).
+A new Texas-style social poker club is opening, currently BYOB while pursuing a TABC liquor license. The owner needs a public-facing website and a member-facing app that handles membership signup, recurring billing (with an autopay discount), prepaid time-bank purchases, tournament listings + registration, and 21+ ID verification. The room runs PokerAtlas TableCaptain hardware/software for in-room operations (waitlist, dealer rotation, tournament management, ID scanning).
 
 **Business model (TX private social club):**
 
-- Members-only, **age 21+** (liquor license requires it)
+- Members-only, **age 21+** (house policy; tracks Texas alcohol-service requirements once the TABC license is issued — see ADR-0033)
 - Membership: $30/month invoice, **$25/month on autopay** ($5 incentive)
 - Seat time: $12/hour, deducted from a prepaid time-bank wallet
 - Promo: $200 buys $300 of time-bank credit (~25 hours @ $12/hr)
@@ -36,8 +36,8 @@ A new Texas-style social poker club is opening with a full bar (TABC license). T
 | Tournaments | In v1 (listing + registration + Stripe entry-fee). Tournament *structure* stays in TableCaptain | Owner explicitly requested |
 | SMS | In v1 (transactional only — receipts, low-balance alerts, tournament reminders) | Owner explicitly requested. Marketing SMS = ADR-025 Phase 2 |
 | Jurisdiction | Texas social club | Owner confirmed |
-| Age | 21+ | Liquor license (TABC) requires |
-| Domain | `membersonlypokerclub.com` (primary), `mopokerclub.com` (alt) | Owner to register; site infrastructure is domain-agnostic |
+| Age | 21+ | House policy; aligns with TABC age requirement once licensed (see ADR-0033) |
+| Domain | `membersonlypoker.com` (primary), `membersonlypokerclub.com` (alt — already considered) | Owner to confirm registration; site infrastructure is domain-agnostic |
 | Repository | [CosmonautJones/members-only-poker-club](https://github.com/CosmonautJones/members-only-poker-club) | Public; will be made private before any sensitive code lands |
 | Design system | See [`design-system.md`](design-system.md) | Tokens lifted from `_design/brand.css` |
 
@@ -275,7 +275,7 @@ middleware.ts                                             — rate-limit + cooki
 
 ## Open questions
 
-1. **Domain registration** — owner picks `membersonlypokerclub.com` or `mopokerclub.com` and registers. Vercel hosts either.
+1. **Domain registration** — owner to confirm `membersonlypoker.com` is registered (now the primary). `membersonlypokerclub.com` retained as alt / redirect target if already registered. Vercel hosts either.
 2. **Brand assets in vector form** — chip-logo, signage, room-layout PNGs are in `_design/assets/`. Need SVG/AI versions for high-res print and favicon.
 3. **TABC permit number** — must appear on Privacy/Terms once issued.
 4. **Member agreement legal text** — needs counsel review. We draft from a TX private-club template; owner's lawyer signs off.
