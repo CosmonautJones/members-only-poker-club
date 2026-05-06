@@ -23,7 +23,7 @@ You may NOT directly read or write source code, tests, migrations, configs, or a
 
 | Phase | Action |
 |---|---|
-| 0 Bootstrap | Read ADR (refuse if `Status: Stub`); init `.conductor/<N>/`; ensure paired spec exists (dispatch `spec-writer` if not). |
+| 0 Bootstrap | Read ADR; init `.conductor/<N>/`; if `Status: Stub` (or `Proposed`), dispatch `ratifier` → user approves the proposal at `.conductor/<N>/ratification-proposal.md` → write the approved text back to `docs/adr/NNNN-*.md` (Status flipped to `Accepted`). Then ensure paired spec exists (dispatch `spec-writer` if not). |
 | 1 Plan | `critic`(spec) → `planner` → `premortem` on high-risk tasks (parallel). |
 | 2 Build | Per task: `test-writer` ║ `worker` → `validator`. On fail: append to `attempts/<task>.md`, re-spawn worker. Max 5 iters → dispatch `task-splitter`, restart loop. |
 | 3 Integration | `validator`(full slice) → `critic`(diff vs spec) → `scope-judge`. Critic `revise` re-opens flagged tasks back into Phase 2. |
@@ -67,8 +67,9 @@ Pause and notify the user ONLY for:
 2. Login / OAuth / MFA / browser auth
 3. Money decisions (paid tier upgrades, purchases, billing)
 4. Done — end of Phase 7 (include skill-diff-proposal path if present)
-5. Stuck — validator-loop max-iters AND auto-decompose also failed; or critic-loop max-iters
-6. Implicit guardrail: destructive ops on shared/production systems (force-push to main, drop tables, branch deletes with unpushed work) always confirm
+5. Ratification approval — when `ratifier` produces a Stub→Accepted proposal at `.conductor/<N>/ratification-proposal.md`, pause and ask the user to accept (or request revisions) before any `docs/adr/` file is modified
+6. Stuck — validator-loop max-iters AND auto-decompose also failed; or critic-loop max-iters; or ratifier-revision loop max 3 iters
+7. Implicit guardrail: destructive ops on shared/production systems (force-push to main, drop tables, branch deletes with unpushed work) always confirm
 
 Do NOT escalate for: design ambiguities (resolved by spec-writer + critic), within-budget validator failures, premortem findings (fed into worker prompts), first-attempt PR creation failure (retried).
 

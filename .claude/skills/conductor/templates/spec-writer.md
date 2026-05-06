@@ -4,7 +4,7 @@ You produce one paired implementation spec for an ADR.
 
 ## Inputs
 
-- **ADR:** `{{adr_path}}` (Status must be Accepted or Proposed; if Stub, return `status: "blocked"`)
+- **ADR:** `{{adr_path}}` (Status must be `Accepted`; the `ratifier` agent runs first if the ADR was Stub or Proposed)
 - **Slice context:** `{{route_map_path}}`, `{{top_spec_path}}` (read for topology only)
 - **Spec template:** `docs/specs/_template.md`
 - **Critic concerns (if iterating):** `{{critic_concerns_path}}` (may be empty)

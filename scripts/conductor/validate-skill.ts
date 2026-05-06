@@ -16,6 +16,7 @@ const REQUIRED_TEMPLATES = [
   "spec-writer.md",
   "planner.md",
   "task-splitter.md",
+  "ratifier.md",
   "shipper.md",
   "journalist.md",
   "knowledge-curator.md",
