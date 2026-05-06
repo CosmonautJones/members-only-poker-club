@@ -33,6 +33,16 @@ describe("PlanSchema", () => {
     ];
     expect(() => PlanSchema.parse(bad)).toThrow();
   });
+  it("rejects a plan with a blockedBy cycle", () => {
+    const cyclic = {
+      spec_path: "docs/specs/x.md",
+      tasks: [
+        { id: "a", title: "A", blockedBy: ["b"], risk: "low" },
+        { id: "b", title: "B", blockedBy: ["a"], risk: "low" },
+      ],
+    };
+    expect(() => PlanSchema.parse(cyclic)).toThrow();
+  });
 });
 
 describe("ValidatorResultSchema", () => {
@@ -46,9 +56,26 @@ describe("ValidatorResultSchema", () => {
       ValidatorResultSchema.parse({ pass: false }),
     ).toThrow();
   });
+  it("parses a pass=true result", () => {
+    expect(() =>
+      ValidatorResultSchema.parse({
+        pass: true,
+        summary_path: ".conductor/0011/dispatches/0019-validator.md",
+      }),
+    ).not.toThrow();
+  });
 });
 
 describe("RoleSummarySchema", () => {
+  it("parses a valid summary", () => {
+    expect(() =>
+      RoleSummarySchema.parse({
+        status: "ok",
+        summary_path: ".conductor/0011/dispatches/0007-worker.md",
+        files_touched: ["src/lib/time-bank.ts"],
+      }),
+    ).not.toThrow();
+  });
   it("requires a summary_path", () => {
     expect(() =>
       RoleSummarySchema.parse({ status: "ok" }),

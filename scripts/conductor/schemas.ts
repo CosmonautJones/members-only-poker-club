@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+// 8 operational phases (bootstrap..cleanup) plus 3 terminal states
+// (completed, aborted, escalated). Terminal states are written to
+// status.json when a run ends; phases describe in-flight progress.
 export const PHASES = [
   "bootstrap",
   "plan",
@@ -27,7 +30,7 @@ export const StatusSchema = z.object({
 
 export type Status = z.infer<typeof StatusSchema>;
 
-const TaskSchema = z.object({
+export const TaskSchema = z.object({
   id: z.string(),
   title: z.string(),
   blockedBy: z.array(z.string()).default([]),
@@ -50,6 +53,33 @@ export const PlanSchema = z
             message: `task ${task.id} blockedBy references unknown task ${dep}`,
           });
         }
+      }
+    }
+
+    const visited = new Set<string>();
+    const inStack = new Set<string>();
+    const taskById = new Map(plan.tasks.map((t) => [t.id, t]));
+    const hasCycle = (id: string): boolean => {
+      if (inStack.has(id)) return true;
+      if (visited.has(id)) return false;
+      visited.add(id);
+      inStack.add(id);
+      const task = taskById.get(id);
+      if (task) {
+        for (const dep of task.blockedBy) {
+          if (hasCycle(dep)) return true;
+        }
+      }
+      inStack.delete(id);
+      return false;
+    };
+    for (const task of plan.tasks) {
+      if (hasCycle(task.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `blockedBy graph contains a cycle involving task ${task.id}`,
+        });
+        break;
       }
     }
   });
