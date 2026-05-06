@@ -10,4 +10,9 @@ describe("validateConductorSkill", () => {
       expect(typeof e).toBe("string");
     }
   });
+
+  it("reports zero errors — skill is fully assembled", () => {
+    const result = validateConductorSkill();
+    expect(result.errors).toEqual([]);
+  });
 });
