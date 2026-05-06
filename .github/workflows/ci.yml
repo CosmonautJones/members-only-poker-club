@@ -41,3 +41,35 @@ jobs:
 
       - name: Unit tests
         run: pnpm test --reporter=verbose
+
+      - name: ADR-0007 — service-role key scope check
+        # Service-role key must never appear in client-rendered surfaces.
+        # See docs/adr/0007-secrets-management.md.
+        run: |
+          violations=""
+          for dir in "app/(member)" "app/(marketing)" "components"; do
+            if [ -d "$dir" ]; then
+              found=$(grep -rln 'SUPABASE_SERVICE_ROLE_KEY' "$dir" || true)
+              if [ -n "$found" ]; then
+                violations="${violations}${found}\n"
+              fi
+            fi
+          done
+          if [ -n "$violations" ]; then
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY appeared in a client surface (ADR-0007 violation):"
+            printf "%b" "$violations"
+            exit 1
+          fi
+
+      - name: ADR-0004 — money column type check
+        # Money columns must be bigint (cents). Never decimal/float/numeric.
+        # See docs/adr/0004-money-handling-integer-cents.md.
+        run: |
+          if [ -d supabase/migrations ]; then
+            matches=$(grep -rniE '_cents.*(decimal|numeric|float|real|double precision)' supabase/migrations/ || true)
+            if [ -n "$matches" ]; then
+              echo "::error::Money column declared with non-integer type (ADR-0004 violation):"
+              echo "$matches"
+              exit 1
+            fi
+          fi
