@@ -3,24 +3,32 @@ date: 2026-05-05
 adrs: []
 slice: 1
 type: implementation
-status: partial
+status: complete
 ---
 
 # About Us copy refresh on ClubScreen
 
 ## Context
 
-The owner sent over an authoritative new About Us copy block for the club page, branded as "Members Social Club" and describing the venue as a BYOB-while-pending-liquor-license establishment with promotions, giveaways, and player-first service.
+The owner sent over an authoritative new About Us copy block for the club page, originally branded as "Members Social Club" (the agent's pasted draft) and describing the venue as a BYOB-while-pending-liquor-license establishment with promotions, giveaways, and player-first service.
 
 The marketing About / club page is the prototype `ClubScreen` (per `docs/route-map.md`, slated for Next.js `/club` in Slice 1). The Next.js app pages haven't been ported yet, so the prototype JSX is still the visual source of truth.
 
-This entry only updates the prose in the About Us hero of `ClubScreen`. It does **not** rename the product, touch ADRs, change the spec/README, or alter the alcohol/age model anywhere outside the About Us block — those are reconciliation decisions for the owner (see "Next").
+This entry updates the prose in the About Us hero of `ClubScreen`. It intentionally does **not** propagate the rename or BYOB statement beyond that hero block — those cascade across spec/README/metadata/footer/ADRs and are tracked as the **rebrand-cascade follow-up** (see "Next").
+
+### Owner reconciliation — answered 2026-05-05
+
+After the contradictions were surfaced (see below), the owner answered both:
+
+1. **Product name:** **Members Only Social Club** (drops "Poker", keeps "Members Only"). Neither the agent's draft ("Members Social Club") nor the legacy name ("Members Only Poker Social Club"). The about-us prose was rewritten to use this name before the branch was pushed.
+2. **Alcohol model:** **BYOB pre-license** confirmed. Spec.md's TABC-licensed claim is now stale and will be revised in the rebrand-cascade follow-up. ADR-0009's 21+ justification chain needs re-grounding away from TABC (a 21+ house policy can stand independently, but the reasoning in the spec/ADR currently leans on TABC).
+3. **Branch shipping:** option (i) — merge + push as-is after the prose rename. Decision-cascade tracked as separate follow-up.
 
 ## Changes
 
 - **`_design/project/screens-public-2.jsx`** — `ClubScreen` hero section:
   - Eyebrow changed `About` → `About Us`.
-  - `<h1>` changed `The Club` → `Members Social Club` (the new copy refers to the venue by this name throughout — kept inside the About block per task scope).
+  - `<h1>` changed `The Club` → `Members Only Social Club` (the new copy refers to the venue by this name throughout — kept inside the About block per task scope).
   - The single existing intro `<p>` ("We are a member-funded social poker club. The doors are private…") was replaced with a 6-paragraph block wrapped in a single left-aligned container `<div>`. Paragraph mapping:
     1. Mission / value prop ("premier private poker destination…")
     2. Cash games & tournaments / upscale environment
@@ -35,8 +43,8 @@ This entry only updates the prose in the About Us hero of `ClubScreen`. It does 
 
 - **Distributed all 6 paragraphs into the hero About slot rather than scattering them across the page.** The existing topical sections (Room, House Rules, Dress Code, Gallery) have their own concrete content with house-specific facts (12 tables, TDA rules, dress code lists). Trying to graft new generic prose into them would either duplicate or contradict that content. The hero is the only "free-form About" slot, so all 6 paragraphs go there. The hero `<p>` was promoted to a `<div>` of `<p>`s so the multi-paragraph flow renders correctly without restructuring the section.
 - **Switched the hero text alignment from centered to left-aligned within the prose container.** Six stacked centered paragraphs read as a wall; left-align on a 680px column reads as readable copy while keeping the eyebrow / h1 / gold rule centered above. The visual rhythm of the section is preserved.
-- **Kept the new "Members Social Club" name inside the About block only.** Task scope explicitly says do not rename the product elsewhere. The footer `© MMXXIV Members Only Poker Social Club` and the `app/layout.tsx` metadata `title`/`description` still use the original product name. This is intentional — the owner needs to decide which name is canonical before we propagate.
-- **Did not touch the `21+ · ID required at the door` line in `PublicFooter` or `app/page.tsx`.** That language is downstream of ADR-0009 (member identity) and `docs/spec.md`, both off-limits per task scope. The new BYOB language doesn't directly contradict 21+ (BYOB venues can still have a 21+ door policy), but the owner's note that the liquor license is "still pending" is at odds with `docs/spec.md`'s claim that a TABC license is in place and *drives* the 21+ requirement. Leaving the 21+ line as-is until the owner decides.
+- **Brand name in this prose is "Members Only Social Club"** per the owner's reconciliation. The footer `© MMXXIV Members Only Poker Social Club` and the `app/layout.tsx` metadata `title`/`description` still use the legacy long name — those will be reconciled in the rebrand-cascade follow-up so this PR stays scoped to one prose change.
+- **Did not touch the `21+ · ID required at the door` line in `PublicFooter` or `app/page.tsx`.** That language is downstream of ADR-0009 (member identity) and `docs/spec.md`. With BYOB-pre-license confirmed, ADR-0009's TABC-driven 21+ justification needs re-grounding, but that's the rebrand-cascade follow-up's job. Leaving the 21+ line in place because a 21+ house policy stands on its own — only the *justification chain* needs revisiting, not the requirement itself.
 
 ## Tests
 
@@ -44,18 +52,25 @@ None added — content-only change to a prototype JSX file that isn't yet wired 
 
 ## Next
 
-Two contradictions surfaced that need owner reconciliation before the rest of the marketing site is built:
+Both surfaced contradictions are now owner-resolved (see "Owner reconciliation" above), but the *cascade work* triggered by those decisions is open:
 
-1. **Product name.** New copy says **Members Social Club** throughout. Existing artifacts (`README.md`, `docs/spec.md`, `package.json` `name`, footer copyright in `screens-public-1.jsx`, `app/layout.tsx` metadata, the domain `membersonlypokerclub.com`) say **Members Only Poker Social Club**. Owner needs to pick one:
-   - (a) New name is the marketing brand, legacy name stays the legal/registered entity → leave everything outside the About block alone, but write a brand-vs-entity ADR.
-   - (b) Full rebrand to Members Social Club → cascade rename across spec, README, package.json, domain, footer copyright, metadata, etc. (substantial change; would need its own ADR + slice).
-   - (c) Revert the About block to the legacy name → re-edit `ClubScreen` h1 back to "The Club" / "Members Only Poker Social Club" and treat the new copy's naming as a typo.
+1. **Rebrand cascade — Members Only Poker Social Club → Members Only Social Club.** Files that need updating (in priority order):
+   - `app/layout.tsx` — `metadata.title.default` / `template`, `description`, `openGraph.siteName`
+   - `_design/project/screens-public-1.jsx` — `PublicFooter` © line and any other long-name references
+   - `README.md` — title + description
+   - `docs/spec.md` — title + every prose reference
+   - `docs/adr/*` — every ADR that names the product (search needed)
+   - `package.json` — `name` field (`members-only-poker-club` → `members-only-social-club`?) and `description`
+   - `docs/design-system.md` — title only, probably
+   - **Domain question:** `membersonlypokerclub.com` is registered. Keep as-is and acquire `membersonlysocialclub.com` as primary? Or redirect-only? Owner action.
+   - This deserves its own ADR: "Brand rename: Members Only Social Club" capturing the why and the deferred items (legal entity, domain).
 
-2. **Alcohol model — BYOB pending liquor license vs TABC license + 21+.** New copy says we **are BYOB while obtaining our liquor license**. `docs/spec.md` says we **hold a TABC license** and that license drives the 21+ door requirement enforced by ADR-0009. The two cannot both be true at launch. Owner needs to confirm:
-   - Are we pre-license (BYOB) and the spec is aspirational? → ADR-0009's age gate may need re-justification (Texas private poker clubs and 21+ aren't strictly TABC-coupled, but the *reasoning* in the spec/ADR currently is).
-   - Or is the new copy stale and TABC is in place? → strike "BYOB while we complete the process of obtaining our liquor license" before this About block ships to a real `/club` route.
+2. **BYOB cascade — TABC-licensed → BYOB pre-license.**
+   - `docs/spec.md` — strike or qualify the TABC-licensed claim; the line "Members must be 21+. ID required at the door. Play responsibly." in `README.md` still holds, but its justification chain changes.
+   - `docs/adr/0009-member-identity-and-id-verification.md` (currently a Stub anyway) — re-ground the 21+ requirement on house policy / Texas private-club rules, not TABC. Worth doing as part of writing that ADR.
+   - PublicFooter line `21+ · ID required at the door` is unchanged.
 
-3. **Out-of-scope discrepancy noticed:** `docs/route-map.md` lists `ClubScreen` as living in `_design/project/screens-public-1.jsx`, but it actually lives in `_design/project/screens-public-2.jsx`. Not part of this task's scope; flagged here so a future doc-cleanup pass can fix it.
+3. **Out-of-scope discrepancy noticed:** `docs/route-map.md` lists `ClubScreen` as living in `_design/project/screens-public-1.jsx`, but it actually lives in `_design/project/screens-public-2.jsx`. Tiny doc fix; bundle into the rebrand-cascade PR.
 
 ## Notes for future me
 
