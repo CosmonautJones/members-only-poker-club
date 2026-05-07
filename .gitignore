@@ -57,3 +57,6 @@ supabase/.temp
 tmp/
 temp/
 *.local
+
+# Conductor orchestrator working memory (never committed)
+.conductor/

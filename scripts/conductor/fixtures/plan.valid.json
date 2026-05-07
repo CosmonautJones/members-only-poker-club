@@ -1,0 +1,20 @@
+{
+  "spec_path": "docs/specs/0011-time-bank-implementation.md",
+  "tasks": [
+    {
+      "id": "t1",
+      "title": "Schema migration",
+      "blockedBy": [],
+      "risk": "high",
+      "linked_adrs": ["0004", "0011"]
+    },
+    {
+      "id": "t2",
+      "title": "Server action: deposit",
+      "blockedBy": ["t1"],
+      "risk": "high",
+      "linked_adrs": ["0004", "0005"]
+    },
+    { "id": "t3", "title": "UI form", "blockedBy": ["t2"], "risk": "low", "linked_adrs": ["0011"] }
+  ]
+}

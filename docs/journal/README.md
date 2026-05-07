@@ -62,4 +62,6 @@ Anything surprising, any gotchas, anything that would have saved time today.
 | 2026-05-05 | [02 — Foundation ADRs 0002–0008 ratification](2026-05-05-02-foundation-adrs-0002-0008.md) | 0002–0008 | ratification |
 | 2026-05-05 | [03 — About Us copy refresh on ClubScreen](2026-05-05-03-about-us-content-update.md) | — | implementation (corrected by 04) |
 | 2026-05-05 | [04 — Brand correction + BYOB ratification + domain cascade](2026-05-05-04-brand-correction-byob-domain-cascade.md) | 0009, 0033 | fix |
+| 2026-05-05 | [05 — Conductor harness scaffolding](2026-05-05-05-conductor-harness.md) | — | infra |
+| 2026-05-05 | [06 — Conductor amendment: ratifier role for Stub ADRs](2026-05-05-06-conductor-amendment-ratifier.md) | — | infra |
 | 2026-05-06 | [01 — Marketing home MVP shipped to Vercel preview](2026-05-06-01-marketing-home-mvp.md) | 0002 | implementation |

@@ -1,0 +1,9 @@
+{
+  "adr": "0011",
+  "phase": "build",
+  "started_at": "2026-05-05T10:00:00Z",
+  "current_task_id": "t3",
+  "iter_count": 1,
+  "events_offset": 142,
+  "spec_path": "docs/specs/0011-time-bank-implementation.md"
+}

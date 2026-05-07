@@ -16,6 +16,7 @@
     "format": "prettier --write . --ignore-path .gitignore --ignore-path .prettierignore",
     "format:check": "prettier --check . --ignore-path .gitignore --ignore-path .prettierignore",
     "typecheck": "tsc --noEmit",
+    "validate:conductor": "vitest run scripts/conductor",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
