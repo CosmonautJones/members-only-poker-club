@@ -11,8 +11,9 @@ export default defineConfig({
     include: [
       '{lib,components,app}/**/*.{test,spec}.{ts,tsx}',
       'scripts/**/*.{test,spec}.{ts,tsx}',
+      'tests/**/*.{test,spec}.{ts,tsx}',
     ],
-    exclude: ['node_modules', '.next', '_design', 'tests/e2e'],
+    exclude: ['node_modules', '.next', '_design', 'tests/e2e', 'tests-e2e'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],

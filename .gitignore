@@ -31,6 +31,7 @@ coverage/
 playwright-report/
 test-results/
 .nyc_output/
+lighthouse-report.json
 
 # Editors / OS
 .DS_Store
