@@ -22,6 +22,7 @@ const NAV_ITEMS = [
 export function PublicHeader() {
   return (
     <nav
+      className="home-nav"
       style={{
         position: 'sticky',
         top: 0,
@@ -38,6 +39,7 @@ export function PublicHeader() {
     >
       <Link
         href="/"
+        className="home-nav-brand"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -49,6 +51,7 @@ export function PublicHeader() {
         <Wordmark size="md" showSubtitle={true} />
       </Link>
       <div
+        className="home-nav-right"
         style={{
           display: 'flex',
           gap: 32,
@@ -59,6 +62,7 @@ export function PublicHeader() {
           <Link
             key={item.href}
             href={item.href}
+            className="home-nav-link"
             style={{
               fontSize: 12,
               letterSpacing: '0.18em',
@@ -74,7 +78,7 @@ export function PublicHeader() {
             {item.label}
           </Link>
         ))}
-        <Link href="/login" className="btn btn-sm" style={{ marginLeft: 16 }}>
+        <Link href="/login" className="btn btn-sm home-nav-signin" style={{ marginLeft: 16 }}>
           Member Sign In
         </Link>
         <Link href="/signup" className="btn btn-primary btn-sm">

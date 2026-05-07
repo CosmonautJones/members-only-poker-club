@@ -510,6 +510,7 @@ export default function HomePage() {
       >
         <div
           aria-hidden
+          className="home-cta-laurel"
           style={{
             position: 'absolute',
             left: '50%',
