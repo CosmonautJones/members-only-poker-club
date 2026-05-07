@@ -344,8 +344,43 @@
    specificity than class rules, so mobile overrides need !important.
    These rules collapse multi-column grids, scale type, and tighten
    padding for narrow viewports. Desktop is untouched.
+
+   Breakpoint at 900px covers phones and tablet portrait (iPad mini,
+   iPad portrait at ~810/834). Tablet landscape (1024+) gets desktop.
    ============================================================ */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
+  /* Header — collapse to brand + Apply only */
+  .home-nav {
+    padding: 0 16px !important;
+    height: 64px !important;
+    gap: 8px;
+  }
+  .home-nav-brand {
+    gap: 8px !important;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+  .home-nav-right {
+    gap: 8px !important;
+    flex-shrink: 0;
+  }
+  .home-nav-link,
+  .home-nav-signin {
+    display: none !important;
+  }
+
+  /* Footer — stack columns + meta row */
+  .home-foot-grid {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+  .home-foot-meta {
+    flex-direction: column !important;
+    gap: 8px;
+    text-align: center;
+    align-items: center;
+  }
+
   /* Hero */
   .home-hero {
     height: auto !important;
@@ -371,25 +406,28 @@
     text-align: center;
   }
 
-  /* Live ticker — stack label above scrolling list */
+  /* Live ticker — stack label above scrolling game list */
   .home-ticker {
     padding: 16px 24px !important;
   }
   .home-ticker-row {
-    flex-wrap: wrap !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
     gap: 12px !important;
   }
   .home-ticker-list {
+    width: 100%;
     gap: 16px !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    padding-bottom: 4px;
   }
   .home-ticker-list::-webkit-scrollbar {
     display: none;
   }
   .home-ticker-fullboard {
-    margin-left: auto;
+    align-self: flex-start;
   }
 
   /* Section paddings — generic */
@@ -428,6 +466,11 @@
   /* Hours title sits above the table */
   .home-hours-eyebrow-title {
     margin-bottom: 8px;
+  }
+
+  /* CTA laurel decoration overflows on narrow viewports — hide it */
+  .home-cta-laurel {
+    display: none !important;
   }
 }
 

@@ -52,6 +52,7 @@ export function PublicFooter() {
       }}
     >
       <div
+        className="home-foot-grid"
         style={{
           maxWidth: 1280,
           margin: '0 auto',
@@ -127,6 +128,7 @@ export function PublicFooter() {
       </div>
       <hr className="gold-rule" style={{ margin: '40px auto 24px', maxWidth: 1280 }} />
       <div
+        className="home-foot-meta"
         style={{
           maxWidth: 1280,
           margin: '0 auto',
