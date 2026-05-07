@@ -337,6 +337,101 @@
 }
 
 /* ============================================================
+   Marketing home — responsive overrides
+
+   The home page (`app/(marketing)/page.tsx`) ports the prototype 1:1
+   with inline styles for visual fidelity. Inline styles have higher
+   specificity than class rules, so mobile overrides need !important.
+   These rules collapse multi-column grids, scale type, and tighten
+   padding for narrow viewports. Desktop is untouched.
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Hero */
+  .home-hero {
+    height: auto !important;
+    min-height: 560px !important;
+  }
+  .home-hero-inner {
+    padding: 96px 24px 48px !important;
+  }
+  .home-hero-title {
+    font-size: 48px !important;
+  }
+  .home-hero-lede {
+    font-size: 16px !important;
+    margin-bottom: 32px !important;
+  }
+  .home-hero-cta {
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+  .home-hero-cta > * {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Live ticker — stack label above scrolling list */
+  .home-ticker {
+    padding: 16px 24px !important;
+  }
+  .home-ticker-row {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+  .home-ticker-list {
+    gap: 16px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .home-ticker-list::-webkit-scrollbar {
+    display: none;
+  }
+  .home-ticker-fullboard {
+    margin-left: auto;
+  }
+
+  /* Section paddings — generic */
+  .home-section {
+    padding: 64px 24px !important;
+  }
+  .home-section-edge {
+    padding: 64px 0 !important;
+  }
+  .home-section-edge > .home-section-inner {
+    padding: 0 24px !important;
+  }
+
+  /* Multi-column grids collapse to single column */
+  .home-grid-3,
+  .home-grid-2,
+  .home-grid-hours {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+  .home-grid-hours {
+    gap: 24px !important;
+  }
+
+  /* Section titles */
+  .home-h2 {
+    font-size: 40px !important;
+  }
+  .home-h2-sm {
+    font-size: 36px !important;
+  }
+  .home-cta-title {
+    font-size: 44px !important;
+  }
+
+  /* Hours title sits above the table */
+  .home-hours-eyebrow-title {
+    margin-bottom: 8px;
+  }
+}
+
+/* ============================================================
    Reduced motion
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {

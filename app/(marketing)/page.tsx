@@ -63,6 +63,7 @@ export default function HomePage() {
     <div>
       {/* HERO */}
       <section
+        className="home-hero"
         style={{
           position: 'relative',
           height: 720,
@@ -84,6 +85,7 @@ export default function HomePage() {
         <div className="grain" aria-hidden style={{ position: 'absolute', inset: 0 }} />
 
         <div
+          className="home-hero-inner"
           style={{
             position: 'relative',
             maxWidth: 1280,
@@ -109,6 +111,7 @@ export default function HomePage() {
             Est. MMXXIV · Private Social Club
           </div>
           <h1
+            className="home-hero-title"
             style={{
               fontFamily: 'Cormorant Garamond, serif',
               fontSize: 96,
@@ -128,6 +131,7 @@ export default function HomePage() {
             <Suit kind="diamond" size={10} color="#C9A24A" />
           </div>
           <p
+            className="home-hero-lede"
             style={{
               fontSize: 17,
               color: 'var(--ivory-300)',
@@ -140,6 +144,7 @@ export default function HomePage() {
             and the people you wanted to play with anyway.
           </p>
           <div
+            className="home-hero-cta"
             style={{
               display: 'flex',
               gap: 16,
@@ -158,6 +163,7 @@ export default function HomePage() {
 
       {/* LIVE TICKER */}
       <section
+        className="home-ticker"
         style={{
           borderBottom: '1px solid var(--border-faint)',
           background: 'var(--ink-850)',
@@ -165,6 +171,7 @@ export default function HomePage() {
         }}
       >
         <div
+          className="home-ticker-row"
           style={{
             maxWidth: 1280,
             margin: '0 auto',
@@ -194,6 +201,7 @@ export default function HomePage() {
             </span>
           </div>
           <div
+            className="home-ticker-list"
             style={{
               flex: 1,
               display: 'flex',
@@ -233,6 +241,7 @@ export default function HomePage() {
           </div>
           <Link
             href="/games"
+            className="home-ticker-fullboard"
             style={{
               color: 'var(--gold-300)',
               fontSize: 12,
@@ -252,6 +261,7 @@ export default function HomePage() {
 
       {/* VALUE PROPS */}
       <section
+        className="home-section"
         style={{
           padding: '120px 40px',
           maxWidth: 1280,
@@ -262,7 +272,7 @@ export default function HomePage() {
           <div className="eyebrow" style={{ marginBottom: 16 }}>
             The Difference
           </div>
-          <h2 className="section-title" style={{ fontSize: 64, marginBottom: 24 }}>
+          <h2 className="section-title home-h2" style={{ fontSize: 64, marginBottom: 24 }}>
             Built for the people
             <br />
             at the{' '}
@@ -274,6 +284,7 @@ export default function HomePage() {
           <hr className="gold-rule-short" style={{ marginTop: 32 }} />
         </div>
         <div
+          className="home-grid-3"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
@@ -324,6 +335,7 @@ export default function HomePage() {
 
       {/* SIGNAGE FEATURE — image placeholder until owner provides photography */}
       <section
+        className="home-section-edge"
         style={{
           position: 'relative',
           padding: '100px 0',
@@ -332,6 +344,7 @@ export default function HomePage() {
         }}
       >
         <div
+          className="home-section-inner home-grid-2"
           style={{
             maxWidth: 1280,
             margin: '0 auto',
@@ -380,7 +393,7 @@ export default function HomePage() {
             <div className="eyebrow" style={{ marginBottom: 16 }}>
               The House
             </div>
-            <h2 className="section-title" style={{ fontSize: 56, marginBottom: 24 }}>
+            <h2 className="section-title home-h2-sm" style={{ fontSize: 56, marginBottom: 24 }}>
               Twelve tables.
               <br />
               <em className="gold-text" style={{ fontStyle: 'italic' }}>
@@ -418,6 +431,7 @@ export default function HomePage() {
 
       {/* HOURS */}
       <section
+        className="home-section"
         style={{
           padding: '100px 40px',
           maxWidth: 1280,
@@ -425,6 +439,7 @@ export default function HomePage() {
         }}
       >
         <div
+          className="home-grid-hours"
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 2fr',
@@ -435,7 +450,7 @@ export default function HomePage() {
             <div className="eyebrow" style={{ marginBottom: 16 }}>
               Open Tonight
             </div>
-            <h2 className="section-title" style={{ fontSize: 48, marginBottom: 16 }}>
+            <h2 className="section-title home-h2-sm" style={{ fontSize: 48, marginBottom: 16 }}>
               4:00 PM
               <br />
               <em className="gold-text" style={{ fontStyle: 'italic' }}>
@@ -485,6 +500,7 @@ export default function HomePage() {
 
       {/* CTA */}
       <section
+        className="home-section"
         style={{
           position: 'relative',
           padding: '120px 40px',
@@ -512,6 +528,7 @@ export default function HomePage() {
           }}
         >
           <h2
+            className="home-cta-title"
             style={{
               fontFamily: 'Cormorant Garamond, serif',
               fontSize: 64,
