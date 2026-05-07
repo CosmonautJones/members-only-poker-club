@@ -1,9 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import {
-  Cormorant_Garamond,
-  Inter,
-  JetBrains_Mono,
-} from 'next/font/google';
+import { Cormorant_Garamond, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
 const fontDisplay = Cormorant_Garamond({
@@ -29,9 +25,7 @@ const fontMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? 'https://membersonlypoker.com',
-  ),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://membersonlypoker.com'),
   title: {
     default: 'Members Only Poker Social Club',
     template: '%s · Members Only Poker Social Club',
@@ -53,16 +47,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${fontDisplay.variable} ${fontSans.variable} ${fontMono.variable}`}
-    >
+    <html lang="en" className={`${fontDisplay.variable} ${fontSans.variable} ${fontMono.variable}`}>
       <body>{children}</body>
     </html>
   );
