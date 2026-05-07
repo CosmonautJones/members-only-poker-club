@@ -17,6 +17,7 @@
 
 import Link from 'next/link';
 import { Chip, Icon, Laurel, Suit } from '@/components/marketing/primitives';
+import { OrganizationJsonLd } from '@/components/seo/organization-jsonld';
 
 const LIVE_GAMES: ReadonlyArray<readonly [string, string, string]> = [
   ["1/2 NL Hold'em", '2 seats open', 'T7'],
@@ -61,6 +62,9 @@ const HOURS_ROWS: HoursRow[] = [
 export default function HomePage() {
   return (
     <div>
+      {/* Organization JSON-LD (ADR-0030 T7) — non-rendering script tag. */}
+      <OrganizationJsonLd />
+
       {/* HERO */}
       <section
         className="home-hero"
