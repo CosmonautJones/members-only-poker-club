@@ -81,6 +81,27 @@
     --dur: 220ms;
     --dur-slow: 380ms;
     --dur-cinematic: 720ms;
+
+    /* TYPE SCALE — mirrors _design/project/brand.css */
+    --t-xs: 11px;
+    --t-sm: 12px;
+    --t-base: 14px;
+    --t-md: 15px;
+    --t-lg: 17px;
+    --t-xl: 20px;
+    --t-2xl: 26px;
+    --t-3xl: 36px;
+    --t-4xl: 52px;
+    --t-5xl: 72px;
+    --t-display: 96px;
+
+    /* RADII */
+    --r-sm: 2px;
+    --r: 4px;
+    --r-md: 6px;
+    --r-lg: 10px;
+    --r-xl: 14px;
+    --r-pill: 999px;
   }
 
   * {
@@ -210,6 +231,203 @@
   }
   .suit-black {
     color: var(--ivory-200);
+  }
+
+  /* BUTTON — ported from _design/project/brand.css */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 22px;
+    font-family: var(--font-sans);
+    font-size: var(--t-base);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid var(--gold-400);
+    border-radius: var(--r);
+    background: transparent;
+    color: var(--gold-200);
+    cursor: pointer;
+    transition: all var(--dur) var(--ease);
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn:hover {
+    background: rgba(201, 162, 74, 0.08);
+    box-shadow: var(--gold-glow-soft);
+  }
+  .btn-primary {
+    background: var(--gold-grad);
+    color: var(--ink-900);
+    border-color: var(--gold-300);
+    font-weight: 600;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transform: translateX(-100%);
+    transition: transform var(--dur-cinematic) var(--ease);
+    pointer-events: none;
+  }
+  .btn-primary:hover::before {
+    transform: translateX(100%);
+  }
+  .btn-primary:hover {
+    box-shadow: var(--gold-glow);
+  }
+  .btn-ghost {
+    border-color: transparent;
+    color: var(--ivory-300);
+  }
+  .btn-ghost:hover {
+    border-color: var(--border);
+    background: var(--ink-800);
+  }
+  .btn-sm {
+    padding: 8px 14px;
+    font-size: var(--t-sm);
+  }
+  .btn-lg {
+    padding: 16px 32px;
+    font-size: var(--t-md);
+  }
+
+  /* PILL — ported from _design/project/brand.css */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(201, 162, 74, 0.08);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    font-size: var(--t-xs);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gold-200);
+  }
+  .pill-live {
+    background: rgba(111, 158, 111, 0.12);
+    border-color: rgba(111, 158, 111, 0.4);
+    color: #8fbe8f;
+  }
+  .pill-live::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #8fbe8f;
+    animation: pulse 2s var(--ease) infinite;
+  }
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+}
+
+/* ============================================================
+   Marketing home — responsive overrides
+
+   The home page (`app/(marketing)/page.tsx`) ports the prototype 1:1
+   with inline styles for visual fidelity. Inline styles have higher
+   specificity than class rules, so mobile overrides need !important.
+   These rules collapse multi-column grids, scale type, and tighten
+   padding for narrow viewports. Desktop is untouched.
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Hero */
+  .home-hero {
+    height: auto !important;
+    min-height: 560px !important;
+  }
+  .home-hero-inner {
+    padding: 96px 24px 48px !important;
+  }
+  .home-hero-title {
+    font-size: 48px !important;
+  }
+  .home-hero-lede {
+    font-size: 16px !important;
+    margin-bottom: 32px !important;
+  }
+  .home-hero-cta {
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+  .home-hero-cta > * {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Live ticker — stack label above scrolling list */
+  .home-ticker {
+    padding: 16px 24px !important;
+  }
+  .home-ticker-row {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+  .home-ticker-list {
+    gap: 16px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .home-ticker-list::-webkit-scrollbar {
+    display: none;
+  }
+  .home-ticker-fullboard {
+    margin-left: auto;
+  }
+
+  /* Section paddings — generic */
+  .home-section {
+    padding: 64px 24px !important;
+  }
+  .home-section-edge {
+    padding: 64px 0 !important;
+  }
+  .home-section-edge > .home-section-inner {
+    padding: 0 24px !important;
+  }
+
+  /* Multi-column grids collapse to single column */
+  .home-grid-3,
+  .home-grid-2,
+  .home-grid-hours {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+  .home-grid-hours {
+    gap: 24px !important;
+  }
+
+  /* Section titles */
+  .home-h2 {
+    font-size: 40px !important;
+  }
+  .home-h2-sm {
+    font-size: 36px !important;
+  }
+  .home-cta-title {
+    font-size: 44px !important;
+  }
+
+  /* Hours title sits above the table */
+  .home-hours-eyebrow-title {
+    margin-bottom: 8px;
   }
 }
 
