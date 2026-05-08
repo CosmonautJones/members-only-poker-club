@@ -10,7 +10,8 @@
  * *_cents but typing it as decimal/numeric/float/real/double-precision is
  * the realistic mistake that destroys money.
  */
-export const CENTS_FLOAT_TYPE_PATTERN = /[a-zA-Z_]+_cents\s+(decimal|numeric|float|real|double\s+precision)\b/i;
+export const CENTS_FLOAT_TYPE_PATTERN =
+  /[a-zA-Z_]+_cents\s+(decimal|numeric|float|real|double\s+precision)\b/i;
 
 /**
  * Forbids any reference to SUPABASE_SERVICE_ROLE_KEY in client-side trees.
