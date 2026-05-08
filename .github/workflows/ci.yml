@@ -61,6 +61,22 @@ jobs:
       - name: Lint
         run: corepack pnpm lint
 
+  format:
+    name: Format check
+    needs: install
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enable corepack
+        run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - name: Format check
+        run: corepack pnpm format:check
+
   test:
     name: Test
     needs: install

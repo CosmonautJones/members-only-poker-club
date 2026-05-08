@@ -20,6 +20,7 @@ Enable each of the following on the `main` branch protection rule:
   - `Install`
   - `Typecheck`
   - `Lint`
+  - `Format check`
   - `Test`
   - `E2E (Playwright)`
   - `Lighthouse`
