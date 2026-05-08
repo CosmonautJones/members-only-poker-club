@@ -24,14 +24,14 @@ A single JSON object matching `RoleSummarySchema`:
 
 ```json
 {
-  "status": "ok" | "blocked" | "context_exhausted" | "failed",
+  "status": "ok",
   "summary_path": "{{summary_path}}",
-  "files_touched": ["src/...", "..."],
+  "files_touched": ["src/example.ts"],
   "notes": "one-line headline"
 }
 ```
 
-Return ONLY the JSON. No prose, no commentary, no markdown fences.
+`status` is one of `"ok" | "blocked" | "context_exhausted" | "failed"`. Return ONLY the JSON. No prose, no commentary, no markdown fences.
 
 ## Constraints
 

@@ -22,10 +22,14 @@ Write the full analysis to `{{summary_path}}`.
 ```json
 {
   "risks": [
-    { "trigger": "...", "blast_radius": "money|pii|auth|audit|availability", "mitigation": "..." }
+    {
+      "trigger": "concurrent deposit on the same time-bank",
+      "blast_radius": "money",
+      "mitigation": "wrap the row read in SELECT FOR UPDATE inside the deposit transaction"
+    }
   ],
   "summary_path": "{{summary_path}}"
 }
 ```
 
-Return ONLY the JSON.
+`blast_radius` is one of `"money" | "pii" | "auth" | "audit" | "availability"`. Return ONLY the JSON.

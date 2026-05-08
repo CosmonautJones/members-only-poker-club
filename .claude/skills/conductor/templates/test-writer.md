@@ -18,4 +18,13 @@ You write tests for ONE task. You do not implement source code.
 
 ## Return
 
-JSON `RoleSummarySchema`. `files_touched` lists the test files. `notes` lists any criteria you could not test and why.
+```json
+{
+  "status": "ok",
+  "summary_path": "{{summary_path}}",
+  "files_touched": ["tests/example.test.ts"],
+  "notes": "covers criteria 1, 2, 3; 4 untestable without external service mock"
+}
+```
+
+Conforms to `RoleSummarySchema`. `files_touched` lists the test files. `notes` lists any criteria you could not test and why. `status` is one of `"ok" | "blocked" | "context_exhausted" | "failed"`. Return ONLY the JSON.

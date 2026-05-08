@@ -2,6 +2,15 @@
 adr: NNNN
 slice: N
 risk: low | medium | high
+# Acceptance commands MUST be runnable shell commands that exit 0 only when
+# every numbered acceptance criterion is satisfied. The validator runs each
+# one in order during the slice/integration pass; scope-judge refuses to
+# return ship_ready=true if any was not run-and-passed. Bare `pnpm test`
+# does NOT count — list the specific e2e/integration commands that bind
+# the spec's acceptance language to runnable behavior.
+acceptance_commands:
+  - 'pnpm test:e2e:<feature>'
+  # - 'pnpm test:integration:<feature>'
 ---
 
 # Spec: <title>
