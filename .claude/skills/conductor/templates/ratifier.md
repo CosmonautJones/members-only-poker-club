@@ -30,13 +30,13 @@ You upgrade a Stub-status ADR into a fully-ratified Accepted ADR by writing the 
 
 ```json
 {
-  "status": "ok" | "blocked",
+  "status": "ok",
   "proposal_path": "{{proposal_path}}",
   "summary_path": "{{summary_path}}",
   "open_questions_count": 0
 }
 ```
 
-If you cannot ratify (e.g., the ADR is too underspecified — bare placeholder with no Direction notes), return `status: "blocked"` with `notes` describing what external information is needed (e.g., "ADR-0013 requires PokerAtlas TableCaptain API discovery call before ratification — owner task").
+`status` is one of `"ok" | "blocked"`. If you cannot ratify (e.g., the ADR is too underspecified — bare placeholder with no Direction notes), return `status: "blocked"` with `notes` describing what external information is needed (e.g., "ADR-0013 requires PokerAtlas TableCaptain API discovery call before ratification — owner task").
 
 Return ONLY the JSON.

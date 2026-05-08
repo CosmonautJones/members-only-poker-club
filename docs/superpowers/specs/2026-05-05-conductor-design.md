@@ -1,9 +1,24 @@
 # Design: `conductor` — pure-orchestrator skill
 
-- **Date:** 2026-05-05
+- **Date:** 2026-05-05 (v0.1) · Amended 2026-05-08 (v0.2)
 - **Author:** Travis Jones (with Claude)
-- **Status:** Approved (pending implementation plan)
+- **Status:** Implemented (v0.2 amendments below)
 - **Consumer:** the `superpowers:writing-plans` skill, immediately after approval
+
+---
+
+## v0.2 amendments (2026-05-08)
+
+After three independent reviews of v0.1 (code-quality, architectural, devil's-advocate), the following changes landed:
+
+1. **Schema coverage extended.** v0.1 had Zod schemas for 4 of ~12 agent return shapes; v0.2 adds the missing 8 (PlannerResult, CriticResult, ScopeJudgeResult, PremortemResult, RatifierResult, JournalistResult, ShipperResult, RetrospectiveResult) and a `SCHEMA_BY_ROLE` registry the structural validator uses to parse each template's example block.
+2. **Acceptance-command binding.** Spec frontmatter now requires an `acceptance_commands:` array. The slice-scope validator runs every command; `ScopeJudgeResultSchema.superRefine` schema-rejects `ship_ready: true` when any command did not run-and-pass. Closes the silent-pass hole where green `tsc + lint + test` shipped work that missed prose acceptance criteria.
+3. **Per-task iter + split tracking.** `StatusSchema` gained `task_iters: Record<task_id, number>` and `splits: Record<task_id, number>`. Resume after a mid-split crash no longer re-triggers `task-splitter` on a task that was already mid-split. Hard cap of 2 chained splits before escalation.
+4. **Roster reduction 14 → 12.** `task-splitter` merged into `planner` (one role with `mode: "initial" | "split"` discriminant). `knowledge-curator` merged into `journalist` (one role, two output paths: journal entry + KB topic deltas).
+5. **Phase reduction 7 → 5.** Old Phase 4 (Document) folded into Phase 4 Ship (journalist runs in parallel with shipper). Old Phase 7 (Cleanup) folded into Phase 5 Retrospective tail. The pre-v0.2 phase numbers no longer correspond.
+6. **Validator script teeth.** v0.1's `validate-skill.ts` only checked file existence + frontmatter regex (would pass on empty templates). v0.2 also requires: `# Role: <name>` heading, ≥50 chars body, every template's first `\`\`\`json` block parses against its `SCHEMA_BY_ROLE` schema after `{{placeholder}}` substitution. Catches typed-out enum unions (`"a" | "b"`) and stale removed-template files.
+
+The 7-phase / 14-role description below is preserved for historical context. **The implementation reflects the 5-phase / 12-role v0.2 layout** — see `.claude/skills/conductor/SKILL.md` for the canonical current behavior.
 
 ---
 

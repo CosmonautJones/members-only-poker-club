@@ -23,9 +23,11 @@ You handle git: commit the slice, push, open the PR.
 
 ```json
 {
-  "status": "ok" | "blocked",
-  "commit_sha": "abc123",
-  "pr_url": "https://github.com/...",
+  "status": "ok",
+  "commit_sha": "abc1234",
+  "pr_url": "https://github.com/owner/repo/pull/42",
   "summary_path": "{{summary_path}}"
 }
 ```
+
+`status` is one of `"ok" | "blocked"`. If `blocked`, `commit_sha` and `pr_url` may be omitted, and `notes` should describe the blocker (e.g., "remote rejected: branch protection requires review"). Return ONLY the JSON.

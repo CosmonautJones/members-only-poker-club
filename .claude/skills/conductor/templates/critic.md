@@ -20,10 +20,11 @@ Write a verdict to `{{summary_path}}` with reasoning.
 
 ```json
 {
-  "verdict": "ship" | "revise",
+  "verdict": "revise",
+  "mode": "diff",
   "concerns": ["concern 1", "concern 2"],
   "summary_path": "{{summary_path}}"
 }
 ```
 
-If `verdict: "ship"`, `concerns` may be empty. Return ONLY the JSON.
+`verdict` is one of `"ship" | "revise"`; `mode` is one of `"spec" | "diff"`. If `verdict: "ship"`, `concerns` may be empty. Return ONLY the JSON.

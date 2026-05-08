@@ -25,11 +25,15 @@ If iterating from critic concerns, address each concern explicitly.
 
 ## Return
 
+Conforms to `RoleSummarySchema`. `files_touched` is `[spec_path]`. `notes` may include open questions surfaced during writing.
+
 ```json
 {
-  "status": "ok" | "blocked",
-  "spec_path": "docs/specs/0011-time-bank-implementation.md",
+  "status": "ok",
   "summary_path": "{{summary_path}}",
-  "notes": "..."
+  "files_touched": ["docs/specs/0011-time-bank-implementation.md"],
+  "notes": "1 open question surfaced: how to bound the auto-extend window"
 }
 ```
+
+`status` is one of `"ok" | "blocked" | "context_exhausted" | "failed"`. Return ONLY the JSON.
