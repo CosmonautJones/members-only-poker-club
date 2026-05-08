@@ -13,6 +13,7 @@ Mapping from the prototype's hash routes to Next.js App Router paths, the screen
 | `#games` | `/games` | `_design/screens-public-2.jsx` `GamesScreen` | none | 012 (tournaments — read-only listing in Slice 1, full registration in Slice 3) |
 | `#membership` | `/membership` | `_design/screens-public-2.jsx` `MembershipScreen` | none | 010 (membership pricing display), 022 (PCI — links to Stripe) |
 | `#contact` | `/contact` | `_design/screens-public-3.jsx` `ContactScreen` | none | 016 (rate limit on contact form), 023 (privacy of submitted data) |
+| — | `/faq` | (new — Slice 1) | none | 030 (SEO content) |
 | — | `/privacy` | (new — Slice 1) | none | 023, 024 |
 | — | `/terms` | (new — Slice 1) | none | 023 |
 | — | `/member-agreement` | (new — Slice 1, finalized in Slice 2) | none | 009, 011 (legal disclaimers for ID + time-bank) |
@@ -109,7 +110,7 @@ Every server action that touches money or modifies role/state writes an `audit_l
 
 | Slice | Routes shipped |
 |---|---|
-| 1 | `/`, `/club`, `/games` (read-only), `/membership`, `/contact`, `/privacy`, `/terms`, `/member-agreement`, `/api/health`, `/api/contact` |
+| 1 | `/`, `/club`, `/games` (read-only), `/membership`, `/contact`, `/faq`, `/privacy`, `/terms`, `/member-agreement`, `/api/health`, `/api/contact` |
 | 2 | `/signup`, `/login`, `/auth/callback`, `/forgot-password`, `/dashboard`, `/billing`, `/profile`, `/api/webhooks/stripe` (subscription events) |
 | 3 | `/buytime`, `/activity`, `/cashier`, `/cashier/[memberId]`, `/games/[slug]/register`, `/admin/tournaments`, `/api/webhooks/stripe` (extended), `/api/webhooks/twilio` |
 | 4 | `/admin/audit`, `/admin/flags`, `/admin/refunds`, `/_internal/design-system` (gated) |
