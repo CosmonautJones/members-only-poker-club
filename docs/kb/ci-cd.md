@@ -1,0 +1,19 @@
+# CI/CD
+
+Durable lessons for CI workflow design — `.github/workflows/*.yml` patterns,
+backstop greps, migration deploy hooks, branch protection, and the
+cross-consistency between workflow YAML and the docs that describe it.
+
+## Lessons
+
+- **2026-05-07** — When CI shell needs the same regex as a TS module, accept the duplication and gate it with a vitest test. *Context:* a money-handling backstop had to grep the diff in CI bash AND run inside vitest against the same patterns. We exported the regex from a TS module (vitest verifies it), then duplicated the literal pattern character-for-character into the workflow YAML's `run:` block, with a vitest assertion that both halves match the same fixtures. *Why it matters:* shell and TS can't share a regex literal, so drift is the real risk — not the duplication. A test that asserts both copies match the same inputs makes the duplication safe; without it, the bash and TS halves silently diverge over months.
+- **2026-05-07** — Backstop greps should target realistic mistakes, not unrealistic-but-easy-to-pattern ones. *Context:* the obvious money-handling regex catches `*_dollars` column names — a clear ADR-0004 violation, but nobody ever writes that. The realistic mistake is `*_cents` (correct unit) typed as `decimal/numeric/float` (wrong type). We tightened the backstop to catch the realistic case, even though the regex is uglier. *Why it matters:* a backstop that only catches mistakes nobody makes is theater. Before writing one, ask "what's the realistic version of this violation?" and pattern that, even if it costs regex complexity.
+- **2026-05-07** — Ship not-yet-implementable CI jobs as structural placeholders (correct deps, correct gating, exit 0 + comment) rather than omitting them. *Context:* `migrate-staging` depends on a not-yet-ratified ADR for the deploy mechanism. We landed the job with the correct `needs:`, the correct branch/event gating, and an `echo "placeholder — see ADR-NNNN" && exit 0` body. *Why it matters:* the workflow's shape (job order, dependency graph, gating expressions) is the hard part to get right and the easy part to forget once a slice is mid-flight. A structural placeholder preserves the position so the dependent slice only fills in the body — no false-greens, no invented topology under deadline pressure.
+- **2026-05-07** — Tests that assert workflow step ordering must explicitly pin the iteration mechanism. *Context:* a test parsed `ci.yml` with `js-yaml` and asserted job order via `Object.keys(parsed.jobs)`. js-yaml's default `JSON_SCHEMA` preserves YAML document order, so this works — but it's not obvious from the test code. We added a prose comment naming the assumption. *Why it matters:* iteration order in tests rots silently. Anyone who later swaps the parser, sorts the keys, or refactors to `Object.values` will pass a green test that no longer asserts what it used to. State the iteration contract in the test itself.
+- **2026-05-07** — When two artifacts must agree, derive canonical names from one and assert the other matches verbatim — substring checks rot. *Context:* an early acceptance criterion asserted `branch-protection.md` contains the literal "E2E" — passable by any stub mentioning E2E anywhere. We tightened to: parse `ci.yml`, extract each job's display name, assert each appears verbatim in the doc. *Why it matters:* substring assertions degrade to tautologies as the doc grows. Cross-consistency tests that derive the canonical list from the source-of-truth artifact catch doc drift the moment a job is renamed; substring checks catch it never.
+
+## Related ADRs
+
+- ADR-0004 — money handling (cents + integer typing).
+- ADR-0033 — BYOB pre-license posture (informs migrate-staging job stub).
+- The not-yet-ratified deploy-mechanism ADR (referenced by the migrate-staging placeholder).
