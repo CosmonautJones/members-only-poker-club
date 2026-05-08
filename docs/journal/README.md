@@ -65,3 +65,4 @@ Anything surprising, any gotchas, anything that would have saved time today.
 | 2026-05-05 | [05 — Conductor harness scaffolding](2026-05-05-05-conductor-harness.md) | — | infra |
 | 2026-05-05 | [06 — Conductor amendment: ratifier role for Stub ADRs](2026-05-05-06-conductor-amendment-ratifier.md) | — | infra |
 | 2026-05-06 | [01 — Marketing home MVP shipped to Vercel preview](2026-05-06-01-marketing-home-mvp.md) | 0002 | implementation |
+| 2026-05-08 | [01 — ADR-0024 cookie & consent banner conductor run](2026-05-08-01-conductor-run-adr-0024-consent.md) | 0024 | implementation |

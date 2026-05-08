@@ -14,8 +14,9 @@ Workers, test-writers, and spec-writers read the relevant topic slice on every d
 | [audit-log.md](audit-log.md) | 0006 |
 | [auth.md](auth.md) | 0002 |
 | [pii.md](pii.md) | 0009, 0023 |
+| [consent.md](consent.md) | 0009, 0023 |
 | [seo.md](seo.md) | 0030 |
-| [nextjs-app-router.md](nextjs-app-router.md) | 0030 (cross-cutting) |
+| [nextjs-app-router.md](nextjs-app-router.md) | 0030, 0009, 0023 (cross-cutting) |
 
 New topics: append a row above and create the file. Curator may propose new topics that don't fit existing ones.
 
