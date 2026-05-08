@@ -30,9 +30,7 @@ describe('app/robots.ts (AC4 / T5)', () => {
 
   it("first rule's `disallow` array contains exactly the protected prefixes", () => {
     const disallow = toArray(firstRule().disallow);
-    expect(disallow).toEqual(
-      expect.arrayContaining(['/admin', '/cashier', '/dashboard', '/api']),
-    );
+    expect(disallow).toEqual(expect.arrayContaining(['/admin', '/cashier', '/dashboard', '/api']));
     // Exact-set check: the four entries above and nothing else for Slice 1.
     const sorted = [...disallow].sort();
     expect(sorted).toEqual(['/admin', '/api', '/cashier', '/dashboard']);

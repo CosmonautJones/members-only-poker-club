@@ -1,5 +1,5 @@
-import { JsonLd } from "./json-ld";
-import type { Tournament } from "@/lib/tournaments/types";
+import { JsonLd } from './json-ld';
+import type { Tournament } from '@/lib/tournaments/types';
 
 /**
  * Event JSON-LD payload for a single tournament.
@@ -12,22 +12,22 @@ import type { Tournament } from "@/lib/tournaments/types";
  */
 export function EventJsonLd({ tournament }: { tournament: Tournament }) {
   const data = {
-    "@context": "https://schema.org",
-    "@type": "Event",
+    '@context': 'https://schema.org',
+    '@type': 'Event',
     name: tournament.name,
     startDate: tournament.startsAt,
-    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
-    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+    eventStatus: 'https://schema.org/EventScheduled',
     location: {
-      "@type": "Place",
+      '@type': 'Place',
       name: tournament.venueName,
       address: tournament.venueAddress,
     },
     offers: {
-      "@type": "Offer",
+      '@type': 'Offer',
       price: (tournament.buyInCents / 100).toFixed(2),
-      priceCurrency: "USD",
-      availability: "https://schema.org/InStock",
+      priceCurrency: 'USD',
+      availability: 'https://schema.org/InStock',
     },
     maximumAttendeeCapacity: tournament.capacity,
   };

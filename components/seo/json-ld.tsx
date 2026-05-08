@@ -1,4 +1,4 @@
-import "server-only";
+import 'server-only';
 
 type JsonLdProps<T = unknown> = {
   data: T;
@@ -25,9 +25,6 @@ type JsonLdProps<T = unknown> = {
  */
 export function JsonLd<T>({ data }: JsonLdProps<T>) {
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
-    />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
   );
 }

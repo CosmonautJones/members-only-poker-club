@@ -40,166 +40,164 @@ export function GET(request: Request): ImageResponse {
   const subtitle = (rawSubtitle ?? DEFAULT_SUBTITLE).slice(0, 160);
 
   return new ImageResponse(
-    (
+    <div
+      style={{
+        height: '100%',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: `radial-gradient(ellipse at center top, ${INK_800} 0%, ${INK_900} 70%)`,
+        padding: '80px',
+        position: 'relative',
+      }}
+    >
+      {/* Top gold rule */}
       <div
         style={{
-          height: '100%',
-          width: '100%',
+          position: 'absolute',
+          top: 60,
+          left: 80,
+          right: 80,
+          height: 1,
+          background: GOLD_400,
+          opacity: 0.5,
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: `radial-gradient(ellipse at center top, ${INK_800} 0%, ${INK_900} 70%)`,
-          padding: '80px',
-          position: 'relative',
+        }}
+      />
+
+      {/* Eyebrow */}
+      <div
+        style={{
+          color: GOLD_300,
+          fontSize: 22,
+          letterSpacing: '0.32em',
+          textTransform: 'uppercase',
+          marginBottom: 28,
+          display: 'flex',
         }}
       >
-        {/* Top gold rule */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 60,
-            left: 80,
-            right: 80,
-            height: 1,
-            background: GOLD_400,
-            opacity: 0.5,
-            display: 'flex',
-          }}
-        />
-
-        {/* Eyebrow */}
-        <div
-          style={{
-            color: GOLD_300,
-            fontSize: 22,
-            letterSpacing: '0.32em',
-            textTransform: 'uppercase',
-            marginBottom: 28,
-            display: 'flex',
-          }}
-        >
-          Est. MMXXIV · Private Social Club
-        </div>
-
-        {/* Title */}
-        <div
-          style={{
-            color: GOLD_300,
-            fontSize: title.length > 40 ? 76 : 96,
-            fontWeight: 600,
-            lineHeight: 1.1,
-            letterSpacing: '-0.015em',
-            textAlign: 'center',
-            maxWidth: 1040,
-            display: 'flex',
-            justifyContent: 'center',
-          }}
-        >
-          {title}
-        </div>
-
-        {/* Subtitle */}
-        {subtitle ? (
-          <div
-            style={{
-              color: IVORY_200,
-              fontSize: 32,
-              lineHeight: 1.4,
-              marginTop: 36,
-              textAlign: 'center',
-              maxWidth: 980,
-              display: 'flex',
-              justifyContent: 'center',
-            }}
-          >
-            {subtitle}
-          </div>
-        ) : null}
-
-        {/* Bottom gold rule */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 60,
-            left: 80,
-            right: 80,
-            height: 1,
-            background: GOLD_400,
-            opacity: 0.5,
-            display: 'flex',
-          }}
-        />
-
-        {/* Bottom brand line */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 28,
-            left: 0,
-            right: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            color: IVORY_400,
-            fontSize: 18,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-          }}
-        >
-          membersonlypoker.com
-        </div>
-
-        {/* Corner gold dot accents */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 56,
-            left: 76,
-            width: 8,
-            height: 8,
-            background: GOLD_300,
-            borderRadius: 4,
-            display: 'flex',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            top: 56,
-            right: 76,
-            width: 8,
-            height: 8,
-            background: GOLD_300,
-            borderRadius: 4,
-            display: 'flex',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 56,
-            left: 76,
-            width: 8,
-            height: 8,
-            background: GOLD_600,
-            borderRadius: 4,
-            display: 'flex',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 56,
-            right: 76,
-            width: 8,
-            height: 8,
-            background: GOLD_600,
-            borderRadius: 4,
-            display: 'flex',
-          }}
-        />
+        Est. MMXXIV · Private Social Club
       </div>
-    ),
+
+      {/* Title */}
+      <div
+        style={{
+          color: GOLD_300,
+          fontSize: title.length > 40 ? 76 : 96,
+          fontWeight: 600,
+          lineHeight: 1.1,
+          letterSpacing: '-0.015em',
+          textAlign: 'center',
+          maxWidth: 1040,
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
+        {title}
+      </div>
+
+      {/* Subtitle */}
+      {subtitle ? (
+        <div
+          style={{
+            color: IVORY_200,
+            fontSize: 32,
+            lineHeight: 1.4,
+            marginTop: 36,
+            textAlign: 'center',
+            maxWidth: 980,
+            display: 'flex',
+            justifyContent: 'center',
+          }}
+        >
+          {subtitle}
+        </div>
+      ) : null}
+
+      {/* Bottom gold rule */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 60,
+          left: 80,
+          right: 80,
+          height: 1,
+          background: GOLD_400,
+          opacity: 0.5,
+          display: 'flex',
+        }}
+      />
+
+      {/* Bottom brand line */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 28,
+          left: 0,
+          right: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          color: IVORY_400,
+          fontSize: 18,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+        }}
+      >
+        membersonlypoker.com
+      </div>
+
+      {/* Corner gold dot accents */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 56,
+          left: 76,
+          width: 8,
+          height: 8,
+          background: GOLD_300,
+          borderRadius: 4,
+          display: 'flex',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          top: 56,
+          right: 76,
+          width: 8,
+          height: 8,
+          background: GOLD_300,
+          borderRadius: 4,
+          display: 'flex',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 56,
+          left: 76,
+          width: 8,
+          height: 8,
+          background: GOLD_600,
+          borderRadius: 4,
+          display: 'flex',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 56,
+          right: 76,
+          width: 8,
+          height: 8,
+          background: GOLD_600,
+          borderRadius: 4,
+          display: 'flex',
+        }}
+      />
+    </div>,
     {
       width: 1200,
       height: 630,

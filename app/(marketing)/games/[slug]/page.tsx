@@ -124,10 +124,7 @@ export default function TournamentPage({ params }: PageParams) {
           borderBottom: '1px solid var(--gold-400)',
         }}
       >
-        <dt
-          className="eyebrow"
-          style={{ color: 'var(--text-muted)', alignSelf: 'center' }}
-        >
+        <dt className="eyebrow" style={{ color: 'var(--text-muted)', alignSelf: 'center' }}>
           Starts
         </dt>
         <dd
@@ -141,10 +138,7 @@ export default function TournamentPage({ params }: PageParams) {
           <time dateTime={tournament.startsAt}>{dateFormatter.format(startsAtDate)}</time>
         </dd>
 
-        <dt
-          className="eyebrow"
-          style={{ color: 'var(--text-muted)', alignSelf: 'center' }}
-        >
+        <dt className="eyebrow" style={{ color: 'var(--text-muted)', alignSelf: 'center' }}>
           Buy-in
         </dt>
         <dd
@@ -158,10 +152,7 @@ export default function TournamentPage({ params }: PageParams) {
           {buyIn}
         </dd>
 
-        <dt
-          className="eyebrow"
-          style={{ color: 'var(--text-muted)', alignSelf: 'center' }}
-        >
+        <dt className="eyebrow" style={{ color: 'var(--text-muted)', alignSelf: 'center' }}>
           Capacity
         </dt>
         <dd
@@ -175,10 +166,7 @@ export default function TournamentPage({ params }: PageParams) {
           {tournament.capacity} seats
         </dd>
 
-        <dt
-          className="eyebrow"
-          style={{ color: 'var(--text-muted)', alignSelf: 'center' }}
-        >
+        <dt className="eyebrow" style={{ color: 'var(--text-muted)', alignSelf: 'center' }}>
           Venue
         </dt>
         <dd

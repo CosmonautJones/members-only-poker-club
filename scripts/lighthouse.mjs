@@ -157,11 +157,7 @@ async function main() {
 
   fs.writeFileSync(
     REPORT_PATH,
-    JSON.stringify(
-      { baseUrl, threshold: PERF_THRESHOLD, results, lhr: fullReports },
-      null,
-      2,
-    ),
+    JSON.stringify({ baseUrl, threshold: PERF_THRESHOLD, results, lhr: fullReports }, null, 2),
   );
 
   // eslint-disable-next-line no-console

@@ -55,8 +55,8 @@ const FAQ_ENTRIES: FaqEntry[] = [
         <Link href="/membership" className="gold-text" style={{ textDecoration: 'underline' }}>
           membership page
         </Link>
-        ; we review applications within twenty-four hours and follow up with the next step. The
-        club stays the size we can keep at the level we want, so the door is intentionally narrow.
+        ; we review applications within twenty-four hours and follow up with the next step. The club
+        stays the size we can keep at the level we want, so the door is intentionally narrow.
       </>
     ),
   },
@@ -89,9 +89,9 @@ const FAQ_ENTRIES: FaqEntry[] = [
         Seat-time at the club is billed by the minute against a prepaid <em>time bank</em> rather
         than a hand-by-hand rake. You top up the bank in advance (for example, &dollar;200 buys
         &dollar;300 of credit) and the meter draws down while you&rsquo;re seated; step away for a
-        meal and the meter pauses. Full mechanics, refund rules, and member dashboards land with
-        the time-bank slice; this page covers the gist so you can decide whether the model is for
-        you. (See ADR-0011 for the architectural decisions behind the model.)
+        meal and the meter pauses. Full mechanics, refund rules, and member dashboards land with the
+        time-bank slice; this page covers the gist so you can decide whether the model is for you.
+        (See ADR-0011 for the architectural decisions behind the model.)
       </>
     ),
   },
@@ -118,8 +118,8 @@ const FAQ_ENTRIES: FaqEntry[] = [
         <Link href="/contact" className="gold-text" style={{ textDecoration: 'underline' }}>
           contact page
         </Link>
-        . The club is a private members-only space, so the door is unmarked from the street;
-        members get the door details once approved.
+        . The club is a private members-only space, so the door is unmarked from the street; members
+        get the door details once approved.
       </>
     ),
   },
@@ -174,11 +174,7 @@ export default function FaqPage() {
           }}
         >
           A handful of the things people ask before they apply. If yours isn&rsquo;t here, the{' '}
-          <Link
-            href="/contact"
-            className="gold-text"
-            style={{ textDecoration: 'underline' }}
-          >
+          <Link href="/contact" className="gold-text" style={{ textDecoration: 'underline' }}>
             contact page
           </Link>{' '}
           will get you a real answer.
@@ -197,8 +193,7 @@ export default function FaqPage() {
             key={entry.question}
             style={{
               borderTop: idx === 0 ? '1px solid var(--gold-400)' : '1px solid var(--border-faint)',
-              borderBottom:
-                idx === FAQ_ENTRIES.length - 1 ? '1px solid var(--gold-400)' : 'none',
+              borderBottom: idx === FAQ_ENTRIES.length - 1 ? '1px solid var(--gold-400)' : 'none',
               padding: '24px 0',
             }}
           >

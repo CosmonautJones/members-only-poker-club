@@ -35,10 +35,7 @@ import { renderToString } from 'react-dom/server';
 // throw under vitest's happy-dom environment.
 vi.mock('server-only', () => ({}));
 
-import {
-  TOURNAMENTS,
-  findTournamentBySlug,
-} from '@/lib/tournaments/fixtures';
+import { TOURNAMENTS, findTournamentBySlug } from '@/lib/tournaments/fixtures';
 import { EventJsonLd } from '@/components/seo/event-jsonld';
 
 // -----------------------------------------------------------------------------
@@ -112,16 +109,12 @@ describe('<EventJsonLd /> (AC7 / T8 — render)', () => {
   const fixture = TOURNAMENTS[0]!;
 
   it('renders a <script type="application/ld+json"> element', () => {
-    const html = renderToString(
-      React.createElement(EventJsonLd, { tournament: fixture }),
-    );
+    const html = renderToString(React.createElement(EventJsonLd, { tournament: fixture }));
     expect(html).toContain('type="application/ld+json"');
   });
 
   it('emits a schema.org Event payload with @type: "Event"', () => {
-    const html = renderToString(
-      React.createElement(EventJsonLd, { tournament: fixture }),
-    );
+    const html = renderToString(React.createElement(EventJsonLd, { tournament: fixture }));
     const payload = extractJsonLdPayload(html);
 
     expect(payload['@context']).toBe('https://schema.org');
@@ -129,18 +122,14 @@ describe('<EventJsonLd /> (AC7 / T8 — render)', () => {
   });
 
   it('startDate matches the fixture startsAt', () => {
-    const html = renderToString(
-      React.createElement(EventJsonLd, { tournament: fixture }),
-    );
+    const html = renderToString(React.createElement(EventJsonLd, { tournament: fixture }));
     const payload = extractJsonLdPayload(html);
 
     expect(payload.startDate).toBe(fixture.startsAt);
   });
 
   it('offers.price equals fixture buyInCents / 100', () => {
-    const html = renderToString(
-      React.createElement(EventJsonLd, { tournament: fixture }),
-    );
+    const html = renderToString(React.createElement(EventJsonLd, { tournament: fixture }));
     const payload = extractJsonLdPayload(html);
 
     const offers = payload.offers as Record<string, unknown> | undefined;
@@ -156,9 +145,7 @@ describe('<EventJsonLd /> (AC7 / T8 — render)', () => {
   });
 
   it('location.address contains the real Houston street address', () => {
-    const html = renderToString(
-      React.createElement(EventJsonLd, { tournament: fixture }),
-    );
+    const html = renderToString(React.createElement(EventJsonLd, { tournament: fixture }));
     const payload = extractJsonLdPayload(html);
 
     const location = payload.location as Record<string, unknown> | undefined;
@@ -173,9 +160,7 @@ describe('<EventJsonLd /> (AC7 / T8 — render)', () => {
   });
 
   it('maximumAttendeeCapacity matches the fixture capacity', () => {
-    const html = renderToString(
-      React.createElement(EventJsonLd, { tournament: fixture }),
-    );
+    const html = renderToString(React.createElement(EventJsonLd, { tournament: fixture }));
     const payload = extractJsonLdPayload(html);
 
     expect(payload.maximumAttendeeCapacity).toBe(fixture.capacity);

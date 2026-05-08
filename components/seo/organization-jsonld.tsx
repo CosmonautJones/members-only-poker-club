@@ -1,5 +1,5 @@
-import { JsonLd } from "./json-ld";
-import { NAP } from "@/lib/content/nap";
+import { JsonLd } from './json-ld';
+import { NAP } from '@/lib/content/nap';
 
 /**
  * Organization JSON-LD payload, mounted on the marketing home page (`/`).
@@ -16,11 +16,11 @@ import { NAP } from "@/lib/content/nap";
  */
 export function OrganizationJsonLd() {
   const data = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
     name: NAP.name,
-    url: "https://example.com", // TODO(travis): set canonical domain when known
-    logo: "https://example.com/logo.png", // TODO(travis): point at real logo asset
+    url: 'https://example.com', // TODO(travis): set canonical domain when known
+    logo: 'https://example.com/logo.png', // TODO(travis): point at real logo asset
     sameAs: [
       // TODO(travis): add real social links (Facebook, Instagram, etc.) when established
     ],

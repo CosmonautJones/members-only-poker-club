@@ -31,8 +31,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Privacy',
-    description:
-      'Privacy policy: what we collect, how we use it, and the choices members have.',
+    description: 'Privacy policy: what we collect, how we use it, and the choices members have.',
     images: ['/og?title=Privacy&subtitle=Members%20Only%20Poker%20Social%20Club'],
   },
 };

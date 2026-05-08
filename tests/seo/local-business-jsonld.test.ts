@@ -67,16 +67,12 @@ describe('NAP source of truth (AC5 / T6)', () => {
 
 describe('<LocalBusinessJsonLd /> (AC5 / T6)', () => {
   it('renders a <script type="application/ld+json"> element', () => {
-    const html = renderToString(
-      React.createElement(LocalBusinessJsonLd as React.FC),
-    );
+    const html = renderToString(React.createElement(LocalBusinessJsonLd as React.FC));
     expect(html).toContain('type="application/ld+json"');
   });
 
   it('emits a schema.org LocalBusiness payload with the real address', () => {
-    const html = renderToString(
-      React.createElement(LocalBusinessJsonLd as React.FC),
-    );
+    const html = renderToString(React.createElement(LocalBusinessJsonLd as React.FC));
 
     const match = html.match(/<script[^>]*>([\s\S]*?)<\/script>/);
     expect(match).not.toBeNull();

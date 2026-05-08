@@ -45,16 +45,12 @@ function extractJsonLdPayload(html: string): Record<string, unknown> {
 
 describe('<OrganizationJsonLd /> (AC6 / T7)', () => {
   it('renders a <script type="application/ld+json"> element', () => {
-    const html = renderToString(
-      React.createElement(OrganizationJsonLd as React.FC),
-    );
+    const html = renderToString(React.createElement(OrganizationJsonLd as React.FC));
     expect(html).toContain('type="application/ld+json"');
   });
 
   it('emits a schema.org Organization payload', () => {
-    const html = renderToString(
-      React.createElement(OrganizationJsonLd as React.FC),
-    );
+    const html = renderToString(React.createElement(OrganizationJsonLd as React.FC));
     const payload = extractJsonLdPayload(html);
 
     expect(payload['@context']).toBe('https://schema.org');
@@ -62,18 +58,14 @@ describe('<OrganizationJsonLd /> (AC6 / T7)', () => {
   });
 
   it('payload `name` matches NAP.name (single source of truth)', () => {
-    const html = renderToString(
-      React.createElement(OrganizationJsonLd as React.FC),
-    );
+    const html = renderToString(React.createElement(OrganizationJsonLd as React.FC));
     const payload = extractJsonLdPayload(html);
 
     expect(payload.name).toBe(NAP.name);
   });
 
   it('payload includes `url`, `logo`, and `sameAs` (presence-only; placeholder values are OK)', () => {
-    const html = renderToString(
-      React.createElement(OrganizationJsonLd as React.FC),
-    );
+    const html = renderToString(React.createElement(OrganizationJsonLd as React.FC));
     const payload = extractJsonLdPayload(html);
 
     // url: required, must be a non-empty string

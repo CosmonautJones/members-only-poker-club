@@ -39,8 +39,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Contact',
-    description:
-      'Find Members Only Poker Social Club in Houston, Texas. Address and directions.',
+    description: 'Find Members Only Poker Social Club in Houston, Texas. Address and directions.',
     images: ['/og?title=Contact&subtitle=Members%20Only%20Poker%20Social%20Club'],
   },
 };

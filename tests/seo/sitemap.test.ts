@@ -57,9 +57,7 @@ describe('app/sitemap.ts (AC3 / T4)', () => {
       const expected = slug === '/' ? '' : slug;
       expect(
         urls.some((u) =>
-          slug === '/'
-            ? u.endsWith('/') || u.endsWith(expected)
-            : u.endsWith(expected),
+          slug === '/' ? u.endsWith('/') || u.endsWith(expected) : u.endsWith(expected),
         ),
         `expected sitemap to contain a URL ending in "${slug}"`,
       ).toBe(true);
@@ -87,10 +85,7 @@ describe('app/sitemap.ts (AC3 / T4)', () => {
       // lastModified: Date | string (per MetadataRoute.Sitemap)
       const isDate = entry.lastModified instanceof Date;
       const isString = typeof entry.lastModified === 'string';
-      expect(
-        isDate || isString,
-        `lastModified for ${entry.url} must be Date or string`,
-      ).toBe(true);
+      expect(isDate || isString, `lastModified for ${entry.url} must be Date or string`).toBe(true);
 
       // changeFrequency: one of the allowed enum values
       expect(VALID_CHANGE_FREQUENCIES).toContain(
