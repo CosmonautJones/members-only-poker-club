@@ -2,9 +2,17 @@ import type { Metadata, Viewport } from 'next';
 import { Cormorant_Garamond, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
+// Font weights are intentionally minimal. Audit `grep -rn 'font-weight\|fontWeight\|font-bold\|font-semibold'`
+// before adding more — every extra weight is an LCP cost on the home hero.
+//
+//   Cormorant Garamond: 400 (body), 500 (headings + hero), 600 (primitive numerals);
+//                       italic only for 400/500 (via <em>); no 700 in use.
+//   Inter:              400 (body), 500 (eyebrow / button), 600 (button-emphasis);
+//                       no 700 in use anywhere.
+//   JetBrains Mono:     400, 500 (only used for the live ticker).
 const fontDisplay = Cormorant_Garamond({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600'],
   style: ['normal', 'italic'],
   variable: '--font-display',
   display: 'swap',
@@ -12,7 +20,7 @@ const fontDisplay = Cormorant_Garamond({
 
 const fontSans = Inter({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600'],
   variable: '--font-sans',
   display: 'swap',
 });
