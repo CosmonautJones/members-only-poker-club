@@ -6,68 +6,188 @@ on:
     branches: [main]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  lint-typecheck-test:
-    name: Lint, typecheck, and unit tests
+  install:
+    name: Install
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
+          node-version: '20'
+      - name: Enable corepack
+        run: corepack enable
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: corepack pnpm install --frozen-lockfile
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
+  typecheck:
+    name: Typecheck
+    needs: install
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enable corepack
+        run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
       - name: Typecheck
-        run: pnpm typecheck
+        run: corepack pnpm typecheck
 
+  lint:
+    name: Lint
+    needs: install
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enable corepack
+        run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
       - name: Lint
-        run: pnpm lint
+        run: corepack pnpm lint
 
+  format:
+    name: Format check
+    needs: install
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enable corepack
+        run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
       - name: Format check
-        run: pnpm format:check
+        run: corepack pnpm format:check
 
-      - name: Unit tests
-        run: pnpm test --reporter=verbose
+  test:
+    name: Test
+    needs: install
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enable corepack
+        run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - name: Test
+        run: corepack pnpm test
 
-      - name: ADR-0007 — service-role key scope check
-        # Service-role key must never appear in client-rendered surfaces.
-        # See docs/adr/0007-secrets-management.md.
+  e2e:
+    name: E2E (Playwright)
+    needs: [install, lint, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enable corepack
+        run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: corepack pnpm exec playwright install --with-deps chromium
+      - name: Build production bundle
+        # Required for playwright's `webServer` (`next start`) to find `.next/`.
+        # Always builds — when VERCEL_PREVIEW_URL is set, the build still has
+        # to succeed because the playwright config unconditionally declares
+        # a webServer, and `next start` will fail without `.next/`.
+        run: corepack pnpm build
+      - name: Run Playwright against preview URL
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ secrets.VERCEL_PREVIEW_URL || 'http://localhost:3000' }}
+        run: corepack pnpm test:e2e
+
+  lighthouse:
+    name: Lighthouse
+    needs: [e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Soft-pass until VERCEL_PREVIEW_URL secret is wired. Without it the job
+    # spawns a local production server and audits perf on a GH-hosted runner,
+    # which is too noisy to gate merges on (perf scores routinely fluctuate
+    # below the 90 threshold on shared runners). Once the preview URL is
+    # configured, drop continue-on-error and the gate becomes hard again.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enable corepack
+        run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - name: Build production bundle (no preview URL secret)
+        # Only needed when LIGHTHOUSE_SPAWN_SERVER mode is active.
+        run: corepack pnpm build
+      - name: Run Lighthouse
+        env:
+          LIGHTHOUSE_BASE_URL: ${{ secrets.VERCEL_PREVIEW_URL }}
+          LIGHTHOUSE_SPAWN_SERVER: ${{ secrets.VERCEL_PREVIEW_URL == '' && '1' || '' }}
+        run: corepack pnpm lighthouse
+
+  backstop-greps:
+    name: Backstop greps
+    needs: install
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enable corepack
+        run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - name: No *_cents columns with float types (ADR-0004)
         run: |
-          violations=""
-          for dir in "app/(member)" "app/(marketing)" "components"; do
-            if [ -d "$dir" ]; then
-              found=$(grep -rln 'SUPABASE_SERVICE_ROLE_KEY' "$dir" || true)
-              if [ -n "$found" ]; then
-                violations="${violations}${found}\n"
-              fi
-            fi
-          done
-          if [ -n "$violations" ]; then
-            echo "::error::SUPABASE_SERVICE_ROLE_KEY appeared in a client surface (ADR-0007 violation):"
-            printf "%b" "$violations"
+          # Excludes tests/ (regex-pattern fixtures) and node_modules/ (third-party).
+          if grep -rEi '[a-zA-Z_]+_cents\s+(decimal|numeric|float|real|double\s+precision)\b' --include='*.sql' --include='*.ts' --exclude-dir=tests --exclude-dir=tests-e2e --exclude-dir=node_modules --exclude-dir=.next .; then
+            echo "::error::Found *_cents column with floating-point type; money must be INTEGER per ADR-0004"
+            exit 1
+          fi
+      - name: No service-role key in client trees (ADR-0007)
+        run: |
+          if grep -rE 'SUPABASE_SERVICE_ROLE_KEY' --include='*.ts' --include='*.tsx' --include='*.js' --include='*.mjs' 'app/(member)/' 'app/(marketing)/' 'components/' 2>/dev/null; then
+            echo "::error::Service-role key referenced in client trees; per ADR-0007 it is server-only"
             exit 1
           fi
 
-      - name: ADR-0004 — money column type check
-        # Money columns must be bigint (cents). Never decimal/float/numeric.
-        # See docs/adr/0004-money-handling-integer-cents.md.
+  # Migration deploy hook — full implementation depends on ADR-0018 ratifying.
+  # When ADR-0018 lands, this job runs `supabase db push` against the target
+  # project before traffic swap, gates production on staging-migration success,
+  # and rolls back on failure.
+  migrate-staging:
+    name: Migrate staging (placeholder — pending ADR-0018)
+    needs: [typecheck, lint, test]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Migration step placeholder
         run: |
-          if [ -d supabase/migrations ]; then
-            matches=$(grep -rniE '_cents.*(decimal|numeric|float|real|double precision)' supabase/migrations/ || true)
-            if [ -n "$matches" ]; then
-              echo "::error::Money column declared with non-integer type (ADR-0004 violation):"
-              echo "$matches"
-              exit 1
-            fi
-          fi
+          echo "Migration step pending ADR-0018 ratification."
+          echo "When 0018 lands, this becomes 'supabase db push' against staging."
+          exit 0
