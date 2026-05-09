@@ -8,7 +8,8 @@ const SKILL_DIR = join(REPO_ROOT, '.claude', 'skills', 'conductor');
 const TEMPLATES_DIR = join(SKILL_DIR, 'templates');
 const COMMAND_FILE = join(REPO_ROOT, '.claude', 'commands', 'conductor.md');
 
-// 12 roles after the v0.2 merges (planner+task-splitter, journalist+kb-curator).
+// 14 roles in v0.3: 12 from v0.2 plus `triage` and `falsifier` for the
+// pre-ratification debate flow.
 const REQUIRED_TEMPLATES: RoleName[] = [
   'worker',
   'test-writer',
@@ -19,10 +20,17 @@ const REQUIRED_TEMPLATES: RoleName[] = [
   'spec-writer',
   'planner',
   'ratifier',
+  'triage',
+  'falsifier',
   'shipper',
   'journalist',
   'retrospective',
 ];
+
+// v0.3 cross-template invariant: ratifier.md must reference the falsifier and
+// direction-mode premortem inputs by parameter name, else the v0.3 wiring is
+// silently broken. Checked alongside heading/schema validation.
+const RATIFIER_REQUIRED_REFS = ['falsifier_summary_path', 'direction_premortem_summary_path'];
 
 // v0.1 roles that were removed in v0.2 — fail if their template files are
 // still present, so a stale install can't quietly run with the old roster.
@@ -146,6 +154,17 @@ export function validateConductorSkill(): { errors: string[] } {
     if (!emptyErr && !headingErr) {
       const schemaErr = checkRoleExampleJson(role, body);
       if (schemaErr) errors.push(schemaErr);
+    }
+
+    // v0.3 cross-template invariant: ratifier must reference debate inputs.
+    if (role === 'ratifier') {
+      for (const ref of RATIFIER_REQUIRED_REFS) {
+        if (!body.includes(ref)) {
+          errors.push(
+            `ratifier.md missing v0.3 debate input reference: \`${ref}\` (required when triage_depth=full)`,
+          );
+        }
+      }
     }
   }
 
