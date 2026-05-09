@@ -9,6 +9,7 @@ Workers, test-writers, and spec-writers read the relevant topic slice on every d
 | File | ADR(s) |
 |---|---|
 | [rls.md](rls.md) | 0003 |
+| [pglite.md](pglite.md) | 0003, 0006, 0009 (test substrate, cross-cutting) |
 | [money-handling.md](money-handling.md) | 0004 |
 | [idempotency.md](idempotency.md) | 0005 |
 | [audit-log.md](audit-log.md) | 0006 |
