@@ -1,7 +1,8 @@
 # ADR-0010: Membership subscription model
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 2
 
 ## Context
@@ -15,8 +16,6 @@ Members can switch between modes mid-cycle. Members can cancel and resume. Past-
 
 ## Decision
 
-To be drafted in Slice 2. Direction:
-
 - Two Stripe Products (or one Product with two Prices): `membership_autopay_monthly` ($25) and `membership_invoice_monthly` ($30).
 - A Stripe `Subscription` per member, with `collection_method = 'charge_automatically'` (autopay) or `'send_invoice'` (invoice).
 - `memberships.status` mirrors Stripe's `subscription.status` — sync via webhook.
@@ -25,14 +24,14 @@ To be drafted in Slice 2. Direction:
 - Resume = un-cancel before period_end, or start a new subscription if past period_end.
 - Past-due dunning: 3 retry attempts over 7 days (Stripe Smart Retries), email reminders at days 1/3/5/7. After day 7, status → `canceled`.
 
-## Open questions
+## Open questions (deferred — owner-pricing decisions)
 
-- Do we offer annual prepay with a discount (e.g., 11 months for the price of 12)?
-- Do we offer pause-the-membership for members who travel? (Stripe supports `pause_collection`.)
-- Founding-member pricing: does the owner want a charter rate for the first 100 members?
-- Family / "spousal" memberships?
+- **Annual prepay discount** — deferred. Default v1 ships monthly only. If owner approves an 11-for-12 annual SKU, add a third Stripe Price (`membership_autopay_annual`) and route through the same Subscription mechanic (interval=year). Tracked for owner review at Slice 2 launch.
+- **Pause-the-membership** — deferred. Stripe `pause_collection` is supported but adds dunning complexity. v1 = cancel-and-resume only; pause feature can be added in Slice 4 without schema changes.
+- **Founding-member charter pricing** — owner decision. Track as a coupon (Stripe `Coupon` with first-N applies) so the rate is auditable in Stripe and time-bounded. Default v1 ships without; owner can enable from Stripe dashboard.
+- **Family / "spousal" memberships** — deferred to post-launch. Schema-prepared via `memberships.tier` enum but no UI. Re-evaluate based on demand.
 
-## Alternatives to consider
+## Alternatives considered (not chosen)
 
-- Single Subscription with discount coupon for autopay vs full price
-- Pre-paid annual with no monthly option
+- **Single Subscription with discount coupon for autopay vs full price** — rejected. Two Prices keeps the "method-of-billing" attribute on the Price (where it belongs in Stripe semantics) instead of layering coupon math on top, and simplifies the dunning flow.
+- **Pre-paid annual with no monthly option** — rejected for v1. Most members prefer monthly; annual is additive (Open Question above).

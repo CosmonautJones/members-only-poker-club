@@ -1,7 +1,8 @@
 # ADR-0016: Rate limiting & abuse
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 1 (basic on contact form + login) → 4 (full)
 
 ## Context
@@ -9,8 +10,6 @@
 Public endpoints need throttling. Without rate limits: contact form gets spammed, login endpoint gets credential-stuffed, signup gets abused for ID-doc-storage exhaustion, cashier console double-fires.
 
 ## Decision
-
-To be drafted in Slice 4. Direction:
 
 - **Vercel Edge Middleware** runs first on every request, applies per-IP and per-user buckets via Upstash Redis (free tier sufficient initially).
 - **Buckets:**
@@ -26,8 +25,8 @@ To be drafted in Slice 4. Direction:
 - **Bot detection:** Cloudflare Turnstile (not reCAPTCHA — privacy posture) on signup and contact forms.
 - **Anti-abuse for ID upload:** max 5 uploads per user account, must be within signup flow, file scanned for known malware via Supabase Storage's built-in scanner.
 
-## Open questions
+## Open questions (deferred)
 
-- Upstash Redis cost at scale (probably negligible)
-- Whether to enable Vercel's bot protection (paid feature) on top
-- Whether Turnstile is enough or we need an honeypot field too
+- **Upstash Redis cost at scale** — resolved: free tier (10K req/day) sufficient for early adoption; pay-as-you-go beyond. Cost tracked in ADR-0032.
+- **Vercel bot protection (paid)** — declined for v1. Cloudflare Turnstile + per-IP rate limits cover the threat model. Re-evaluate if Turnstile bypass becomes evident.
+- **Turnstile vs honeypot field** — Turnstile alone for v1. Honeypot adds maintenance complexity and false-positive risk against accessibility tools.

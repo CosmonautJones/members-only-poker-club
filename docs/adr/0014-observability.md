@@ -1,7 +1,8 @@
 # ADR-0014: Observability
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 1 (skeleton — Sentry + Vercel logs) → 4 (full)
 
 ## Context
@@ -9,8 +10,6 @@
 When something breaks in production, we need to know fast and have the data to diagnose. Three telemetry types: errors (exceptions, panics), logs (structured events), traces (request flows across systems).
 
 ## Decision
-
-To be drafted in Slice 4. Direction:
 
 - **Errors** — Sentry, both client (browser) and server (Vercel functions). Source maps uploaded at build time.
 - **Logs** — Vercel function logs (already structured JSON via `console.log`) + Supabase logs for DB queries. Long-term retention via the Vercel log drain to a cheap storage (Logtail / Better Stack).
@@ -36,8 +35,8 @@ To be drafted in Slice 4. Direction:
 - Cashier reliability: redeem_attempt → redeem_success rate
 - Webhook health: stripe events received vs processed, lag
 
-## Open questions
+## Open questions (deferred)
 
-- Cost of Sentry at our volume (probably free tier sufficient for v1)
-- Long-term log retention duration (compliance vs cost)
-- Whether to add Datadog/Honeycomb for higher-fidelity tracing later
+- **Sentry cost at our volume** — resolved: free tier (5K events/mo) sufficient for v1; ADR-0032 cost model bumps to $26/mo Team tier at 1K members.
+- **Long-term log retention duration** — deferred to Slice 4. Default v1: rely on Vercel's 30-day function logs + Sentry's 90-day error retention. Compliance review at Slice 4 may extend (especially for audit log per ADR-0006 — already "forever").
+- **Datadog/Honeycomb for higher-fidelity tracing** — declined for v1 (cost). Re-evaluate at multi-developer phase or if Sentry tracing proves insufficient for production debugging.

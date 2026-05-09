@@ -1,7 +1,8 @@
 # ADR-0015: Alerting & incident response
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 4
 
 ## Context
@@ -9,8 +10,6 @@
 Some failures are silent until a user complains. Some failures should page someone at 3am. Most are in between. We need a severity ladder, on-call rotation (even if it's just one person), and runbooks.
 
 ## Decision
-
-To be drafted in Slice 4. Direction:
 
 ### Severity ladder
 
@@ -54,7 +53,7 @@ For v1, the owner + the developer share on-call. Pair-level redundancy via owner
 
 Every SEV1/2 gets a written postmortem in `docs/incidents/YYYY-MM-DD-slug.md`. Blameless. Action items tracked.
 
-## Open questions
+## Open questions (deferred)
 
-- PagerDuty cost vs hand-rolled Twilio paging (decide in Slice 4)
-- SLOs / error budgets (probably defer to multi-developer phase)
+- **PagerDuty vs hand-rolled Twilio paging** — deferred to Slice 4. Default v1: Vercel/Sentry → owner email; SMS paging routes through Twilio (already in stack per ADR-0025) when A2P 10DLC registration completes. PagerDuty re-evaluated at multi-developer phase ($21/user/mo is meaningful at this scale).
+- **SLOs / error budgets** — declined for v1. Single-developer-and-owner team doesn't have the bandwidth to maintain SLOs; alert thresholds + post-incident discipline are sufficient. Re-evaluate at multi-developer phase.

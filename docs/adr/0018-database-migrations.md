@@ -1,7 +1,8 @@
 # ADR-0018: Database migrations
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 1
 
 ## Context
@@ -9,8 +10,6 @@
 Schema changes are the most dangerous deploys. A missing index, a NOT NULL added to a populated column, a CONSTRAINT under heavy write load — any of these can cause prod outage.
 
 ## Decision
-
-To be drafted in Slice 1. Direction:
 
 - **Tool:** Supabase CLI migrations (`supabase migration new <name>`, files at `supabase/migrations/NNNN_<name>.sql`).
 - **Review:** Every migration PR includes a `MIGRATION-REVIEW` checklist:
@@ -35,7 +34,7 @@ To be drafted in Slice 1. Direction:
 
 `supabase db reset` to wipe and re-apply. `supabase db diff` to author new migrations from local schema changes.
 
-## Open questions
+## Open questions (deferred)
 
-- Whether to switch to Drizzle Kit for migration generation (typed schema)
-- Whether to use shadow database for migration verification before staging
+- **Drizzle Kit for typed schema** — declined for v1. Supabase CLI is the canonical path with Supabase; layering Drizzle adds complexity for a single-developer team. Re-evaluate if/when we adopt Drizzle as the runtime ORM (currently using Supabase JS client directly).
+- **Shadow database for migration verification** — deferred to Slice 4. v1 default: PR review + staging dry-run is the gate. Shadow DB adds CI complexity worth introducing only when migration cadence picks up.

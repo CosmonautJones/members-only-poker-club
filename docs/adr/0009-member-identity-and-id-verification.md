@@ -1,7 +1,8 @@
 # ADR-0009: Member identity & ID verification
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 2
 
 ## Context
@@ -19,8 +20,6 @@ We need to:
 
 ## Decision
 
-To be drafted in Slice 2. Direction:
-
 - DOB validation client-side and server-side. Computed `is_21` flag, not raw age (handles leap-day edge case at boundary).
 - ID upload via Supabase Storage in a private bucket, server-signed upload URL, max 10MB, JPEG/PNG/PDF only.
 - File path includes a UUID, never the user's name. Path: `id-docs/{user_id}/{uuid}.{ext}`.
@@ -29,12 +28,12 @@ To be drafted in Slice 2. Direction:
 - ID document **deleted** after 30 days of approval (we keep verification metadata but not the document image — minimizes PII surface). The `id_verified_at` and the manager who approved are kept forever in audit log.
 - Member-agreement e-signature stored as a hash + signed timestamp + IP. Full text is versioned in `content_blocks`.
 
-## Open questions
+## Open questions (deferred — tracked for Slice 2 implementation)
 
-- Manual review SLA: how long can the queue be before signup-to-play time becomes a complaint?
-- Do we need OCR or KYC vendor (Persona, Stripe Identity) in v1 or Slice 4?
-- TX-specific: do we need a notarized member-agreement, or is e-sign sufficient under TUETA (Texas Uniform Electronic Transactions Act)? (Likely e-sign suffices; counsel to confirm.)
-- Do we need to retain ID for any minimum period for AML/BSA reasons? (Probably not for a club this size, but counsel to confirm.)
+- **Manual review SLA** — target 4 business hours during member-onboarding pilot, escalate to KYC vendor if queue depth exceeds 20 pending verifications. Owner staffs the queue v1.
+- **OCR / KYC vendor (Persona, Stripe Identity)** — deferred to Slice 4. v1 ships manual review only. Vendor selection is a Slice-4 decision driven by signup volume; if v1 demand exceeds 50 verifications/week, fast-track to Stripe Identity (lowest-friction integration given existing Stripe footprint).
+- **TUETA / e-sign sufficiency** — counsel-pending. Default proceeds with e-sign + signed-timestamp + IP hash; if counsel requires notarization, swap the signature flow at signup for Notarize.com or equivalent. No code blocks on this — the signature module abstracts the storage.
+- **AML/BSA retention** — counsel-pending. Default retention: 30 days post-verification (per ADR body). If counsel requires longer (5-7 years for AML), extend the bucket lifecycle policy to match. Tracked as a configurable retention constant in `lib/identity/`.
 
 ## Alternatives to consider
 

@@ -1,7 +1,8 @@
 # ADR-0012: Tournament model
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 1 (read-only listing) → 3 (registration with Stripe entry fees)
 
 ## Context
@@ -11,8 +12,6 @@ Members register online for tournaments (e.g., Friday Bounty, Tuesday Bounty). T
 The tournament *runs* in TableCaptain — blind levels, eliminations, payouts are tracked there, not here. Our system handles only the lobby: name, date, time, capacity, buy-in, who's registered, who's waitlisted.
 
 ## Decision
-
-To be drafted in Slice 1 (read-only) and Slice 3 (write-side). Direction:
 
 - `tournaments` table with name, slug, starts_at, buy_in_cents, structure_md (markdown describing blind levels and rules), capacity, status enum (`scheduled | registering | live | complete | canceled`).
 - `tournament_regs` join table with profile_id, status (`registered | waitlisted | canceled | no_show`), payment_id (nullable for free events).
@@ -24,14 +23,14 @@ To be drafted in Slice 1 (read-only) and Slice 3 (write-side). Direction:
 - Cancellation: members can cancel up to 1 hour before start; refund issued automatically (Stripe).
 - Manager creates and edits tournaments via `/admin/tournaments`.
 
-## Open questions
+## Open questions (deferred — owner / counsel)
 
-- Re-entry support? Most tournaments are single-entry, some allow re-buy. Out of v1 scope; manage in TableCaptain.
-- House charge / club share of buy-in? In TX, the club cannot take a rake. Buy-in collection has to be 100% returned to players via the prize pool. Counsel to confirm — likely the club can charge a separate, fixed seat fee at the tournament.
-- Tournament reminders via SMS (1hr before, T-15min, etc.) — Slice 3 if A2P 10DLC ready.
-- Public leaderboard / past results — Slice 4+.
+- **Re-entry support** — out of v1 scope; managed in TableCaptain. v1 schema supports a single registration per profile per tournament.
+- **House charge / club share of buy-in** — counsel-pending (TX rake prohibition). Default v1: buy-in 100% to prize pool; separate `seat_fee_cents` column on `tournaments` for the legal seat fee. Counsel to confirm the structure pre-launch.
+- **Tournament SMS reminders (1hr / T-15min)** — Slice 3 if A2P 10DLC registration completes in time. Tracked as a follow-up; ADR-0025 holds the SMS infrastructure decisions.
+- **Public leaderboard / past results** — Slice 4+. Tracked for post-launch backlog; not load-bearing for ratification.
 
-## Alternatives to consider
+## Alternatives considered (not chosen)
 
-- Defer all tournament functionality to Phase 2 — owner explicitly requested in v1, so no.
-- Accept registrations only at the door — loses online conversion, rejected.
+- **Defer all tournament functionality to Phase 2** — rejected. Owner explicitly requested in v1.
+- **Accept registrations only at the door** — rejected. Loses online conversion and complicates capacity tracking.

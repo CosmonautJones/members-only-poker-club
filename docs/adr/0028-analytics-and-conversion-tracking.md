@@ -1,7 +1,8 @@
 # ADR-0028: Analytics & conversion tracking
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 1
 
 ## Context
@@ -9,8 +10,6 @@
 We need to know: how many visitors land on the homepage, how many click "apply", how many start signup, how many complete it, how many enroll in autopay, how many top up time. Without this we're guessing.
 
 ## Decision
-
-To be drafted in Slice 1. Direction:
 
 ### Tool
 
@@ -59,7 +58,7 @@ cashier_redeem_completed          { minutes }
 
 Analytics events buffered until consent is granted (ADR-024). On consent, buffered events flush.
 
-## Open questions
+## Open questions (deferred)
 
-- Whether to send conversion events to Stripe Sigma for revenue attribution (Slice 4)
-- Server-side event tracking (PostHog supports it) for offline cashier redemptions
+- **Stripe Sigma for revenue attribution** — deferred to Slice 4. PostHog → Stripe correlation via `customer_id` covers attribution at v1 volume; Sigma is overkill until cohort-level revenue analysis becomes a recurring need.
+- **Server-side event tracking for offline cashier redemptions** — resolved yes. Cashier redemptions happen on the cashier console (browser-side), but offline retries / idempotent writes route through `lib/analytics/server.ts` with the same event taxonomy to PostHog's server SDK. Tracked for Slice 3 implementation alongside ADR-0011 time-bank.

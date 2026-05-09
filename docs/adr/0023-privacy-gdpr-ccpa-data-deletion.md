@@ -1,7 +1,8 @@
 # ADR-0023: Privacy, GDPR/CCPA, data deletion
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 4
 
 ## Context
@@ -9,8 +10,6 @@
 Even though we serve a primarily Texas customer base, GDPR (EU) and CCPA/CPRA (California) requests can come in from members who travel, move, or visit. Plus, simple "delete my account" is table-stakes UX.
 
 ## Decision
-
-To be drafted in Slice 4. Direction:
 
 ### Categories of data
 
@@ -47,7 +46,7 @@ See ADR-024.
 
 Plain-language version on `/privacy`. Updated whenever data practices change. Versioned in `content_blocks`.
 
-## Open questions
+## Open questions (deferred)
 
-- Whether to register a Data Protection Officer (probably not required at our scale)
-- Whether to use a CMP (consent management platform) like Osano or roll our own (Slice 4 decision)
+- **Data Protection Officer registration** — declined for v1. Not required at our scale (single establishment, no large-scale systematic monitoring of EU residents). Re-evaluate if member base grows to include sustained non-US residency.
+- **CMP (Osano) vs roll-our-own** — resolved: rolling our own per ADR-0024 (already shipped). The first-party banner satisfies GDPR/CCPA requirements at our scope and avoids a third-party dependency in the consent path.

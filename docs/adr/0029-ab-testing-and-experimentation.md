@@ -1,7 +1,8 @@
 # ADR-0029: A/B testing & experimentation
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 4
 
 ## Context
@@ -9,8 +10,6 @@
 Once traffic is meaningful, we'll want to test variants: pricing copy, hero CTA, tour length on the membership page, top-up tier ordering. We need a way to run experiments without building bespoke randomization each time.
 
 ## Decision
-
-To be drafted in Slice 4. Direction:
 
 - **Tool:** PostHog feature flags + experiment analysis.
 - **Setup:**
@@ -29,7 +28,7 @@ To be drafted in Slice 4. Direction:
 - Peeking — don't watch results mid-experiment and end early.
 - Multiple comparisons — only one primary metric per experiment.
 
-## Open questions
+## Open questions (deferred)
 
-- Whether to use server-side or client-side variant assignment (probably client for marketing copy, server for pricing)
-- Minimum traffic threshold before running A/B tests is even worth it (~5,000 weekly visits; we'll likely defer until then)
+- **Server-side vs client-side variant assignment** — resolved: client-side for marketing copy variants (PostHog `useFeatureFlagVariantKey`), server-side for pricing or anything money-touching (variant resolved in the server action so the rendered price and the charged price can never diverge).
+- **Minimum traffic threshold before A/B testing is worthwhile** — resolved: ~5K weekly unique visits. v1 launches without active experiments; harness ships ready for Slice 4 or whenever traffic warrants. Tracked as a triggering condition, not a blocker for ratification.

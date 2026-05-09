@@ -1,7 +1,8 @@
 # ADR-0013: PokerAtlas TableCaptain integration
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 5
 
 ## Context
@@ -13,8 +14,6 @@ The room runs PokerAtlas TableCaptain for in-room operations: live game manageme
 This means: in v1 our app and TableCaptain are independent systems. The cashier reconciles between them manually at the desk.
 
 ## Decision
-
-To be drafted in Slice 5. Direction:
 
 - **Discovery first.** Before building, contact PokerAtlas (they have a Zendesk and a sales contact). Ask:
   - Do you offer an API to partners?
@@ -33,15 +32,15 @@ To be drafted in Slice 5. Direction:
   - Manager approves the batch, ledger writes happen
   - Mismatch detection: any member with TC time > our wallet balance flagged for follow-up
 
-## Open questions
+## Open questions (deferred — discovery call required)
 
-- What does PokerAtlas actually offer? Discovery call required.
-- Cost of a partner integration if available (PokerAtlas may charge for API access at this scale)
-- Latency tolerance: real-time bridge or eventual reconciliation?
-- What happens if our system says "no balance" but TableCaptain seats the player anyway? (Cashier overrides; audit log captures.)
+- **What does PokerAtlas actually offer?** — owner-action: schedule the PokerAtlas discovery call. Until completed, the manual-reconciliation branch of the decision tree is in effect.
+- **Cost of partner integration** — discovery-pending. Code path is conditional on the discovery outcome.
+- **Latency tolerance: real-time vs eventual** — resolved if/when bridge exists: eventual reconciliation (5-minute polling or end-of-day batch). Real-time is overkill for the volume.
+- **TableCaptain seats a player our system shows as no-balance** — resolved: cashier overrides via `/admin/reconcile`; the override is audit-logged with reason. Drift alert fires on overnight reconcile.
 
-## Alternatives to consider
+## Alternatives considered (not chosen)
 
-- Replace TableCaptain entirely with our own system (massive scope creep, abandons working hardware).
-- Skip integration forever, lock in the manual reconciliation as the SOP.
-- License a third-party reconciliation tool (none known to exist for poker rooms specifically).
+- **Replace TableCaptain entirely** — rejected. Massive scope creep; the existing hardware works.
+- **Skip integration forever (manual SOP)** — rejected. Manual reconciliation is the v1 default but the bridge ramp is the long-term direction once discovery confirms the integration path.
+- **Third-party reconciliation tool** — none known to exist for poker rooms. Re-evaluate annually.
