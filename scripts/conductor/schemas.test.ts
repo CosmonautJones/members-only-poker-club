@@ -326,6 +326,9 @@ describe('CriticResultSchema', () => {
       throw new Error('expected proposal mode parse');
     }
   });
+  it('parses the canonical proposal-mode fixture', () => {
+    expect(() => CriticResultSchema.parse(fx('critic-proposal.valid.json'))).not.toThrow();
+  });
 });
 
 describe('ScopeJudgeResultSchema', () => {
