@@ -288,9 +288,7 @@ describe('CriticResultSchema', () => {
       CriticResultSchema.parse({
         mode: 'proposal',
         verdict: 'ship',
-        falsifier_coverage: [
-          { claim_index: 0, addressed: true, where: 'Consequences › Negative' },
-        ],
+        falsifier_coverage: [{ claim_index: 0, addressed: true, where: 'Consequences › Negative' }],
         direction_risk_coverage: [{ risk_index: 0, addressed: false }],
         concerns: [],
         summary_path: '.conductor/0035/dispatches/0005-critic-proposal.md',
