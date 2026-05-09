@@ -1,7 +1,8 @@
 # ADR-0020: Feature flags
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 4
 
 ## Context
@@ -9,8 +10,6 @@
 We want to ship dark — turn features on for owner/staff first, then a small percent of members, then everyone. We also want kill-switches for things that break in production.
 
 ## Decision
-
-To be drafted in Slice 4. Direction:
 
 - **Storage:** `feature_flags` Postgres table. Each row: key, enabled (bool), percent (0–100), rules (jsonb for advanced targeting), updated_at, updated_by.
 - **Read path:** Edge Middleware loads flags from a Postgres view cached in memory for 60s; flag check is a lookup, not a query per request.
@@ -27,7 +26,7 @@ To be drafted in Slice 4. Direction:
 
 For UI experiments where we want PostHog's funnel analysis, use PostHog feature flags. For backend kill-switches and operational toggles, use our own table (faster, more reliable, no external dependency for critical paths).
 
-## Open questions
+## Open questions (deferred)
 
-- Whether to graduate to LaunchDarkly when team grows
-- Whether to add JSON-rules engine for advanced targeting (probably not needed v1)
+- **Graduate to LaunchDarkly when team grows** — deferred. The own-table approach is sufficient at single-developer scale; LaunchDarkly's value is multi-team coordination, which we don't have yet. Re-evaluate at multi-developer phase.
+- **JSON-rules engine for advanced targeting** — declined for v1. The four targeting modes (boolean, percent, allowlist, role gate) cover every use case currently in the backlog. Re-evaluate if a real targeting need exceeds what the table schema supports.

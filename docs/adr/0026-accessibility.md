@@ -1,7 +1,8 @@
 # ADR-0026: Accessibility
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 1 (basics) → 4 (formal audit)
 
 ## Context
@@ -9,8 +10,6 @@
 The design uses gold-on-black with serif display type. We need to ensure it's accessible — both for ethical reasons and because TX has been a venue for ADA-related accessibility lawsuits against business websites.
 
 ## Decision
-
-To be drafted across Slices 1 and 4. Direction:
 
 ### Target
 
@@ -40,7 +39,7 @@ WCAG 2.1 Level AA across all member-facing surfaces.
 - Manual screen-reader test (NVDA on Windows, VoiceOver on macOS).
 - External audit if budget allows.
 
-## Open questions
+## Open questions (deferred)
 
-- Whether to add a dedicated a11y statement page (`/accessibility`) — likely yes
-- Whether to support high-contrast mode as a user preference toggle
+- **Dedicated `/accessibility` statement page** — resolved yes. Add to the marketing surface in Slice 4 with the formal audit pass; references this ADR + the WCAG 2.1 Level AA target.
+- **High-contrast mode preference toggle** — declined for v1. The default gold-on-black palette already exceeds 4.5:1 contrast; adding a toggle adds maintenance complexity and theme drift risk. Re-evaluate if member feedback surfaces a concrete need.

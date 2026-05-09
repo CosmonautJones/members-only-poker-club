@@ -1,7 +1,8 @@
 # ADR-0025: Email & SMS communications
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 2 (email transactional) → 3 (SMS transactional) → 4+ (marketing)
 
 ## Context
@@ -9,8 +10,6 @@
 Members need: signup verification email, payment receipts, dunning notices, SMS reminders for tournaments and low-balance alerts. Each channel has compliance requirements (CAN-SPAM, TCPA, A2P 10DLC).
 
 ## Decision
-
-To be drafted across Slices 2/3. Direction:
 
 ### Email
 
@@ -40,7 +39,7 @@ To be drafted across Slices 2/3. Direction:
 - `sms_messages` table records every send (template, body, twilio_sid, status, error). 1-year retention.
 - Email sends recorded in `payments.raw_event` for transactional financial emails; otherwise relying on Resend's own log.
 
-## Open questions
+## Open questions (deferred)
 
-- Whether to add WhatsApp / iMessage business in a later phase
-- Localization (Spanish for TX market — defer to post-launch)
+- **WhatsApp / iMessage Business** — declined for v1. SMS + email cover the channels members expect; adding messaging platforms multiplies opt-in/STOP-keyword surface area for marginal reach. Re-evaluate post-launch if member surveys show demand.
+- **Localization (Spanish for TX market)** — deferred to post-launch. Templates parameterized by `locale` to leave room; v1 ships English only.
