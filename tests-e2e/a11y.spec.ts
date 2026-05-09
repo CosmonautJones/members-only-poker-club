@@ -23,9 +23,13 @@ const ROUTES = [
 
 for (const route of ROUTES) {
   test(`a11y: ${route} has no serious or critical axe violations`, async ({ page }) => {
-    await page.goto(route);
-    // Wait for the consent banner / hydration so the audit sees the real DOM.
-    await page.waitForLoadState('networkidle');
+    // `domcontentloaded` is deliberately used instead of `networkidle`:
+    // some marketing pages keep open keep-alive connections (Vercel analytics
+    // poll, Sentry session ping) that never let `networkidle` settle within
+    // the test timeout. The DOM tree we care about for axe is fully painted
+    // by `domcontentloaded`; further hydration only adds attributes, not
+    // landmark structure.
+    await page.goto(route, { waitUntil: 'domcontentloaded' });
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
       .analyze();
