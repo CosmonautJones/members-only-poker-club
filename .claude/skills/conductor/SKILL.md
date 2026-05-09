@@ -3,7 +3,7 @@ name: conductor
 description: Pure-orchestrator skill for ADR-driven implementation. Use when invoked via `/conductor <adr-number>`. Claude becomes a delegator — all implementation work goes to subagents. Drives one ADR end-to-end through 5 phases (bootstrap, plan, build, integration, ship, retrospective). Maximizes session lifespan by keeping the orchestrator's context clean.
 ---
 
-# Conductor — Pure Orchestrator (v0.3)
+# Conductor — Pure Orchestrator (v0.4)
 
 You are the orchestrator. **You do not implement.** You dispatch agents, route their structured returns, persist state, and escalate only on the trigger conditions below.
 
@@ -24,7 +24,7 @@ You may NOT directly read or write source code, tests, migrations, configs, or a
 
 | Phase           | Action                                                                                                                                                                                                                                                                                                                                                                       |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0 Bootstrap     | Read ADR; init `.conductor/<N>/`. If `Status: Stub` (or `Proposed`): dispatch `triage` → record `triage_depth` in status.json. If `triage_depth=full`, dispatch `falsifier` ║ `premortem`(mode=direction) **in parallel** before ratification. Then dispatch `ratifier` (passing falsifier + direction-premortem outputs when full) → user approves the proposal at `.conductor/<N>/ratification-proposal.md` → orchestrator computes canonical signature, replaces the `PENDING` sentinel in the proposal with `<sha256[:12]>`, writes the approved text back to `docs/adr/NNNN-*.md`, and stores the full sha256 in `status.input_hashes[adr_path]`. Then ensure paired spec exists (dispatch `spec-writer` if not), hash the spec into `status.input_hashes[spec_path]`, snapshot canonical texts to `.conductor/<N>/snapshots/` for later delta comparison, and freeze `acceptance_commands_required` from spec frontmatter. |
+| 0 Bootstrap     | Read ADR; init `.conductor/<N>/`. If `Status: Stub` (or `Proposed`): dispatch `triage` → record `triage_depth` in status.json. If `triage_depth=full`, dispatch `falsifier` ║ `premortem`(mode=direction) **in parallel** before ratification. Then dispatch `ratifier` (passing falsifier + direction-premortem outputs when full) → when `triage_depth=full`, dispatch `critic`(mode=proposal) against the proposal with the falsifier and direction-premortem summary paths attached; if `verdict=revise`, loop back to ratifier (existing 3-iter ratifier max applies; once exceeded, escalate as a stuck condition) → user approves the proposal at `.conductor/<N>/ratification-proposal.md` → orchestrator computes canonical signature, replaces the `PENDING` sentinel in the proposal with `<sha256[:12]>`, writes the approved text back to `docs/adr/NNNN-*.md`, and stores the full sha256 in `status.input_hashes[adr_path]`. Then ensure paired spec exists (dispatch `spec-writer` if not), hash the spec into `status.input_hashes[spec_path]`, snapshot canonical texts to `.conductor/<N>/snapshots/` for later delta comparison, and freeze `acceptance_commands_required` from spec frontmatter. |
 | 1 Plan          | `critic`(spec) → `planner`(mode=initial) → `premortem`(mode=task) on high-risk tasks (parallel).                                                                                                                                                                                                                                                                             |
 | 2 Build         | Per task: `test-writer` ║ `worker` → `validator`(scope=task). On fail: append to `attempts/<task>.md`, increment `task_iters[id]`, re-spawn worker. Max 5 iters → dispatch `planner`(mode=split). If split lineage already has `splits >= 2`, escalate instead of re-splitting.                                                                                              |
 | 3 Integration   | `validator`(scope=slice, runs full gauntlet + every command in `acceptance_commands_required`) → `critic`(mode=diff) → `scope-judge`. Critic `revise` re-opens flagged tasks back into Phase 2. `scope-judge` cannot return `ship_ready: true` if any acceptance command did not run-and-pass — schema-enforced.                                                             |
@@ -39,10 +39,11 @@ When `triage_depth=full`:
 1. Dispatch `falsifier` and `premortem`(mode=direction) **in parallel** (both read the Stub, neither depends on the other).
 2. Wait for both to return.
 3. Dispatch `ratifier` with `falsifier_summary_path` and `direction_premortem_summary_path` populated. Ratifier MUST address each falsifier claim and each direction-level risk by name in Consequences — its template enforces this.
+4. **(v0.4)** Dispatch `critic`(mode=proposal) with the proposal path, falsifier summary path, and direction-premortem summary path. The critic returns structured `falsifier_coverage[]` (one entry per claim) and `direction_risk_coverage[]` (one entry per risk). The orchestrator MUST verify array lengths equal upstream lengths — a result whose `falsifier_coverage.length !== falsifier.claims.length` is rejected as malformed and the critic is re-dispatched. If `verdict=revise`, loop back to ratifier with the critic's `concerns[]` and any unaddressed coverage indices. Existing 3-iter ratifier max applies; on overrun, escalate as stuck.
 
-When `triage_depth=light`: skip falsifier and direction-premortem. Dispatch `ratifier` directly.
+When `triage_depth=light`: skip falsifier, direction-premortem, AND proposal-mode critic. Dispatch `ratifier` directly. The proposal-mode critic does not run because there are no falsifier/risk obligations to verify.
 
-The contract gets stress-tested *before* it's signed. Phase 1's `premortem`(mode=task) is unchanged — it still runs against tasks after planning.
+The contract gets stress-tested *before* it's signed, AND the contract's adherence to the stress test is mechanically verified before the user is asked to sign. Phase 1's `premortem`(mode=task) is unchanged — it still runs against tasks after planning.
 
 ## Content-signature staleness detection (v0.3)
 
@@ -98,7 +99,7 @@ If the spec has no `acceptance_commands:` frontmatter or the array is empty, the
 
 ## Roster (14 roles)
 
-bootstrap: `triage`, `falsifier` (full debate only), `premortem` (mode=direction, full debate only), `ratifier`, `spec-writer`
+bootstrap: `triage`, `falsifier` (full debate only), `premortem` (mode=direction, full debate only), `ratifier`, `critic` (mode=proposal, full debate only — v0.4), `spec-writer`
 plan: `critic` (mode=spec), `planner` (mode=initial), `premortem` (mode=task)
 build: `worker`, `test-writer`, `validator`, `planner` (mode=split)
 integration: `validator`, `critic` (mode=diff), `scope-judge`
@@ -106,7 +107,7 @@ ship: `journalist`, `shipper`
 retrospective: `retrospective`
 resume-staleness (cross-cutting): `critic` (mode=delta)
 
-Multi-mode roles: `planner` (`initial`, `split`); `critic` (`spec`, `diff`, `delta`); `premortem` (`task`, `direction`); `journalist` writes journal + KB deltas in one pass. Roles added in v0.3: `triage`, `falsifier`. v0.1's `task-splitter` and `knowledge-curator` were merged in v0.2.
+Multi-mode roles: `planner` (`initial`, `split`); `critic` (`spec`, `diff`, `delta`, `proposal`); `premortem` (`task`, `direction`); `journalist` writes journal + KB deltas in one pass. Roles added in v0.3: `triage`, `falsifier`. v0.1's `task-splitter` and `knowledge-curator` were merged in v0.2. Roster size unchanged at 14 — v0.4 adds a critic mode, not a new role.
 
 ## Escalation policy (4 triggers + 1 stuck + 1 guardrail)
 
@@ -144,7 +145,13 @@ Design spec: `docs/superpowers/specs/conductor-design.md`. If this skill drifts 
 
 ## Changelog
 
-- **v0.3 (this version)**
+- **v0.4 (this version)**
+  - Critic gains `mode: "proposal"` for ratification review (Phase 0, only when `triage_depth: full`). Runs after ratifier produces a proposal, before user approval. Returns structured `falsifier_coverage[]` and `direction_risk_coverage[]` arrays so v0.3 obligations are mechanically verified, not prompt-stretched onto `mode: spec`.
+  - `CriticProposalSchema.superRefine` rejects `verdict: ship` when any coverage entry has `addressed: false`. Orchestrator additionally enforces array-length equality with upstream falsifier and direction-mode premortem outputs.
+  - Roster size unchanged (14). Roles added: zero. Modes added: one. SKILL.md flow change is the Phase-0 "Pre-ratification debate" section (a new step 4).
+  - When `triage_depth: light`, proposal-mode critic does not run (nothing to verify).
+
+- **v0.3**
   - Pre-ratification debate: `triage` decides depth (`light` | `full`); when `full`, `falsifier` and `premortem`(mode=direction) fan out before ratifier. Ratifier MUST address each falsifier and direction-risk by name in Consequences. Roster grows 12 → 14.
   - Content-signature staleness: canonical hash of ADR + spec stored in `status.input_hashes`; re-checked on `/conductor resume`. Substantive prose changes trigger `critic`(mode=delta) before re-entering. `patch_forward` is schema-restricted to additions on unstarted tasks; modifications, removals, or breaking severity force rebootstrap.
   - In-flight dispatch binding: every dispatch envelope carries `input_signature` so background work cannot silently complete against a since-amended ADR.
