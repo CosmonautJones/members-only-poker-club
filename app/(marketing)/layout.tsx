@@ -9,12 +9,24 @@
  *
  * Per ADR-0030 (SEO & content strategy), every marketing page either
  * inherits these defaults or exports its own `metadata` override.
+ *
+ * T7 — Per ADR-0024 + Slice-1 spec AC11, the entire layout body
+ * (header, main, footer, banner, customize panel) is wrapped in
+ * `<ConsentProvider>`. The provider must be an ancestor of every
+ * component that calls `useConsent()` — the banner, the panel, AND
+ * the footer's `<CookiePreferencesLink />`. Both `<CookieBanner />`
+ * and `<ConsentCustomizePanel />` mount as siblings of the page
+ * content but inside the provider so they share one modal instance
+ * and one cookie state.
  */
 
 import type { Metadata } from 'next';
 
 import { PublicFooter } from '@/components/marketing/public-footer';
 import { PublicHeader } from '@/components/marketing/public-header';
+import { ConsentProvider } from '@/components/site/consent-provider';
+import { CookieBanner } from '@/components/site/cookie-banner';
+import { ConsentCustomizePanel } from '@/components/site/consent-customize-panel';
 
 const DEFAULT_OG_IMAGE =
   '/og?title=Members%20Only%20Poker%20Social%20Club&subtitle=Private%20Poker%20Club';
@@ -56,10 +68,12 @@ export const metadata: Metadata & Record<string, unknown> = {
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <ConsentProvider>
       <PublicHeader />
       <main>{children}</main>
       <PublicFooter />
-    </>
+      <CookieBanner />
+      <ConsentCustomizePanel />
+    </ConsentProvider>
   );
 }

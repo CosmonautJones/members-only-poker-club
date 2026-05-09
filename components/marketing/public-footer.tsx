@@ -5,10 +5,17 @@
  * Uses Next.js Link for nav items. The copyright line keeps the
  * full long-form brand name (Members Only Poker Social Club) per the
  * brand-revert in journal entry 04.
+ *
+ * T4/T7 — Mounts `<CookiePreferencesLink />` (a `'use client'` island)
+ * in the meta-row alongside the copyright. Per concern 5, the modal
+ * open/close state lives in `<ConsentProvider>`, so this link and the
+ * banner's "Customize" button control the same `<ConsentCustomizePanel />`
+ * instance.
  */
 
 import Link from 'next/link';
 import { Chip, Suit, Wordmark } from './primitives';
+import { CookiePreferencesLink } from '@/components/site/cookie-preferences-link';
 
 type FooterColumn = {
   title: string;
@@ -134,6 +141,9 @@ export function PublicFooter() {
           margin: '0 auto',
           display: 'flex',
           justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 16,
+          flexWrap: 'wrap',
           color: 'var(--text-dim)',
           fontSize: 11,
           letterSpacing: '0.1em',
@@ -141,6 +151,10 @@ export function PublicFooter() {
         }}
       >
         <span>© MMXXIV Members Only Poker Social Club</span>
+        <CookiePreferencesLink
+          className="cookie-preferences-link"
+          // Inline styles match the surrounding meta-row tone.
+        />
         <span>Members must be 21+ · ID required at the door · Play responsibly</span>
       </div>
     </footer>
