@@ -232,6 +232,100 @@ describe('CriticResultSchema', () => {
       }),
     ).not.toThrow();
   });
+  // v0.4 — proposal mode for ratification-proposal review (Phase 0, after
+  // ratifier, before user approval, only when triage_depth=full).
+  it('parses proposal mode with verdict=ship and all coverage addressed', () => {
+    expect(() =>
+      CriticResultSchema.parse({
+        mode: 'proposal',
+        verdict: 'ship',
+        falsifier_coverage: [
+          { claim_index: 0, addressed: true, where: 'Consequences › Negative' },
+          { claim_index: 1, addressed: true, where: 'Alternatives considered' },
+        ],
+        direction_risk_coverage: [
+          { risk_index: 0, addressed: true, where: 'Consequences › Negative' },
+        ],
+        concerns: [],
+        summary_path: '.conductor/0035/dispatches/0005-critic-proposal.md',
+      }),
+    ).not.toThrow();
+  });
+  it('parses proposal mode with verdict=revise and unaddressed coverage entries', () => {
+    expect(() =>
+      CriticResultSchema.parse({
+        mode: 'proposal',
+        verdict: 'revise',
+        falsifier_coverage: [
+          { claim_index: 0, addressed: true, where: 'Consequences › Negative' },
+          { claim_index: 1, addressed: false },
+        ],
+        direction_risk_coverage: [{ risk_index: 0, addressed: false }],
+        concerns: ['falsifier-2 silently dropped from Consequences'],
+        summary_path: '.conductor/0035/dispatches/0005-critic-proposal.md',
+      }),
+    ).not.toThrow();
+  });
+  it('rejects verdict=ship when a falsifier_coverage entry is unaddressed', () => {
+    expect(() =>
+      CriticResultSchema.parse({
+        mode: 'proposal',
+        verdict: 'ship',
+        falsifier_coverage: [
+          { claim_index: 0, addressed: true, where: 'Consequences › Negative' },
+          { claim_index: 1, addressed: false },
+        ],
+        direction_risk_coverage: [
+          { risk_index: 0, addressed: true, where: 'Consequences › Negative' },
+        ],
+        concerns: [],
+        summary_path: '.conductor/0035/dispatches/0005-critic-proposal.md',
+      }),
+    ).toThrow();
+  });
+  it('rejects verdict=ship when a direction_risk_coverage entry is unaddressed', () => {
+    expect(() =>
+      CriticResultSchema.parse({
+        mode: 'proposal',
+        verdict: 'ship',
+        falsifier_coverage: [
+          { claim_index: 0, addressed: true, where: 'Consequences › Negative' },
+        ],
+        direction_risk_coverage: [{ risk_index: 0, addressed: false }],
+        concerns: [],
+        summary_path: '.conductor/0035/dispatches/0005-critic-proposal.md',
+      }),
+    ).toThrow();
+  });
+  it('parses proposal mode with empty coverage arrays (light-path edge case)', () => {
+    // triage_depth=light should never reach proposal-mode critic, but the
+    // schema must not reject empty coverage arrays — that path is guarded by
+    // orchestrator policy, not schema.
+    expect(() =>
+      CriticResultSchema.parse({
+        mode: 'proposal',
+        verdict: 'ship',
+        falsifier_coverage: [],
+        direction_risk_coverage: [],
+        concerns: [],
+        summary_path: '.conductor/0035/dispatches/0005-critic-proposal.md',
+      }),
+    ).not.toThrow();
+  });
+  it('defaults concerns to [] when omitted in proposal mode', () => {
+    const parsed = CriticResultSchema.parse({
+      mode: 'proposal',
+      verdict: 'ship',
+      falsifier_coverage: [{ claim_index: 0, addressed: true, where: 'Consequences' }],
+      direction_risk_coverage: [{ risk_index: 0, addressed: true, where: 'Consequences' }],
+      summary_path: '.conductor/0035/dispatches/0005-critic-proposal.md',
+    });
+    if ('mode' in parsed && parsed.mode === 'proposal') {
+      expect(parsed.concerns).toEqual([]);
+    } else {
+      throw new Error('expected proposal mode parse');
+    }
+  });
 });
 
 describe('ScopeJudgeResultSchema', () => {
