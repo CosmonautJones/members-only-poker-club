@@ -1,7 +1,8 @@
 # ADR-0022: PCI scope
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 2
 
 ## Context
@@ -10,7 +11,7 @@ Accepting card payments triggers PCI-DSS compliance obligations. The scope of th
 
 ## Decision
 
-To be drafted in Slice 2. Direction: **stay in PCI SAQ A scope** — the minimum tier — by ensuring we never touch card data.
+**Stay in PCI SAQ A scope** — the minimum tier — by ensuring we never touch card data.
 
 - All card collection happens via Stripe Checkout (hosted) or Stripe Elements (iframed). The card form is rendered by Stripe's domain; the card number never touches our HTML/JS.
 - We store only Stripe IDs (customer, payment_method, payment_intent, subscription) — never PAN, CVV, or expiry.
@@ -24,7 +25,7 @@ To be drafted in Slice 2. Direction: **stay in PCI SAQ A scope** — the minimum
 - Vendor (Stripe) attestation kept on file.
 - We document the technical posture in this ADR for the auditor.
 
-## Open questions
+## Open questions (deferred)
 
-- TX-specific surcharge or minimum-purchase-fee rules (these are state-law, not PCI)
-- 3DS / SCA requirements for our typical transaction sizes (Stripe handles automatically)
+- **TX-specific surcharge / minimum-purchase-fee rules** — out of scope for this ADR (state law, not PCI). Track in ADR-0010 (subscriptions) when pricing is finalized.
+- **3DS / SCA requirements** — accepted as Stripe-managed. Stripe Radar + automatic 3DS escalation handles SCA without us touching auth flows. Re-visit only if we ever sell to EU/UK members where regulatory thresholds differ.

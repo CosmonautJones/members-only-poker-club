@@ -1,7 +1,8 @@
 # ADR-0031: Vendor lock-in posture
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 4
 
 ## Context
@@ -9,8 +10,6 @@
 Every SaaS we adopt is a future migration we may have to do. Wrapping every vendor in a perfect abstraction is wasted work; accepting deep lock-in everywhere is a hostage situation. The right posture is per-vendor.
 
 ## Decision
-
-To be drafted in Slice 4. Direction:
 
 ### Lock-in tier per vendor
 
@@ -39,7 +38,7 @@ To be drafted in Slice 4. Direction:
 - We don't build a "CloudObjectStorage" abstraction over Supabase Storage. We commit.
 - We do wrap Auth and SMS lightly because realistic migrations exist for those.
 
-## Open questions
+## Open questions (deferred)
 
-- Whether to keep schema-portable forever (don't use Postgres-specific extensions) or use them when helpful (we already plan to use `pg_advisory_xact_lock`-style features)
-- Re-evaluate this ADR every 12 months
+- **Schema portability vs Postgres-specific features** — resolved: use Postgres-specific features (advisory locks, pg_cron, RLS) when they're load-bearing. Migration plan accepts a Postgres-to-Postgres move (Aurora, RDS, Crunchy Bridge); never assume migration to a non-Postgres DB.
+- **Re-evaluate this ADR every 12 months** — calendar item: 2027-05-08 review (next slice-4 cadence).

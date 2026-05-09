@@ -1,7 +1,8 @@
 # ADR-0019: Backups & disaster recovery
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 4
 
 ## Context
@@ -9,8 +10,6 @@
 The database is the only thing we can't recreate from source code. If it dies — corruption, accidental drop, vendor outage — we need a recent backup and a tested restore path.
 
 ## Decision
-
-To be drafted in Slice 4. Direction:
 
 ### Backups
 
@@ -44,8 +43,8 @@ To be drafted in Slice 4. Direction:
 
 `status.<domain>` on Vercel, polling `/api/health`. Manual override for owner during incidents.
 
-## Open questions
+## Open questions (deferred)
 
-- Cross-region replication (probably not needed at our scale; Supabase Pro is single-region)
-- Off-site secondary backup (S3 to a different cloud, paranoia tier)
-- Encryption-at-rest verification on backup files
+- **Cross-region replication** — deferred to Slice 4. Probably not needed at our scale (Supabase Pro is single-region; cost/complexity exceeds the recovery-time benefit at <10K members).
+- **Off-site secondary backup** — deferred. Supabase Pro PITR + Stripe replay covers our RPO/RTO. Re-evaluate if we ever store data Stripe doesn't replicate (e.g., handwritten incident notes).
+- **Encryption-at-rest verification on backup files** — deferred to Slice 4 DR drill; verify Supabase's documented at-rest encryption applies to backup snapshots and document the verification step in `docs/runbooks/runbook-restore-from-backup.md`.
