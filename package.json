@@ -28,6 +28,8 @@
     "db:reset": "supabase db reset",
     "db:diff": "supabase db diff",
     "db:push": "supabase db push",
+    "migrate:check": "node scripts/check-migration-safety.mjs",
+    "migrate:check:self-test": "node scripts/check-migration-safety.mjs --self-test",
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
