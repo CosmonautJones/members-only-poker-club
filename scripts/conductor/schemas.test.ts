@@ -381,8 +381,7 @@ describe('FalsifierResultSchema (v0.3)', () => {
         claims: [
           {
             commitment: 'Use Stripe for all member-facing payments',
-            falsifier:
-              'If cross-border EUR settlement is ever required, Stripe is insufficient.',
+            falsifier: 'If cross-border EUR settlement is ever required, Stripe is insufficient.',
             evidence_path: 'unanswered',
           },
           {

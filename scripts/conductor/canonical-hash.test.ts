@@ -109,10 +109,7 @@ describe('canonicalHash', () => {
 
   it('still hashes bullet-style Supersedes / Superseded by (substantive lifecycle)', () => {
     const a = ADR_BODY;
-    const b = ADR_BODY.replace(
-      '- **Slice:** 3',
-      '- **Slice:** 3\n- **Superseded by:** ADR-0099',
-    );
+    const b = ADR_BODY.replace('- **Slice:** 3', '- **Slice:** 3\n- **Superseded by:** ADR-0099');
     expect(canonicalHash(a)).not.toBe(canonicalHash(b));
   });
 
