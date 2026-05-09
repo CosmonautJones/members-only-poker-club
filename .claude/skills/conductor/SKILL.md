@@ -141,7 +141,7 @@ If `telegram:configure` has run, also send Telegram messages for triggers 4 and 
 
 ## Source of truth
 
-Design spec: `docs/superpowers/specs/conductor-design.md`. If this skill drifts from the spec, update both deliberately — never silently. The structural validator (`scripts/conductor/validate-skill.ts`) checks frontmatter + non-empty templates + that every template's embedded JSON example parses against the corresponding schema in `SCHEMA_BY_ROLE`.
+Design spec: `docs/superpowers/specs/2026-05-05-conductor-design.md`. If this skill drifts from the spec, update both deliberately — never silently. The structural validator (`scripts/conductor/validate-skill.ts`) checks frontmatter + non-empty templates + that every template's embedded JSON example parses against the corresponding schema in `SCHEMA_BY_ROLE`.
 
 ## Changelog
 
