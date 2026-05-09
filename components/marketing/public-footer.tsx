@@ -47,6 +47,14 @@ const COLUMNS: FooterColumn[] = [
       { label: 'Member Portal', href: '/login' },
     ],
   },
+  {
+    title: 'Policies',
+    links: [
+      { label: 'Privacy', href: '/privacy' },
+      { label: 'Terms', href: '/terms' },
+      { label: 'Accessibility', href: '/accessibility' },
+    ],
+  },
 ];
 
 export function PublicFooter() {
@@ -64,7 +72,7 @@ export function PublicFooter() {
           maxWidth: 1280,
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: '2fr 1fr 1fr 1fr',
+          gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
           gap: 48,
         }}
       >
