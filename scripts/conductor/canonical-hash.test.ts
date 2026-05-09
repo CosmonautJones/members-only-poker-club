@@ -71,4 +71,59 @@ describe('canonicalHash', () => {
     expect(shortSignature(h)).toBe(h.slice(0, 12));
     expect(shortSignature(h)).toHaveLength(12);
   });
+
+  // Bullet-style frontmatter is the in-repo ADR convention (also common in
+  // many ADR templates). The original v0.3 implementation only stripped YAML
+  // `---` frontmatter, so a `- **content_signature:** <hash>` bullet in the
+  // body made the hash recursive (depend on itself). These tests guard against
+  // regressing that fix.
+  it('is stable when bullet-style content_signature value changes (the recursive-hash bug)', () => {
+    const a = ADR_BODY.replace(
+      '- **Slice:** 3',
+      '- **Slice:** 3\n- **content_signature:** PENDING',
+    );
+    const b = ADR_BODY.replace(
+      '- **Slice:** 3',
+      '- **Slice:** 3\n- **content_signature:** abcdef123456',
+    );
+    expect(canonicalHash(a)).toBe(canonicalHash(b));
+  });
+
+  it('is stable when bullet-style Ratified or Date changes', () => {
+    const a = ADR_BODY.replace(
+      '- **Date:** 2026-05-09',
+      '- **Date:** 2026-05-09\n- **Ratified:** 2026-05-09',
+    );
+    const b = ADR_BODY.replace(
+      '- **Date:** 2026-05-09',
+      '- **Date:** 2026-05-10\n- **Ratified:** 2026-05-10',
+    );
+    expect(canonicalHash(a)).toBe(canonicalHash(b));
+  });
+
+  it('still hashes bullet-style Status and Slice (those ARE substantive)', () => {
+    const a = ADR_BODY; // Status: Stub
+    const b = ADR_BODY.replace('- **Status:** Stub', '- **Status:** Accepted');
+    expect(canonicalHash(a)).not.toBe(canonicalHash(b));
+  });
+
+  it('still hashes bullet-style Supersedes / Superseded by (substantive lifecycle)', () => {
+    const a = ADR_BODY;
+    const b = ADR_BODY.replace(
+      '- **Slice:** 3',
+      '- **Slice:** 3\n- **Superseded by:** ADR-0099',
+    );
+    expect(canonicalHash(a)).not.toBe(canonicalHash(b));
+  });
+
+  it('only strips bullet-frontmatter between H1 and first H2 (body bullets are content)', () => {
+    // A bullet INSIDE the body (after `## Context`) must not be treated as
+    // frontmatter — even if it happens to match the pattern.
+    const a = ADR_BODY;
+    const b = ADR_BODY.replace(
+      'We need a thing.',
+      'We need a thing.\n\n- **Note:** important caveat',
+    );
+    expect(canonicalHash(a)).not.toBe(canonicalHash(b));
+  });
 });
