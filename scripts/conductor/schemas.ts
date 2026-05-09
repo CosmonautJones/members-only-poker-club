@@ -38,6 +38,17 @@ export const StatusSchema = z.object({
   // Subset that has run and passed in the latest validator pass. scope-judge
   // refuses ship_ready=true if required ⊃ run.
   acceptance_commands_run: z.array(z.string()).default([]),
+  // v0.3: canonical content hashes of the ADR and spec captured at Phase 0
+  // close. Keyed by file path. /conductor resume recomputes these and
+  // dispatches `critic mode=delta` if any value drifts. See canonical-hash.ts
+  // for the hashing rules. Also stamped into every dispatch envelope (as
+  // input_signature) so background work cannot silently complete against an
+  // ADR that has since been amended.
+  input_hashes: z.record(z.string(), z.string()).default({}),
+  // v0.3: Phase 0 triage classifies the ADR as `light` (ratifier alone) or
+  // `full` (fan out to falsifier + direction-mode premortem before ratifier).
+  // Recorded so resume re-enters the same depth without re-triaging.
+  triage_depth: z.enum(['light', 'full']).optional(),
   escalation_reason: z.string().optional(),
 });
 
@@ -173,15 +184,56 @@ export const PlannerResultSchema = z.discriminatedUnion('mode', [
 export type PlannerResult = z.infer<typeof PlannerResultSchema>;
 
 // ============================================================
-// Critic
+// Critic — v0.3 adds `delta` mode for staleness analysis on /conductor
+// resume. Spec/diff modes preserved verbatim from v0.2.
 // ============================================================
 
-export const CriticResultSchema = z.object({
+const CriticSpecOrDiffSchema = z.object({
   verdict: z.enum(['ship', 'revise']),
   mode: z.enum(['spec', 'diff']),
   concerns: z.array(z.string()).default([]),
   summary_path: z.string(),
 });
+
+const DeltaChangeSchema = z.object({
+  // Affected task id from plan.json, or `"<frontmatter>"` / `"<context>"` etc.
+  // for ADR-level changes that don't map to a single task.
+  target: z.string(),
+  description: z.string(),
+});
+
+const CriticDeltaSchema = z
+  .object({
+    mode: z.literal('delta'),
+    severity: z.enum(['minor', 'major', 'breaking']),
+    additions: z.array(DeltaChangeSchema).default([]),
+    modifications: z.array(DeltaChangeSchema).default([]),
+    removals: z.array(DeltaChangeSchema).default([]),
+    // One of: "patch_forward" (only safe when modifications and removals are
+    // empty AND every addition targets an unstarted task), "rebootstrap"
+    // (forced when any modification or removal touches completed work, or
+    // when severity is "breaking"), "abort".
+    recommendation: z.enum(['patch_forward', 'rebootstrap', 'abort']),
+    summary_path: z.string(),
+  })
+  .superRefine((r, ctx) => {
+    const touchesNonAdditions = r.modifications.length > 0 || r.removals.length > 0;
+    if (r.recommendation === 'patch_forward' && touchesNonAdditions) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'patch_forward is illegal when modifications or removals are non-empty: rebootstrap is required (or open an amendment ADR)',
+      });
+    }
+    if (r.recommendation === 'patch_forward' && r.severity === 'breaking') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'patch_forward is illegal when severity=breaking: rebootstrap is required',
+      });
+    }
+  });
+
+export const CriticResultSchema = z.union([CriticSpecOrDiffSchema, CriticDeltaSchema]);
 
 export type CriticResult = z.infer<typeof CriticResultSchema>;
 
@@ -224,7 +276,9 @@ export const ScopeJudgeResultSchema = z
 export type ScopeJudgeResult = z.infer<typeof ScopeJudgeResultSchema>;
 
 // ============================================================
-// Premortem
+// Premortem — v0.3 adds `mode: "direction"` so premortem can run against
+// the ADR Direction itself (Phase 0, before ratification) in addition to
+// the original `mode: "task"` (Phase 1, post-ratification, per-task).
 // ============================================================
 
 const RiskSchema = z.object({
@@ -234,6 +288,7 @@ const RiskSchema = z.object({
 });
 
 export const PremortemResultSchema = z.object({
+  mode: z.enum(['task', 'direction']).default('task'),
   risks: z.array(RiskSchema),
   summary_path: z.string(),
 });
@@ -241,7 +296,11 @@ export const PremortemResultSchema = z.object({
 export type PremortemResult = z.infer<typeof PremortemResultSchema>;
 
 // ============================================================
-// Ratifier
+// Ratifier — v0.3 adds content_signature, the canonical hash of the proposed
+// ADR text (per canonical-hash.ts). Orchestrator copies this into
+// status.input_hashes[adr_path] when the user accepts the proposal, and into
+// the live ADR's frontmatter (`content_signature: <hash[:12]>`) so the user
+// has a visible artifact.
 // ============================================================
 
 export const RatifierResultSchema = z.object({
@@ -249,10 +308,62 @@ export const RatifierResultSchema = z.object({
   proposal_path: z.string(),
   summary_path: z.string(),
   open_questions_count: z.number().int().nonnegative(),
+  // sha256 hex of the proposed ADR's canonical text. May be omitted on
+  // status: "blocked" when no proposal text exists yet.
+  content_signature: z.string().optional(),
   notes: z.string().optional(),
 });
 
 export type RatifierResult = z.infer<typeof RatifierResultSchema>;
+
+// ============================================================
+// Triage (v0.3) — Phase 0 depth classifier. Cheap single dispatch right after
+// spec-writer (or immediately on Phase 0 entry if the spec exists). Decides
+// whether the ratifier runs alone (`light`, today's behavior) or whether
+// falsifier + direction-mode premortem fan out before ratification (`full`).
+// ============================================================
+
+export const TriageResultSchema = z.object({
+  depth: z.enum(['light', 'full']),
+  rationale: z.string(),
+  // Auditable signals that drove the depth verdict (e.g. cross_adr_refs >= 3,
+  // money_keyword_present, no_alternatives_listed). Stored so the user can
+  // sanity-check the triage decision.
+  signals: z.array(z.string()).default([]),
+  summary_path: z.string(),
+});
+
+export type TriageResult = z.infer<typeof TriageResultSchema>;
+
+// ============================================================
+// Falsifier (v0.3) — Phase 0 (only when triage_depth=full). For each
+// commitment in the ADR's Direction, produce one falsifiable claim — a
+// statement that, if true, would invalidate the Direction. Replaces the
+// generic "alternatives generator" from the v0.3 draft: alternatives ARE
+// the falsifier's "if X were true, Y would be the better choice" outputs.
+// Forces the ratifier to address each falsifier by name in Consequences,
+// rather than dismissing it.
+// ============================================================
+
+const FalsifierClaimSchema = z.object({
+  // The Direction-level commitment this claim attacks. Quote or paraphrase.
+  commitment: z.string(),
+  // What would have to be true for the commitment to be wrong, and why.
+  falsifier: z.string(),
+  // Either a path to evidence (KB topic, prior ADR, external source captured
+  // to a file) or the literal sentinel "unanswered" if no evidence exists yet
+  // — that signals the ratifier (and user) that this is an open empirical
+  // bet, not a settled question.
+  evidence_path: z.union([z.string(), z.literal('unanswered')]),
+});
+
+export const FalsifierResultSchema = z.object({
+  status: z.enum(['ok', 'blocked']),
+  claims: z.array(FalsifierClaimSchema).min(1),
+  summary_path: z.string(),
+});
+
+export type FalsifierResult = z.infer<typeof FalsifierResultSchema>;
 
 // ============================================================
 // Journalist (covers journal entry AND KB curation — v0.2 merged
@@ -298,8 +409,36 @@ export const RetrospectiveResultSchema = z.object({
 export type RetrospectiveResult = z.infer<typeof RetrospectiveResultSchema>;
 
 // ============================================================
+// Dispatch envelope (v0.3). Every dispatch result lands in
+// `.conductor/<N>/dispatches/<role>-<n>.json` wrapped in this envelope. The
+// orchestrator stamps `input_signature` from `status.input_hashes` at dispatch
+// time. When the result returns, the orchestrator compares the envelope's
+// signature against the live status — mismatch means the input drifted while
+// the dispatch was in flight, so the result is rejected as stale and the
+// orchestrator surfaces the staleness condition. Without this, hash-checking
+// only at /conductor resume is paper armor: a long-running background worker
+// could complete against an old ADR while the user amended it mid-run.
+// ============================================================
+
+export const DispatchEnvelopeSchema = z.object({
+  role: z.string(),
+  // ISO 8601 timestamp of dispatch (orchestrator-stamped, not agent-supplied).
+  dispatched_at: z.string().datetime(),
+  // sha256 hex of the canonical ADR text observed at dispatch time. The
+  // validator rejects the result if this does not match status.input_hashes
+  // for the ADR path.
+  input_signature: z.string(),
+  // The role's own structured return value. Type-erased here; the orchestrator
+  // parses it against SCHEMA_BY_ROLE[role] after the envelope check passes.
+  result: z.unknown(),
+});
+
+export type DispatchEnvelope = z.infer<typeof DispatchEnvelopeSchema>;
+
+// ============================================================
 // Schema-by-name lookup (used by validate-skill.ts to verify each
 // template's embedded JSON example parses against its named schema).
+// v0.3: 14 roles after adding triage and falsifier.
 // ============================================================
 
 export const SCHEMA_BY_ROLE = {
@@ -312,6 +451,8 @@ export const SCHEMA_BY_ROLE = {
   'scope-judge': ScopeJudgeResultSchema,
   premortem: PremortemResultSchema,
   ratifier: RatifierResultSchema,
+  triage: TriageResultSchema,
+  falsifier: FalsifierResultSchema,
   journalist: JournalistResultSchema,
   shipper: ShipperResultSchema,
   retrospective: RetrospectiveResultSchema,

@@ -3,7 +3,7 @@ name: conductor
 description: Pure-orchestrator skill for ADR-driven implementation. Use when invoked via `/conductor <adr-number>`. Claude becomes a delegator — all implementation work goes to subagents. Drives one ADR end-to-end through 5 phases (bootstrap, plan, build, integration, ship, retrospective). Maximizes session lifespan by keeping the orchestrator's context clean.
 ---
 
-# Conductor — Pure Orchestrator (v0.2)
+# Conductor — Pure Orchestrator (v0.3)
 
 You are the orchestrator. **You do not implement.** You dispatch agents, route their structured returns, persist state, and escalate only on the trigger conditions below.
 
@@ -24,16 +24,46 @@ You may NOT directly read or write source code, tests, migrations, configs, or a
 
 | Phase           | Action                                                                                                                                                                                                                                                                                                                                                                       |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0 Bootstrap     | Read ADR; init `.conductor/<N>/`; if `Status: Stub` (or `Proposed`), dispatch `ratifier` → user approves the proposal at `.conductor/<N>/ratification-proposal.md` → write the approved text back to `docs/adr/NNNN-*.md` (Status flipped to `Accepted`). Then ensure paired spec exists (dispatch `spec-writer` if not) and freeze `acceptance_commands_required` from spec frontmatter into `status.json`. |
-| 1 Plan          | `critic`(spec) → `planner`(mode=initial) → `premortem` on high-risk tasks (parallel).                                                                                                                                                                                                                                                                                        |
+| 0 Bootstrap     | Read ADR; init `.conductor/<N>/`. If `Status: Stub` (or `Proposed`): dispatch `triage` → record `triage_depth` in status.json. If `triage_depth=full`, dispatch `falsifier` ║ `premortem`(mode=direction) **in parallel** before ratification. Then dispatch `ratifier` (passing falsifier + direction-premortem outputs when full) → user approves the proposal at `.conductor/<N>/ratification-proposal.md` → orchestrator computes canonical signature, replaces the `PENDING` sentinel in the proposal with `<sha256[:12]>`, writes the approved text back to `docs/adr/NNNN-*.md`, and stores the full sha256 in `status.input_hashes[adr_path]`. Then ensure paired spec exists (dispatch `spec-writer` if not), hash the spec into `status.input_hashes[spec_path]`, snapshot canonical texts to `.conductor/<N>/snapshots/` for later delta comparison, and freeze `acceptance_commands_required` from spec frontmatter. |
+| 1 Plan          | `critic`(spec) → `planner`(mode=initial) → `premortem`(mode=task) on high-risk tasks (parallel).                                                                                                                                                                                                                                                                             |
 | 2 Build         | Per task: `test-writer` ║ `worker` → `validator`(scope=task). On fail: append to `attempts/<task>.md`, increment `task_iters[id]`, re-spawn worker. Max 5 iters → dispatch `planner`(mode=split). If split lineage already has `splits >= 2`, escalate instead of re-splitting.                                                                                              |
-| 3 Integration   | `validator`(scope=slice, runs full gauntlet + every command in `acceptance_commands_required`) → `critic`(diff vs spec) → `scope-judge`. Critic `revise` re-opens flagged tasks back into Phase 2. `scope-judge` cannot return `ship_ready: true` if any acceptance command did not run-and-pass — schema-enforced.                                                          |
+| 3 Integration   | `validator`(scope=slice, runs full gauntlet + every command in `acceptance_commands_required`) → `critic`(mode=diff) → `scope-judge`. Critic `revise` re-opens flagged tasks back into Phase 2. `scope-judge` cannot return `ship_ready: true` if any acceptance command did not run-and-pass — schema-enforced.                                                             |
 | 4 Ship          | `journalist` (writes journal entry AND KB topic deltas in one pass) ║ `shipper`(commit + push + PR). Both run in parallel; journalist completes before PR body is finalized so the PR description references the journal entry path.                                                                                                                                       |
 | 5 Retrospective | `retrospective` writes `skill-diff-proposal.md` from dispatch + attempts evidence. **NEVER auto-merge.** After: mark status `completed`, archive `.conductor/<N>/`, emit Done notification including any skill-diff-proposal path.                                                                                                                                            |
 
+## Pre-ratification debate (v0.3, Phase 0)
+
+A `triage` dispatch sits between ADR-read and ratification. Triage classifies the ADR as `light` (ratifier alone — v0.2 behavior) or `full` (debate fan-out before ratification) using a deterministic signal rule documented in `templates/triage.md`. The verdict and signals land in `events.jsonl` and `status.triage_depth`.
+
+When `triage_depth=full`:
+1. Dispatch `falsifier` and `premortem`(mode=direction) **in parallel** (both read the Stub, neither depends on the other).
+2. Wait for both to return.
+3. Dispatch `ratifier` with `falsifier_summary_path` and `direction_premortem_summary_path` populated. Ratifier MUST address each falsifier claim and each direction-level risk by name in Consequences — its template enforces this.
+
+When `triage_depth=light`: skip falsifier and direction-premortem. Dispatch `ratifier` directly.
+
+The contract gets stress-tested *before* it's signed. Phase 1's `premortem`(mode=task) is unchanged — it still runs against tasks after planning.
+
+## Content-signature staleness detection (v0.3)
+
+At Phase 0 close, the orchestrator hashes the canonical text of the ADR and the spec via `scripts/conductor/canonical-hash.ts` and stores both digests in `status.input_hashes`. A 12-char prefix is also stamped into the live ADR's frontmatter (`content_signature: <hex12>`) so the user can see it.
+
+Canonicalization strips frontmatter except `Status` and `Slice`, normalizes whitespace, then SHA-256s the result. Frontmatter timestamp churn (e.g. someone editing `Ratified:`) does NOT trigger staleness. Substantive prose changes (Context, Decision, Consequences, Alternatives) DO trigger.
+
+**On `/conductor resume`:** recompute signatures. If any differ, dispatch `critic`(mode=delta) with the snapshotted old text and the live new text. Critic returns `{additions, modifications, removals, severity, recommendation}`. The orchestrator chooses path by **schema-enforced rules, not user discretion**:
+
+- Pure additions targeting unstarted tasks (severity `minor`) → `patch_forward` permitted: orchestrator injects new tasks into plan.json and resumes the build.
+- Any modification or removal touching unstarted/in-flight work (severity `major`) → forced **rebootstrap**. Surface as escalation; mention "amendment" — the user may want a new ADR.
+- Modification or removal touching a *completed* task's contract, or any change to Direction itself (severity `breaking`) → forced **rebootstrap**.
+- `recommendation: abort` → escalate.
+
+The `CriticDeltaSchema.superRefine` rejects `patch_forward` when modifications/removals are non-empty or severity is breaking. The orchestrator cannot offer the user an override on this.
+
+**In-flight dispatch binding:** every dispatch envelope includes `input_signature` captured at dispatch time. When a result returns, the orchestrator compares the envelope's signature against the current `status.input_hashes` for the relevant ADR. Mismatch → reject the result as `stale_dispatch`, surface to user. This prevents background work from silently completing against a superseded ADR.
+
 ## High-risk auto-flag
 
-Tasks linked to high-risk ADRs auto-trigger `premortem`. Define your project's high-risk ADR list in `CLAUDE.md` (or override this skill locally). Examples of high-risk territory: authorization (RLS), money handling, idempotency, audit-log integrity, identity verification, privacy/data-deletion. Specs may also flag individual tasks via `risk: high` frontmatter.
+Tasks linked to high-risk ADRs auto-trigger `premortem`(mode=task) in Phase 1. Define your project's high-risk ADR list in `CLAUDE.md` (or override this skill locally). Examples of high-risk territory: authorization (RLS), money handling, idempotency, audit-log integrity, identity verification, privacy/data-deletion. Specs may also flag individual tasks via `risk: high` frontmatter.
 
 ## Acceptance-command binding (v0.2)
 
@@ -49,7 +79,7 @@ If the spec has no `acceptance_commands:` frontmatter or the array is empty, the
 
 ## Token-efficiency rules (MANDATORY)
 
-1. Agents return decision-grade JSON conforming to schemas in `scripts/conductor/schemas.ts` (12 schemas in `SCHEMA_BY_ROLE`). Full work product → file on disk; agent returns `summary_path` only.
+1. Agents return decision-grade JSON conforming to schemas in `scripts/conductor/schemas.ts` (14 schemas in `SCHEMA_BY_ROLE`). Full work product → file on disk; agent returns `summary_path` only.
 2. Pass paths to agents, never file content.
 3. State of truth is `.conductor/<N>/status.json`; rehydrate from disk after compression.
 4. `events.jsonl` read by delta only (track `events_offset` in status).
@@ -66,16 +96,17 @@ If the spec has no `acceptance_commands:` frontmatter or the array is empty, the
 - Per-shift: `journalist` writes both the journal entry AND topic-keyed KB deltas (one role, two output paths). Future workers/spec-writers/test-writers read the KB slice for their topic on every dispatch.
 - Per-run: `retrospective` proposes a diff against this SKILL.md, written to `.conductor/<N>/skill-diff-proposal.md`. User-gated; never auto-merged.
 
-## Roster (12 roles)
+## Roster (14 roles)
 
-bootstrap: `ratifier`, `spec-writer`
-plan: `critic`, `planner` (initial mode), `premortem`
-build: `worker`, `test-writer`, `validator`, `planner` (split mode)
-integration: `validator`, `critic`, `scope-judge`
+bootstrap: `triage`, `falsifier` (full debate only), `premortem` (mode=direction, full debate only), `ratifier`, `spec-writer`
+plan: `critic` (mode=spec), `planner` (mode=initial), `premortem` (mode=task)
+build: `worker`, `test-writer`, `validator`, `planner` (mode=split)
+integration: `validator`, `critic` (mode=diff), `scope-judge`
 ship: `journalist`, `shipper`
 retrospective: `retrospective`
+resume-staleness (cross-cutting): `critic` (mode=delta)
 
-`planner` is one role with two modes (`initial`, `split`); `journalist` is one role with two output paths (journal entry + KB deltas). v0.1's `task-splitter` and `knowledge-curator` were merged in v0.2.
+Multi-mode roles: `planner` (`initial`, `split`); `critic` (`spec`, `diff`, `delta`); `premortem` (`task`, `direction`); `journalist` writes journal + KB deltas in one pass. Roles added in v0.3: `triage`, `falsifier`. v0.1's `task-splitter` and `knowledge-curator` were merged in v0.2.
 
 ## Escalation policy (4 triggers + 1 stuck + 1 guardrail)
 
@@ -97,6 +128,8 @@ If `telegram:configure` has run, also send Telegram messages for triggers 4 and 
 
 `/conductor resume` reads `.conductor/<latest>/status.json` and re-enters at the recorded phase. Idempotent: completed phases are skipped; in-flight phase restarts from its first step. `task_iters` and `splits` survive crashes — a resume after a mid-split crash will not re-trigger `planner`(split) on a task that was already mid-split (consult `splits[id]` before invoking).
 
+**Before re-entering** (v0.3): recompute canonical signatures for every path in `status.input_hashes`. If any differ, dispatch `critic`(mode=delta) and follow the rule table in "Content-signature staleness detection" above before resuming any phase work. This check runs every resume regardless of phase, so an ADR amendment between sessions cannot silently affect an in-progress build. `triage_depth` carries forward — resume does NOT re-triage, since triage is part of Phase 0's first pass and a resumed run keeps the original depth verdict.
+
 ## Status surface
 
 `/conductor status` prints: current ADR, phase, current_task_id, task_iters[current], splits[current], last 5 entries from `events.jsonl`, and `acceptance_commands_run` vs `acceptance_commands_required`.
@@ -111,7 +144,12 @@ Design spec: `docs/superpowers/specs/conductor-design.md`. If this skill drifts 
 
 ## Changelog
 
-- **v0.2 (this version)**
+- **v0.3 (this version)**
+  - Pre-ratification debate: `triage` decides depth (`light` | `full`); when `full`, `falsifier` and `premortem`(mode=direction) fan out before ratifier. Ratifier MUST address each falsifier and direction-risk by name in Consequences. Roster grows 12 → 14.
+  - Content-signature staleness: canonical hash of ADR + spec stored in `status.input_hashes`; re-checked on `/conductor resume`. Substantive prose changes trigger `critic`(mode=delta) before re-entering. `patch_forward` is schema-restricted to additions on unstarted tasks; modifications, removals, or breaking severity force rebootstrap.
+  - In-flight dispatch binding: every dispatch envelope carries `input_signature` so background work cannot silently complete against a since-amended ADR.
+  - Schemas added: `TriageResultSchema`, `FalsifierResultSchema`, `DispatchEnvelopeSchema`. Modified: `CriticResultSchema` (delta mode + `CriticDeltaSchema.superRefine`), `PremortemResultSchema` (mode discriminator, default `"task"` for back-compat), `RatifierResultSchema` (`content_signature`), `StatusSchema` (`input_hashes`, `triage_depth`).
+- **v0.2**
   - Phases reduced from 7 → 5 (folded Document into Ship, Cleanup into Retrospective).
   - Roster reduced from 14 → 12 (planner+task-splitter merged with `mode` discriminant; journalist+knowledge-curator merged with two output paths).
   - 8 new schemas added (PlannerResult, CriticResult, ScopeJudgeResult, PremortemResult, RatifierResult, JournalistResult, ShipperResult, RetrospectiveResult). `SCHEMA_BY_ROLE` registry exposes them by role name.

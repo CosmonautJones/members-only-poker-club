@@ -11,6 +11,9 @@ import {
   ScopeJudgeResultSchema,
   PremortemResultSchema,
   RatifierResultSchema,
+  TriageResultSchema,
+  FalsifierResultSchema,
+  DispatchEnvelopeSchema,
   JournalistResultSchema,
   ShipperResultSchema,
   RetrospectiveResultSchema,
@@ -32,6 +35,23 @@ describe('StatusSchema', () => {
     expect(parsed.splits).toEqual({});
     expect(parsed.acceptance_commands_required).toEqual([]);
     expect(parsed.acceptance_commands_run).toEqual([]);
+  });
+  it('defaults input_hashes to empty record when omitted (v0.3 back-compat)', () => {
+    const parsed = StatusSchema.parse(fx('status.valid.json'));
+    expect(parsed.input_hashes).toEqual({});
+    expect(parsed.triage_depth).toBeUndefined();
+  });
+  it('parses input_hashes and triage_depth when provided (v0.3)', () => {
+    const parsed = StatusSchema.parse({
+      ...fx('status.valid.json'),
+      input_hashes: {
+        'docs/adr/0099-x.md': 'a'.repeat(64),
+        'docs/specs/0099-x.md': 'b'.repeat(64),
+      },
+      triage_depth: 'full',
+    });
+    expect(parsed.input_hashes['docs/adr/0099-x.md']).toBe('a'.repeat(64));
+    expect(parsed.triage_depth).toBe('full');
   });
 });
 
@@ -159,6 +179,59 @@ describe('CriticResultSchema', () => {
       }),
     ).toThrow();
   });
+  // v0.3 — delta mode for staleness detection on /conductor resume.
+  it('parses delta mode with patch_forward when only additions targeting unstarted tasks', () => {
+    expect(() =>
+      CriticResultSchema.parse({
+        mode: 'delta',
+        severity: 'minor',
+        additions: [{ target: 't7', description: 'new task: enforce idempotency' }],
+        modifications: [],
+        removals: [],
+        recommendation: 'patch_forward',
+        summary_path: '.conductor/0011/dispatches/0001-critic-delta.md',
+      }),
+    ).not.toThrow();
+  });
+  it('rejects delta patch_forward when modifications are non-empty', () => {
+    expect(() =>
+      CriticResultSchema.parse({
+        mode: 'delta',
+        severity: 'major',
+        additions: [],
+        modifications: [{ target: 't4', description: 'tightened criterion' }],
+        removals: [],
+        recommendation: 'patch_forward',
+        summary_path: '.conductor/0011/dispatches/0001-critic-delta.md',
+      }),
+    ).toThrow();
+  });
+  it('rejects delta patch_forward when severity is breaking', () => {
+    expect(() =>
+      CriticResultSchema.parse({
+        mode: 'delta',
+        severity: 'breaking',
+        additions: [{ target: 't9', description: 'new task' }],
+        modifications: [],
+        removals: [],
+        recommendation: 'patch_forward',
+        summary_path: '.conductor/0011/dispatches/0001-critic-delta.md',
+      }),
+    ).toThrow();
+  });
+  it('parses delta mode with rebootstrap when modifications touch completed work', () => {
+    expect(() =>
+      CriticResultSchema.parse({
+        mode: 'delta',
+        severity: 'breaking',
+        additions: [],
+        modifications: [{ target: 't4', description: 'completed task contract changed' }],
+        removals: [],
+        recommendation: 'rebootstrap',
+        summary_path: '.conductor/0011/dispatches/0001-critic-delta.md',
+      }),
+    ).not.toThrow();
+  });
 });
 
 describe('ScopeJudgeResultSchema', () => {
@@ -206,17 +279,31 @@ describe('ScopeJudgeResultSchema', () => {
 });
 
 describe('PremortemResultSchema', () => {
-  it('parses a valid premortem result', () => {
+  it('parses a valid premortem result (mode defaults to "task" for v0.2 back-compat)', () => {
+    const parsed = PremortemResultSchema.parse({
+      risks: [
+        {
+          trigger: 'concurrent deposit on the same time-bank',
+          blast_radius: 'money',
+          mitigation: 'wrap in SELECT FOR UPDATE',
+        },
+      ],
+      summary_path: '.conductor/0011/dispatches/0004-premortem.md',
+    });
+    expect(parsed.mode).toBe('task');
+  });
+  it('parses direction mode (v0.3)', () => {
     expect(() =>
       PremortemResultSchema.parse({
+        mode: 'direction',
         risks: [
           {
-            trigger: 'concurrent deposit on the same time-bank',
+            trigger: 'Stripe sunsets the SCA endpoint we built against',
             blast_radius: 'money',
-            mitigation: 'wrap in SELECT FOR UPDATE',
+            mitigation: 'Direction should commit to a payment-vendor abstraction layer',
           },
         ],
-        summary_path: '.conductor/0011/dispatches/0004-premortem.md',
+        summary_path: '.conductor/0011/dispatches/0001-premortem-direction.md',
       }),
     ).not.toThrow();
   });
@@ -240,6 +327,103 @@ describe('RatifierResultSchema', () => {
         open_questions_count: 2,
       }),
     ).not.toThrow();
+  });
+  it('parses content_signature when present (v0.3)', () => {
+    const parsed = RatifierResultSchema.parse({
+      status: 'ok',
+      proposal_path: '.conductor/0030/ratification-proposal.md',
+      summary_path: '.conductor/0030/dispatches/0001-ratifier.md',
+      open_questions_count: 0,
+      content_signature: 'PENDING',
+    });
+    expect(parsed.content_signature).toBe('PENDING');
+  });
+});
+
+describe('TriageResultSchema (v0.3)', () => {
+  it('parses light depth', () => {
+    expect(() =>
+      TriageResultSchema.parse({
+        depth: 'light',
+        rationale: 'No high-stakes signals fired; ratifier alone is sufficient.',
+        signals: [],
+        summary_path: '.conductor/0030/dispatches/0001-triage.md',
+      }),
+    ).not.toThrow();
+  });
+  it('parses full depth with signals', () => {
+    expect(() =>
+      TriageResultSchema.parse({
+        depth: 'full',
+        rationale: 'Money keyword fired; full debate required.',
+        signals: ['money_keyword_present', 'external_vendor_present'],
+        summary_path: '.conductor/0030/dispatches/0001-triage.md',
+      }),
+    ).not.toThrow();
+  });
+  it('rejects unknown depth', () => {
+    expect(() =>
+      TriageResultSchema.parse({
+        depth: 'medium',
+        rationale: 'x',
+        signals: [],
+        summary_path: 'x',
+      }),
+    ).toThrow();
+  });
+});
+
+describe('FalsifierResultSchema (v0.3)', () => {
+  it('parses claims with mixed evidence pointers', () => {
+    expect(() =>
+      FalsifierResultSchema.parse({
+        status: 'ok',
+        claims: [
+          {
+            commitment: 'Use Stripe for all member-facing payments',
+            falsifier: 'If cross-border EUR settlement is ever required, Stripe is insufficient.',
+            evidence_path: 'unanswered',
+          },
+          {
+            commitment: 'Store all money as integer cents',
+            falsifier: 'If sub-cent rake fees are ever introduced, integer-cents drops precision.',
+            evidence_path: 'docs/kb/money-handling.md',
+          },
+        ],
+        summary_path: '.conductor/0030/dispatches/0002-falsifier.md',
+      }),
+    ).not.toThrow();
+  });
+  it('rejects empty claims array', () => {
+    expect(() =>
+      FalsifierResultSchema.parse({
+        status: 'ok',
+        claims: [],
+        summary_path: 'x',
+      }),
+    ).toThrow();
+  });
+});
+
+describe('DispatchEnvelopeSchema (v0.3)', () => {
+  it('parses an envelope with input_signature', () => {
+    expect(() =>
+      DispatchEnvelopeSchema.parse({
+        role: 'worker',
+        dispatched_at: '2026-05-09T12:00:00.000Z',
+        input_signature: 'a'.repeat(64),
+        result: { status: 'ok', summary_path: 'x' },
+      }),
+    ).not.toThrow();
+  });
+  it('rejects an envelope missing input_signature', () => {
+    expect(() =>
+      DispatchEnvelopeSchema.parse({
+        role: 'worker',
+        dispatched_at: '2026-05-09T12:00:00.000Z',
+        result: { status: 'ok' },
+      }),
+    ).toThrow();
   });
 });
 
@@ -296,11 +480,15 @@ describe('RetrospectiveResultSchema', () => {
 describe('SCHEMA_BY_ROLE registry', () => {
   it('exposes a schema for each non-merged role', () => {
     const roles = Object.keys(SCHEMA_BY_ROLE);
-    // 12 roles after the v0.2 merges (planner+task-splitter, journalist+kb-curator).
-    expect(roles).toHaveLength(12);
+    // v0.3: 14 roles. v0.2 had 12 after merges (planner+task-splitter,
+    // journalist+kb-curator); v0.3 adds triage and falsifier for the
+    // pre-ratification debate.
+    expect(roles).toHaveLength(14);
     expect(roles).toContain('worker');
     expect(roles).toContain('planner');
     expect(roles).toContain('scope-judge');
+    expect(roles).toContain('triage');
+    expect(roles).toContain('falsifier');
     expect(roles).not.toContain('task-splitter'); // merged into planner
     expect(roles).not.toContain('knowledge-curator'); // merged into journalist
   });
