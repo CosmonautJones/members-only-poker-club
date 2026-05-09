@@ -1,7 +1,8 @@
 # ADR-0021: Testing strategy
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 1 (skeleton) → 4 (formalized)
 
 ## Context
@@ -9,8 +10,6 @@
 Without tests, money-touching code rots. With too many tests, every change feels like a chore. We need a tiered strategy that puts effort where the cost of bugs is high.
 
 ## Decision
-
-To be drafted in Slice 1 and formalized in Slice 4. Direction:
 
 ### Tiers
 
@@ -53,7 +52,7 @@ To be drafted in Slice 1 and formalized in Slice 4. Direction:
 - `tests/fixtures/` for canned fixtures
 - `tests/factories/` for Faker-style builders (`buildMember()`, `buildMembership()`)
 
-## Open questions
+## Open questions (deferred)
 
-- Whether to add property-based testing (fast-check) for ledger arithmetic
-- Whether contract tests vs Stripe (something like Pactflow) make sense at this scale (probably not)
+- **Property-based testing (fast-check) for ledger arithmetic** — deferred to Slice 4 when ADR-0011 (time-bank) lands. Add fast-check at that point for the cents-arithmetic invariants only; not worth the setup cost before there's ledger code.
+- **Contract tests vs Stripe (Pactflow)** — declined at this scale. Stripe's webhook signature verification + integration tests against Stripe's CLI fixtures cover the same ground without the contract-test infrastructure cost. Re-evaluate if we ever ship a second payment provider.

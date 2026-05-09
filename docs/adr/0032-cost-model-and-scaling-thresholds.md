@@ -1,7 +1,8 @@
 # ADR-0032: Cost model & scaling thresholds
 
-- **Status:** Stub
+- **Status:** Accepted
 - **Date:** 2026-05-04
+- **Ratified:** 2026-05-08
 - **Slice:** 4
 
 ## Context
@@ -10,7 +11,7 @@ The owner needs a realistic monthly run-rate at different membership counts so t
 
 ## Decision
 
-To be drafted in Slice 4. Direction — order of magnitude estimates only, refine in Slice 4 with real measurements:
+Order-of-magnitude estimates ratified below. Refine in Slice 4 once we have real measurements (member growth, SMS volume, function exec, bandwidth).
 
 ### At 100 members
 
@@ -53,8 +54,8 @@ This is well past the current scope and likely implies a multi-location chain. R
 - Crossing 1,000 active members
 - Adding any feature that materially changes per-event SMS/email volume
 
-## Open questions
+## Open questions (deferred)
 
-- Owner's view on absorbing vs passing through Stripe fees (impacts time-bank math)
-- Whether to negotiate volume discounts with Stripe at 1K members (typically possible)
-- Long-term cloud-cost optimization (probably premature)
+- **Stripe fees: absorb vs pass-through** — owner decision pending; tracks with ADR-0011 (time-bank). Default for ratification: time-bank top-up examples in ADR-0011 assume the player pays the fee out of the credit (i.e., $200 in → $194 of usable credit + bonus). Owner can override by re-pricing or absorbing fees from membership margin.
+- **Volume discount negotiation with Stripe at 1K members** — calendar item: trigger when MRR sustains $25K+. Action: contact Stripe sales for custom-rate proposal.
+- **Long-term cloud-cost optimization** — declined as premature at <1K members. Re-evaluate at the 1K-member scaling threshold defined above.
