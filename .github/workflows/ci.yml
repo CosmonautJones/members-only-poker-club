@@ -123,12 +123,13 @@ jobs:
     name: Lighthouse
     needs: [e2e]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    # Soft-pass until VERCEL_PREVIEW_URL secret is wired. Without it the job
-    # spawns a local production server and audits perf on a GH-hosted runner,
-    # which is too noisy to gate merges on (perf scores routinely fluctuate
-    # below the 90 threshold on shared runners). Once the preview URL is
-    # configured, drop continue-on-error and the gate becomes hard again.
+    timeout-minutes: 20
+    # Soft-pass until VERCEL_PREVIEW_URL secret is wired. The driver runs
+    # median-of-3 against the local production server (LIGHTHOUSE_RUNS env
+    # tunable) to absorb shared-runner noise, but a particularly noisy
+    # neighbor on the runner can still drop the median below 90. Once the
+    # preview URL is configured, drop continue-on-error and the gate
+    # becomes hard again against a stable Vercel preview deploy.
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4

@@ -41,6 +41,11 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 const DEFAULT_BASE_URL = 'http://localhost:3000';
 const PATHS = ['/', '/games', '/contact', '/faq'];
 const PERF_THRESHOLD = 90;
+// Lighthouse perf scores on shared CI runners are noisy: a single run can
+// vary by 15–20 points between invocations on the same SHA. Lighthouse's
+// own guidance is "median of 3 (or more)". `LIGHTHOUSE_RUNS` overrides the
+// default at the CLI for local one-shot debugging.
+const RUNS_PER_URL = Number(process.env.LIGHTHOUSE_RUNS ?? '3');
 const REPORT_PATH = path.join(REPO_ROOT, 'lighthouse-report.json');
 const SERVER_READY_TIMEOUT_MS = 60_000;
 const SERVER_READY_POLL_MS = 500;
@@ -135,16 +140,31 @@ async function main() {
   try {
     for (const p of PATHS) {
       const url = new URL(p, baseUrl).toString();
-      // eslint-disable-next-line no-console
-      console.log(`[lighthouse] auditing ${url} ...`);
-      const result = await runLighthouseFor(url, chrome.port);
-      const lhr = result.lhr;
-      const perfCategory = lhr.categories?.performance;
-      const score =
-        perfCategory && typeof perfCategory.score === 'number' ? perfCategory.score * 100 : null;
-      results.push({ url, path: p, performance: score });
-      fullReports[p] = lhr;
-      if (score === null || score < PERF_THRESHOLD) {
+      const runs = [];
+      let lastLhr = null;
+      for (let i = 0; i < RUNS_PER_URL; i++) {
+        // eslint-disable-next-line no-console
+        console.log(`[lighthouse] auditing ${url} (run ${i + 1}/${RUNS_PER_URL}) ...`);
+        const result = await runLighthouseFor(url, chrome.port);
+        lastLhr = result.lhr;
+        const perfCategory = result.lhr.categories?.performance;
+        const score =
+          perfCategory && typeof perfCategory.score === 'number' ? perfCategory.score * 100 : null;
+        runs.push(score);
+      }
+      // Median is the official Lighthouse guidance for noise-reduction;
+      // for an even-N run, take the lower middle (more conservative).
+      const numericRuns = runs
+        .filter((s) => typeof s === 'number')
+        .slice()
+        .sort((a, b) => a - b);
+      const median =
+        numericRuns.length === 0
+          ? null
+          : (numericRuns[Math.floor((numericRuns.length - 1) / 2)] ?? null);
+      results.push({ url, path: p, performance: median, runs });
+      fullReports[p] = lastLhr;
+      if (median === null || median < PERF_THRESHOLD) {
         exitCode = 1;
       }
     }
@@ -161,17 +181,26 @@ async function main() {
   );
 
   // eslint-disable-next-line no-console
-  console.log('\nLighthouse perf scores:');
+  console.log(`\nLighthouse perf scores (median of ${RUNS_PER_URL}):`);
   // eslint-disable-next-line no-console
-  console.log('  Path                       Performance   Status');
+  console.log('  Path                       Median   Runs                Status');
   // eslint-disable-next-line no-console
-  console.log('  ' + '-'.repeat(54));
+  console.log('  ' + '-'.repeat(70));
   for (const r of results) {
     const scoreText = r.performance === null ? '   --' : r.performance.toFixed(1).padStart(5, ' ');
+    const runsText =
+      Array.isArray(r.runs) && r.runs.length > 0
+        ? r.runs
+            .map((s) => (typeof s === 'number' ? s.toFixed(0) : '--'))
+            .join(', ')
+            .padEnd(18, ' ')
+        : ' '.repeat(18);
     const status =
       r.performance !== null && r.performance >= PERF_THRESHOLD ? 'PASS' : 'FAIL (<90)';
     // eslint-disable-next-line no-console
-    console.log(`  ${r.path.padEnd(26, ' ')} ${scoreText.padStart(11, ' ')}   ${status}`);
+    console.log(
+      `  ${r.path.padEnd(26, ' ')} ${scoreText.padStart(5, ' ')}   ${runsText}  ${status}`,
+    );
   }
   // eslint-disable-next-line no-console
   console.log(`\nReport written to ${path.relative(REPO_ROOT, REPORT_PATH)}`);
