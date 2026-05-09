@@ -1,9 +1,65 @@
 # Design: `conductor` — pure-orchestrator skill
 
-- **Date:** 2026-05-05 (v0.1) · Amended 2026-05-08 (v0.2)
+- **Date:** 2026-05-05 (v0.1) · Amended 2026-05-08 (v0.2) · Amended 2026-05-09 (v0.4)
 - **Author:** Travis Jones (with Claude)
-- **Status:** Implemented (v0.2 amendments below)
+- **Status:** Implemented (v0.4 changes below; v0.3 was wired only into `.claude/skills/conductor/SKILL.md` and not mirrored here — see SKILL.md changelog for that ground)
 - **Consumer:** the `superpowers:writing-plans` skill, immediately after approval
+
+---
+
+## v0.4 changes (2026-05-09)
+
+Closes Issue #21. v0.3's pre-ratification debate (`triage` → `falsifier` ║ `premortem`(direction) → `ratifier`) shipped in PR #20 with the obligation that ratifier address every falsifier claim and direction-risk by name in Consequences. Live testing on ADR-0034 surfaced that the obligation was being verified by stretching `mode: "spec"` of the critic — useful but not mechanical, since `mode: "spec"`'s schema only carries `concerns: string[]`.
+
+v0.4 adds a fourth critic mode dedicated to ratification-proposal review:
+
+### Critic `mode: "proposal"`
+
+Position in flow: **Phase 0**, after `ratifier` produces a proposal at `.conductor/<N>/ratification-proposal.md`, before the orchestrator escalates for user approval. Only fires when `triage_depth: full` — light proposals have no falsifier or direction-premortem outputs to verify.
+
+Inputs: the proposal path, the falsifier summary path, and the direction-mode premortem summary path. The critic reads the proposal in full and emits one coverage entry per upstream claim/risk.
+
+Returned schema (`CriticProposalSchema`):
+
+```typescript
+{
+  mode: 'proposal',
+  verdict: 'ship' | 'revise',
+  falsifier_coverage: Array<{
+    claim_index: number,        // index into upstream falsifier.claims
+    addressed: boolean,
+    where?: string,              // section heading where engaged
+  }>,
+  direction_risk_coverage: Array<{
+    risk_index: number,          // index into upstream premortem.risks
+    addressed: boolean,
+    where?: string,
+  }>,
+  concerns: string[],            // free-form fallthrough for non-coverage issues
+  summary_path: string,
+}
+```
+
+Schema enforcement (`superRefine`):
+
+- `verdict: ship` is rejected if ANY entry in `falsifier_coverage` has `addressed: false`.
+- `verdict: ship` is rejected if ANY entry in `direction_risk_coverage` has `addressed: false`.
+
+Orchestrator-boundary enforcement (not schema):
+
+- `falsifier_coverage.length` MUST equal the upstream falsifier dispatch's `claims.length`.
+- `direction_risk_coverage.length` MUST equal the upstream direction-mode premortem dispatch's `risks.length`.
+- Mismatch → reject the result as malformed and re-dispatch the critic. Do NOT fall back to scoring coverage from the orchestrator.
+
+Loop bound: if `verdict: revise`, loop back to ratifier with the critic's `concerns[]` and the indices of unaddressed coverage entries. Existing 3-iter ratifier max applies; on overrun, escalate as stuck.
+
+### Why a new mode and not a stretched `mode: spec`
+
+`mode: spec` was designed for Phase-1 implementation specs. A ratification proposal is a different artifact: it is the *contract being signed*. v0.3 obligations (every falsifier claim engaged, every direction risk addressed) are content-shaped, not spec-shaped. The live test of v0.3 (PR #20, ADR-0034 fixture) demonstrated that `mode: spec` produced useful concerns, but only because the prompt told the critic to apply v0.3 lenses; the schema couldn't enforce structured output beyond `concerns: string[]`. v0.4 makes coverage a first-class field so dropping a falsifier is mechanically detectable.
+
+### Roster impact
+
+Unchanged at 14 roles. Critic gains a 4th mode (`spec`, `diff`, `delta`, `proposal`). `SCHEMA_BY_ROLE.critic` continues to point at `CriticResultSchema = z.union([CriticSpecOrDiffSchema, CriticDeltaSchema, CriticProposalSchema])`.
 
 ---
 

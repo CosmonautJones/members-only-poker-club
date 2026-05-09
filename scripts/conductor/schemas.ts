@@ -233,7 +233,69 @@ const CriticDeltaSchema = z
     }
   });
 
-export const CriticResultSchema = z.union([CriticSpecOrDiffSchema, CriticDeltaSchema]);
+// v0.4: proposal mode for ratification-proposal review. Phase 0, after
+// ratifier produces the proposal, before user approval. Only fires when
+// triage_depth=full — when light, there are no falsifier/risk obligations
+// to verify. The schema enforces verdict-vs-coverage consistency; the
+// orchestrator separately enforces array-length equality with the upstream
+// falsifier and direction-mode premortem outputs (lengths invisible to the
+// schema).
+const FalsifierCoverageEntrySchema = z.object({
+  // Index into the upstream falsifier dispatch's `claims` array.
+  claim_index: z.number().int().nonnegative(),
+  addressed: z.boolean(),
+  // Section heading or anchor where the claim is engaged in the proposal
+  // (e.g. "Consequences › Negative" or "Alternatives considered"). Optional
+  // because verdict=revise legitimately may have addressed=false entries.
+  where: z.string().optional(),
+});
+
+const DirectionRiskCoverageEntrySchema = z.object({
+  // Index into the upstream direction-mode premortem's `risks` array.
+  risk_index: z.number().int().nonnegative(),
+  addressed: z.boolean(),
+  where: z.string().optional(),
+});
+
+const CriticProposalSchema = z
+  .object({
+    mode: z.literal('proposal'),
+    verdict: z.enum(['ship', 'revise']),
+    falsifier_coverage: z.array(FalsifierCoverageEntrySchema),
+    direction_risk_coverage: z.array(DirectionRiskCoverageEntrySchema),
+    // Free-form fallthrough for non-coverage issues (e.g. proposal contradicts
+    // a cross-referenced ADR, or "deferred decisions disguised as decisions").
+    concerns: z.array(z.string()).default([]),
+    summary_path: z.string(),
+  })
+  .superRefine((r, ctx) => {
+    if (r.verdict === 'ship') {
+      const unaddressedFalsifiers = r.falsifier_coverage
+        .filter((c) => !c.addressed)
+        .map((c) => c.claim_index);
+      const unaddressedRisks = r.direction_risk_coverage
+        .filter((c) => !c.addressed)
+        .map((c) => c.risk_index);
+      if (unaddressedFalsifiers.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `verdict=ship is incompatible with unaddressed falsifier_coverage entries [${unaddressedFalsifiers.join(', ')}]: every claim must be engaged in the proposal before ratification`,
+        });
+      }
+      if (unaddressedRisks.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `verdict=ship is incompatible with unaddressed direction_risk_coverage entries [${unaddressedRisks.join(', ')}]: every direction-level risk must be addressed in the proposal before ratification`,
+        });
+      }
+    }
+  });
+
+export const CriticResultSchema = z.union([
+  CriticSpecOrDiffSchema,
+  CriticDeltaSchema,
+  CriticProposalSchema,
+]);
 
 export type CriticResult = z.infer<typeof CriticResultSchema>;
 
