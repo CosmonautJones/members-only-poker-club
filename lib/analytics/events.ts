@@ -37,7 +37,8 @@ export type Events =
       name: 'tournament_register_completed';
       props: { tournament_slug: string; paid_cents: number };
     }
-  | { name: 'cashier_redeem_completed'; props: { minutes: number } };
+  | { name: 'cashier_redeem_completed'; props: { minutes: number } }
+  | { name: 'experiment_exposed'; props: { experiment: string; variant: string } };
 
 /**
  * Compile-time exhaustiveness check: if a new event is added to `Events`
@@ -61,4 +62,5 @@ export const EVENT_NAMES: ReadonlyArray<Events['name']> = [
   'tournament_register_started',
   'tournament_register_completed',
   'cashier_redeem_completed',
+  'experiment_exposed',
 ] as const;

@@ -23,6 +23,7 @@ describe('EVENT_NAMES is in sync with the Events union', () => {
       'tournament_register_started',
       'tournament_register_completed',
       'cashier_redeem_completed',
+      'experiment_exposed',
     ];
     for (const name of expected) {
       expect(EVENT_NAMES).toContain(name);
