@@ -25,10 +25,16 @@ Enable each of the following on the `main` branch protection rule:
   - `E2E (Playwright)`
   - `Lighthouse`
   - `Backstop greps`
-  - `Migrate staging (placeholder — pending ADR-0018)` — listed for
-    completeness against the workflow job inventory; this job only runs on
-    push-to-main and is not a PR merge gate today (a no-op step until
-    ADR-0018 ratifies).
+  - `Migrations safety + naming` — runs on every PR. Scans new/modified
+    `supabase/migrations/*.sql` for risky patterns (DROP without ack,
+    blocking CREATE INDEX, *_cents non-INTEGER, SET NOT NULL without
+    backfill comment) and validates filename convention. See ADR-0018 and
+    `supabase/migrations/README.md`.
+  - `Migrate staging (placeholder — pending Supabase staging project)` —
+    listed for completeness against the workflow job inventory; this job
+    only runs on push-to-main and is not a PR merge gate today (a no-op
+    step until SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF secrets are
+    configured for a staging Supabase project).
   If a job is renamed in `ci.yml`, the corresponding required-check entry
   here must be updated in the same PR — the cross-consistency vitest
   (`tests/ci/ops-docs.test.ts`) gates on this.
