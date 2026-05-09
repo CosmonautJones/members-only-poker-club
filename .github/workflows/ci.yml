@@ -173,6 +173,14 @@ jobs:
             echo "::error::Service-role key referenced in client trees; per ADR-0007 it is server-only"
             exit 1
           fi
+      - name: PostHog imports only inside lib/analytics (ADR-0028)
+        run: |
+          # Catches stray `posthog-js` imports that would bypass the consent gate.
+          # The lib/analytics/ module owns all PostHog SDK access.
+          if grep -rE "from\\s+['\"]posthog(-js|-node)?['\"]" --include='*.ts' --include='*.tsx' --include='*.js' --include='*.mjs' --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=lib/analytics --exclude-dir=tests/analytics .; then
+            echo "::error::PostHog imported outside lib/analytics/. Route through lib/analytics so the consent gate applies."
+            exit 1
+          fi
 
   # ADR-0018: migration safety gate. Scans new/modified migrations for risky
   # patterns (DROP without ack, ALTER TYPE, blocking CREATE INDEX, *_cents
