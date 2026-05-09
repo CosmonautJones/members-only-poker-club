@@ -108,6 +108,12 @@ jobs:
       - run: corepack pnpm install --frozen-lockfile
       - name: Install Playwright browsers
         run: corepack pnpm exec playwright install --with-deps chromium
+      - name: Build production bundle
+        # Required for playwright's `webServer` (`next start`) to find `.next/`.
+        # Always builds — when VERCEL_PREVIEW_URL is set, the build still has
+        # to succeed because the playwright config unconditionally declares
+        # a webServer, and `next start` will fail without `.next/`.
+        run: corepack pnpm build
       - name: Run Playwright against preview URL
         env:
           PLAYWRIGHT_BASE_URL: ${{ secrets.VERCEL_PREVIEW_URL || 'http://localhost:3000' }}
@@ -146,7 +152,8 @@ jobs:
       - run: corepack pnpm install --frozen-lockfile
       - name: No *_cents columns with float types (ADR-0004)
         run: |
-          if grep -rEi '[a-zA-Z_]+_cents\s+(decimal|numeric|float|real|double\s+precision)\b' --include='*.sql' --include='*.ts' .; then
+          # Excludes tests/ (regex-pattern fixtures) and node_modules/ (third-party).
+          if grep -rEi '[a-zA-Z_]+_cents\s+(decimal|numeric|float|real|double\s+precision)\b' --include='*.sql' --include='*.ts' --exclude-dir=tests --exclude-dir=tests-e2e --exclude-dir=node_modules --exclude-dir=.next .; then
             echo "::error::Found *_cents column with floating-point type; money must be INTEGER per ADR-0004"
             exit 1
           fi
