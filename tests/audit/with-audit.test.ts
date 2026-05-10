@@ -64,10 +64,7 @@ import {
   type TransactionClient,
   type WithAuditMutateResult,
 } from '../../lib/audit/withAudit';
-import {
-  setupAuthStub,
-  resetAuthStub,
-} from '../db/_fixtures/auth-stub';
+import { setupAuthStub, resetAuthStub } from '../db/_fixtures/auth-stub';
 import { seedProfile } from '../db/_fixtures/profiles';
 import {
   setupAppAuthenticatedRole,
@@ -80,8 +77,7 @@ const __filename =
   typeof __dirname === 'undefined'
     ? fileURLToPath(import.meta.url)
     : `${__dirname}/__placeholder__`;
-const TEST_DIR =
-  typeof __dirname === 'undefined' ? dirname(__filename) : __dirname;
+const TEST_DIR = typeof __dirname === 'undefined' ? dirname(__filename) : __dirname;
 const MIG_0002 = resolve(
   TEST_DIR,
   '..',
@@ -90,22 +86,8 @@ const MIG_0002 = resolve(
   'migrations',
   '0002_profiles_and_roles.sql',
 );
-const MIG_0003 = resolve(
-  TEST_DIR,
-  '..',
-  '..',
-  'supabase',
-  'migrations',
-  '0003_audit_log.sql',
-);
-const HELPER_FILE = resolve(
-  TEST_DIR,
-  '..',
-  '..',
-  'lib',
-  'audit',
-  'withAudit.ts',
-);
+const MIG_0003 = resolve(TEST_DIR, '..', '..', 'supabase', 'migrations', '0003_audit_log.sql');
+const HELPER_FILE = resolve(TEST_DIR, '..', '..', 'lib', 'audit', 'withAudit.ts');
 
 let pg: PGlite;
 
@@ -115,8 +97,7 @@ let pg: PGlite;
 // touches the multi-statement path (for migration application + the
 // CHECK-constraint scaffold installed in beforeAll).
 async function runSqlBlock(sql: string): Promise<void> {
-  const runner = (pg as unknown as { exec: (s: string) => Promise<unknown> })
-    .exec;
+  const runner = (pg as unknown as { exec: (s: string) => Promise<unknown> }).exec;
   await runner.call(pg, sql);
 }
 
@@ -140,10 +121,7 @@ let manager = '';
 // structural query-only type avoids importing the internal `Transaction`
 // type alias and keeps the adapter driver-agnostic.
 interface PgliteTxLike {
-  query<T = unknown>(
-    sql: string,
-    params?: unknown[],
-  ): Promise<{ rows: T[] }>;
+  query<T = unknown>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
 }
 function txClient(tx: PgliteTxLike): TransactionClient {
   return {
@@ -181,9 +159,7 @@ beforeAll(async () => {
     role: 'member' | 'cashier' | 'manager' | 'owner',
     label: string,
   ): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -262,23 +238,21 @@ describe('AC9.1 — happy path', () => {
         async (txInner): Promise<WithAuditMutateResult<{ ok: true; n: number }>> => {
           // Capture before — txInner IS the same transaction-scoped client
           // the wrapper handed in (the helper does NOT promote/wrap it).
-          const beforeRead = await txInner.query(
-            'SELECT full_name FROM profiles WHERE id = $1',
-            [targetId],
-          );
+          const beforeRead = await txInner.query('SELECT full_name FROM profiles WHERE id = $1', [
+            targetId,
+          ]);
           const beforeRow = beforeRead.rows[0] as { full_name: string };
 
           // Mutate.
-          await txInner.query(
-            `UPDATE profiles SET full_name = $1 WHERE id = $2`,
-            ['Renamed By Happy Path', targetId],
-          );
+          await txInner.query(`UPDATE profiles SET full_name = $1 WHERE id = $2`, [
+            'Renamed By Happy Path',
+            targetId,
+          ]);
 
           // Capture after.
-          const afterRead = await txInner.query(
-            'SELECT full_name FROM profiles WHERE id = $1',
-            [targetId],
-          );
+          const afterRead = await txInner.query('SELECT full_name FROM profiles WHERE id = $1', [
+            targetId,
+          ]);
           const afterRow = afterRead.rows[0] as { full_name: string };
 
           return {
@@ -358,10 +332,10 @@ describe('AC9.2 — mutate throws', () => {
           async (txInner) => {
             // Mutate first — this write must roll back when the throw
             // propagates out of withAudit and out of pg.transaction.
-            await txInner.query(
-              `UPDATE profiles SET full_name = $1 WHERE id = $2`,
-              ['Should Not Persist', targetId],
-            );
+            await txInner.query(`UPDATE profiles SET full_name = $1 WHERE id = $2`, [
+              'Should Not Persist',
+              targetId,
+            ]);
             throw new Error('boom — mutate failed before returning');
             // Unreachable but satisfies the type for the callback.
             return {
@@ -444,10 +418,10 @@ describe('AC9.3 — audit-INSERT throws rolls back the mutation', () => {
             // transactions, this UPDATE would have already committed by the
             // time the audit INSERT failed; the post-rollback service-role
             // read below would see the rename and the test would fail.
-            await txInner.query(
-              `UPDATE profiles SET full_name = $1 WHERE id = $2`,
-              ['Should Not Persist (CHECK guard)', targetId],
-            );
+            await txInner.query(`UPDATE profiles SET full_name = $1 WHERE id = $2`, [
+              'Should Not Persist (CHECK guard)',
+              targetId,
+            ]);
             return {
               before: { full_name: beforeName },
               after: { full_name: 'Should Not Persist (CHECK guard)' },
@@ -664,10 +638,10 @@ describe('AC9.6 — ip/userAgent round-trip', () => {
           async (txInner) => {
             // Mutate first — must roll back when the audit INSERT trips the
             // inet parser.
-            await txInner.query(
-              `UPDATE profiles SET full_name = $1 WHERE id = $2`,
-              ['Should Not Persist (inet guard)', targetId],
-            );
+            await txInner.query(`UPDATE profiles SET full_name = $1 WHERE id = $2`, [
+              'Should Not Persist (inet guard)',
+              targetId,
+            ]);
             return {
               before: { full_name: beforeName },
               after: { full_name: 'Should Not Persist (inet guard)' },
@@ -722,12 +696,7 @@ describe('AC9.7 — before/after JSON shapes', () => {
       bool_f: false,
       n: null,
     };
-    const afterShape = [
-      { id: 1, ok: true },
-      { id: 2, ok: false },
-      'tail',
-      null,
-    ];
+    const afterShape = [{ id: 1, ok: true }, { id: 2, ok: false }, 'tail', null];
 
     await pg.transaction(async (tx) =>
       withAudit(
@@ -750,10 +719,7 @@ describe('AC9.7 — before/after JSON shapes', () => {
     const audit = await pg.query<{
       before: unknown;
       after: unknown;
-    }>(
-      `SELECT before, after FROM audit_log WHERE action = $1`,
-      [markerAction],
-    );
+    }>(`SELECT before, after FROM audit_log WHERE action = $1`, [markerAction]);
     expect(audit.rows).toHaveLength(1);
     // pglite returns jsonb columns as already-parsed JS values. Use
     // toEqual for deep structural equality.
