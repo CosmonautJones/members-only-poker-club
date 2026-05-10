@@ -19,6 +19,7 @@ Workers, test-writers, and spec-writers read the relevant topic slice on every d
 | [seo.md](seo.md) | 0030 |
 | [nextjs-app-router.md](nextjs-app-router.md) | 0030, 0009, 0023, 0017 (cross-cutting) |
 | [ci-cd.md](ci-cd.md) | 0017, 0004, 0033 (cross-cutting) |
+| [server-only-and-tests.md](server-only-and-tests.md) | 0007, 0006 (cross-cutting test pattern) |
 
 New topics: append a row above and create the file. Curator may propose new topics that don't fit existing ones.
 

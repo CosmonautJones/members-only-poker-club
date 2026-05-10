@@ -50,6 +50,12 @@ import {
   resetAuthStub,
 } from './_fixtures/auth-stub';
 import { seedProfile } from './_fixtures/profiles';
+import {
+  setupAppAuthenticatedRole,
+  asAuthenticated,
+  asServiceRole,
+  withRollback,
+} from './_fixtures/rls-helpers';
 
 // Path resolution that works on Windows (backslash-safe via path.resolve).
 // Some Node setups give us __dirname natively (CJS); under ESM we synthesize
@@ -157,14 +163,15 @@ beforeAll(async () => {
   //
   //    pg_trigger / pg_class are world-readable in stock Postgres; the
   //    introspection grants below are defense-in-depth.
+  //
+  //    The role + standard schema/table/function grants are owned by the
+  //    shared rls-helpers fixture so cycle 2 (audit_log) can re-use them
+  //    without redefining the contract. The two cycle-1-specific grants
+  //    that follow (auth.users seeding from app_authenticated, pg_trigger
+  //    introspection for AC8.11) are NOT part of the shared default set
+  //    and stay inlined here.
+  await setupAppAuthenticatedRole(pg, { tables: ['profiles'] });
   await runSqlBlock(`
-    CREATE ROLE app_authenticated NOBYPASSRLS NOINHERIT;
-    GRANT USAGE ON SCHEMA auth TO app_authenticated;
-    GRANT USAGE ON SCHEMA public TO app_authenticated;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON profiles TO app_authenticated;
-    GRANT EXECUTE ON FUNCTION auth.role_at_least(text) TO app_authenticated;
-    GRANT EXECUTE ON FUNCTION auth.uid() TO app_authenticated;
-    GRANT EXECUTE ON FUNCTION auth.role() TO app_authenticated;
     GRANT SELECT, INSERT ON auth.users TO app_authenticated;
     GRANT SELECT ON pg_catalog.pg_trigger TO app_authenticated;
   `);
@@ -189,43 +196,14 @@ beforeEach(async () => {
   await pg.query('SET ROLE app_authenticated');
 });
 
-// Helper: wrap a mutating test body in BEGIN / ROLLBACK so the seeded
-// fixtures stay intact for downstream tests. pglite supports raw txn
-// statements via pg.query(). We use this for any test that issues UPDATE,
-// DELETE, or INSERT against `profiles`. SELECT-only tests skip this.
-//
-// NOTE: `pg.transaction()` (the higher-level API) commits on success and
-// rolls back on throw — we need rollback ALWAYS so test ordering doesn't
-// affect downstream row state. Hence the manual BEGIN / ROLLBACK pair.
-async function withRollback(body: () => Promise<void>): Promise<void> {
-  await pg.query('BEGIN');
-  try {
-    await body();
-  } finally {
-    // Always rollback — even on success — so mutations don't leak across
-    // tests on the shared pglite session.
-    await pg.query('ROLLBACK');
-  }
-}
-
-// Switch to "service-role" semantics for sentinel / snapshot / verification
-// reads: revert to the superuser (BYPASSRLS) AND clear auth.uid()/auth.role()
-// GUCs. Mirrors the production service-role connection that performs
-// server-side seeds, snapshots, and bypass-permitted writes (AC8.12).
-//
-// The follow-up `asAuthenticated()` MUST be called before any subsequent
-// RLS-subject query in the same test, otherwise the test silently falls
-// back to BYPASSRLS and the policy gate is not exercised.
-async function asServiceRole(): Promise<void> {
-  await pg.query('RESET ROLE');
-  await resetAuthStub(pg);
-}
-
-// Restore the per-test `app_authenticated` role (NOBYPASSRLS) so subsequent
-// queries run subject to RLS. Idempotent.
-async function asAuthenticated(): Promise<void> {
-  await pg.query('SET ROLE app_authenticated');
-}
+// withRollback / asServiceRole / asAuthenticated are imported from
+// `./_fixtures/rls-helpers` (lifted in ADR-0006 cycle 2 t0 — see fixture file
+// header). The shared helpers preserve cycle-1 semantics verbatim:
+//   - withRollback: BEGIN / ROLLBACK pair (no SAVEPOINT, no commit-on-success).
+//   - asServiceRole: RESET ROLE + resetAuthStub (clears both Postgres role
+//     and auth.uid/auth.role GUCs).
+//   - asAuthenticated: SET ROLE app_authenticated (cycle 1 callers pass no
+//     uid/role; the helper accepts optional uid/role for cycle 2 reuse).
 
 // =============================================================================
 // SMOKE — the FIRST it() in the file. If this fails, every other failure is
@@ -240,12 +218,12 @@ describe('smoke', () => {
     // (cleared by resetAuthStub in beforeEach), RLS would filter every row
     // and COUNT returns 0. Switch to service-role for the count, then restore
     // app_authenticated so subsequent tests aren't surprised.
-    await asServiceRole();
+    await asServiceRole(pg);
     const r = await pg.query<{ n: number }>(
       'SELECT COUNT(*)::int AS n FROM profiles',
     );
     expect(r.rows[0]!.n).toBeGreaterThanOrEqual(5);
-    await asAuthenticated();
+    await asAuthenticated(pg);
   });
 
   it('auth.uid() returns NULL after resetAuthStub (bypass-predicate sanity)', async () => {
@@ -261,7 +239,7 @@ describe('smoke', () => {
     // role column matches what beforeAll set. If the seed accidentally
     // up-ranked anyone, every privilege-positive test below would pass for
     // the wrong reason.
-    await asServiceRole();
+    await asServiceRole(pg);
     const r = await pg.query<{ id: string; role: string }>(
       `SELECT id, role::text AS role FROM profiles
         WHERE id = ANY($1::uuid[]) ORDER BY role`,
@@ -284,7 +262,7 @@ describe('smoke', () => {
 describe('AC8.1 — cross-tenant SELECT denial', () => {
   it('member-A authenticated cannot SELECT member-B row', async () => {
     // Positive control — prove member-B's row exists (service-role path).
-    await asServiceRole();
+    await asServiceRole(pg);
     const sentinel = await pg.query<{ id: string }>(
       'SELECT id FROM profiles WHERE id = $1',
       [memberB],
@@ -292,7 +270,7 @@ describe('AC8.1 — cross-tenant SELECT denial', () => {
     expect(sentinel.rows).toHaveLength(1);
 
     // Switch to member-A and assert RLS filters member-B's row to zero.
-    await asAuthenticated();
+    await asAuthenticated(pg);
     await setTestUid(pg, memberA);
     const denied = await pg.query<{ id: string }>(
       'SELECT id FROM profiles WHERE id = $1',
@@ -319,9 +297,9 @@ describe('AC8.1 — cross-tenant SELECT denial', () => {
 // =============================================================================
 describe('AC8.2 — cross-tenant UPDATE denial', () => {
   it('member-A authenticated cannot UPDATE member-B row', async () => {
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       // Snapshot member-B BEFORE under service-role.
-      await asServiceRole();
+      await asServiceRole(pg);
       const before = await pg.query<{
         full_name: string;
         updated_at: string;
@@ -332,7 +310,7 @@ describe('AC8.2 — cross-tenant UPDATE denial', () => {
       expect(before.rows).toHaveLength(1);
 
       // Attempt cross-tenant UPDATE under member-A.
-      await asAuthenticated();
+      await asAuthenticated(pg);
       await setTestUid(pg, memberA);
       const upd = (await pg.query(
         `UPDATE profiles SET full_name = 'pwned' WHERE id = $1`,
@@ -342,7 +320,7 @@ describe('AC8.2 — cross-tenant UPDATE denial', () => {
 
       // Snapshot AFTER — same name, same updated_at (proves RLS filtered,
       // not just that WHERE matched no rows AND set_updated_at didn't fire).
-      await asServiceRole();
+      await asServiceRole(pg);
       const after = await pg.query<{
         full_name: string;
         updated_at: string;
@@ -361,9 +339,9 @@ describe('AC8.2 — cross-tenant UPDATE denial', () => {
 // =============================================================================
 describe('AC8.3 — cross-tenant DELETE denial', () => {
   it('member-A authenticated cannot DELETE any row', async () => {
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       // Positive control — member-B exists.
-      await asServiceRole();
+      await asServiceRole(pg);
       const before = await pg.query<{ n: number }>(
         'SELECT COUNT(*)::int AS n FROM profiles WHERE id = $1',
         [memberB],
@@ -371,7 +349,7 @@ describe('AC8.3 — cross-tenant DELETE denial', () => {
       expect(before.rows[0]!.n).toBe(1);
 
       // Attempt DELETE under member-A.
-      await asAuthenticated();
+      await asAuthenticated(pg);
       await setTestUid(pg, memberA);
       const del = (await pg.query(
         'DELETE FROM profiles WHERE id = $1',
@@ -380,7 +358,7 @@ describe('AC8.3 — cross-tenant DELETE denial', () => {
       expect(del.affectedRows ?? 0).toBe(0);
 
       // After — member-B still present.
-      await asServiceRole();
+      await asServiceRole(pg);
       const after = await pg.query<{ n: number }>(
         'SELECT COUNT(*)::int AS n FROM profiles WHERE id = $1',
         [memberB],
@@ -392,7 +370,7 @@ describe('AC8.3 — cross-tenant DELETE denial', () => {
   it('member-A authenticated cannot DELETE their own row either', async () => {
     // delete policy is profiles_delete_manager — only manager+ may delete.
     // Members are not in the manager+ ladder, so even self-delete is denied.
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       await setTestUid(pg, memberA);
       const del = (await pg.query(
         'DELETE FROM profiles WHERE id = $1',
@@ -401,7 +379,7 @@ describe('AC8.3 — cross-tenant DELETE denial', () => {
       expect(del.affectedRows ?? 0).toBe(0);
 
       // Sanity — row still there.
-      await asServiceRole();
+      await asServiceRole(pg);
       const after = await pg.query<{ n: number }>(
         'SELECT COUNT(*)::int AS n FROM profiles WHERE id = $1',
         [memberA],
@@ -436,7 +414,7 @@ describe('AC8.4 — cashier read', () => {
 // =============================================================================
 describe('AC8.5 — manager write', () => {
   it('manager authenticated CAN UPDATE any member row including the role column', async () => {
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       await setTestUid(pg, manager);
       const upd = (await pg.query(
         `UPDATE profiles SET role = 'cashier' WHERE id = $1`,
@@ -454,7 +432,7 @@ describe('AC8.5 — manager write', () => {
   });
 
   it('manager authenticated CAN UPDATE non-role columns on any member row', async () => {
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       await setTestUid(pg, manager);
       const upd = (await pg.query(
         `UPDATE profiles SET full_name = 'Renamed By Manager' WHERE id = $1`,
@@ -561,9 +539,9 @@ describe('AC8.7 — anon SELECT', () => {
 // =============================================================================
 describe('AC8.8 — anon write', () => {
   it('anon UPDATE affects zero rows', async () => {
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       // Snapshot member-A BEFORE under service-role (RLS bypassed).
-      await asServiceRole();
+      await asServiceRole(pg);
       const before = await pg.query<{ full_name: string }>(
         'SELECT full_name FROM profiles WHERE id = $1',
         [memberA],
@@ -571,7 +549,7 @@ describe('AC8.8 — anon write', () => {
       expect(before.rows).toHaveLength(1);
 
       // Switch to anon: NOBYPASSRLS role + cleared auth.uid().
-      await asAuthenticated();
+      await asAuthenticated(pg);
       // resetAuthStub already clears uid in beforeEach; asServiceRole then
       // flipped role to superuser; asAuthenticated puts us back into
       // app_authenticated and uid is still NULL → this is the anon path.
@@ -590,7 +568,7 @@ describe('AC8.8 — anon write', () => {
       expect(upd.affectedRows ?? 0).toBe(0);
 
       // Confirm row unchanged — service-role read so we see the true state.
-      await asServiceRole();
+      await asServiceRole(pg);
       const after = await pg.query<{ full_name: string }>(
         'SELECT full_name FROM profiles WHERE id = $1',
         [memberA],
@@ -600,7 +578,7 @@ describe('AC8.8 — anon write', () => {
   });
 
   it('anon DELETE affects zero rows', async () => {
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       // beforeEach already left us as app_authenticated with uid cleared
       // (the anon path). Issue the DELETE directly — RLS denies it.
       const del = (await pg.query(
@@ -612,7 +590,7 @@ describe('AC8.8 — anon write', () => {
       expect(del.affectedRows ?? 0).toBe(0);
 
       // Sanity — still there. service-role read so we see the true state.
-      await asServiceRole();
+      await asServiceRole(pg);
       const after = await pg.query<{ n: number }>(
         'SELECT COUNT(*)::int AS n FROM profiles WHERE id = $1',
         [memberA],
@@ -640,7 +618,7 @@ describe('AC8.9 — anon INSERT denial', () => {
 
     // Insert into auth.users first (to satisfy FK) — this is service-role,
     // not anon, so the auth.users insert succeeds (BYPASSRLS + GUC clear).
-    await asServiceRole();
+    await asServiceRole(pg);
     await pg.query('INSERT INTO auth.users (id) VALUES ($1)', [freshId]);
 
     // Now switch to an authenticated-but-not-the-target identity. The
@@ -652,7 +630,7 @@ describe('AC8.9 — anon INSERT denial', () => {
     // the "owner-of-the-row" path, but RLS denial-by-default still wins
     // (no insert policy → no caller may insert). Test as member-A for
     // explicitness.
-    await asAuthenticated();
+    await asAuthenticated(pg);
     await setTestUid(pg, memberA);
 
     await expect(
@@ -667,7 +645,7 @@ describe('AC8.9 — anon INSERT denial', () => {
     // SQLSTATE. Catches the "RLS lets insert proceed silently" failure
     // mode if pglite ever diverges from production semantics. service-role
     // read so RLS-filtering can't mask a row that DID get inserted.
-    await asServiceRole();
+    await asServiceRole(pg);
     const post = await pg.query<{ n: number }>(
       'SELECT COUNT(*)::int AS n FROM profiles WHERE email = $1',
       [freshEmail],
@@ -683,7 +661,7 @@ describe('AC8.9 — anon INSERT denial', () => {
 
     // auth.users seed — service-role bypasses RLS for auth.users (no
     // RLS enabled there).
-    await asServiceRole();
+    await asServiceRole(pg);
     await pg.query('INSERT INTO auth.users (id) VALUES ($1)', [freshId]);
 
     // Switch back to app_authenticated; resetAuthStub already cleared
@@ -692,7 +670,7 @@ describe('AC8.9 — anon INSERT denial', () => {
     //
     // (If a future migration ever adds `WITH (security_invoker = off)` or
     // similar that lets NULL-uid inserts through, this test catches it.)
-    await asAuthenticated();
+    await asAuthenticated(pg);
     await expect(
       pg.query(
         `INSERT INTO profiles (id, full_name, dob, email, role)
@@ -708,7 +686,7 @@ describe('AC8.9 — anon INSERT denial', () => {
     ).rejects.toMatchObject({ code: '42501' });
 
     // service-role read so RLS-filtering can't mask a sneaky insert.
-    await asServiceRole();
+    await asServiceRole(pg);
     const post = await pg.query<{ n: number }>(
       'SELECT COUNT(*)::int AS n FROM profiles WHERE email = $1',
       [freshEmail],
@@ -726,7 +704,7 @@ describe('AC8.9 — anon INSERT denial', () => {
 describe('AC8.10 — privilege escalation: member-A self-update role', () => {
   it('variant A — simple SET role rejects with 42501', async () => {
     expect.assertions(1);
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       await setTestUid(pg, memberA);
       await expect(
         pg.query(
@@ -739,7 +717,7 @@ describe('AC8.10 — privilege escalation: member-A self-update role', () => {
 
   it('variant B — multi-column SET (role + full_name) rejects with 42501', async () => {
     expect.assertions(1);
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       await setTestUid(pg, memberA);
       await expect(
         pg.query(
@@ -758,7 +736,7 @@ describe('AC8.10 — privilege escalation: member-A self-update role', () => {
     // succeeds, the trigger has acquired a value-equality short-circuit
     // that the spec did not require — flag it as a fidelity finding.
     expect.assertions(1);
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       await setTestUid(pg, memberA);
       await expect(
         pg.query(
@@ -774,7 +752,7 @@ describe('AC8.10 — privilege escalation: member-A self-update role', () => {
     // member-A's role must still be 'member'. This is a defense-in-depth
     // check that the trigger raises BEFORE the row update commits, not
     // AFTER — i.e., the change is atomic with the rejection.
-    await asServiceRole();
+    await asServiceRole(pg);
     const r = await pg.query<{ role: string }>(
       'SELECT role::text AS role FROM profiles WHERE id = $1',
       [memberA],
@@ -796,9 +774,9 @@ describe('AC8.10 — privilege escalation: member-A self-update role', () => {
 describe('AC8.11 — trigger firing order invariant', () => {
   it('behavioral: updated_at NOT advanced after a rejected role change', async () => {
     expect.assertions(3);
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       // Snapshot updated_at BEFORE under service-role.
-      await asServiceRole();
+      await asServiceRole(pg);
       const before = await pg.query<{ updated_at: string }>(
         'SELECT updated_at FROM profiles WHERE id = $1',
         [memberA],
@@ -809,7 +787,7 @@ describe('AC8.11 — trigger firing order invariant', () => {
       // recover from the post-rejection aborted-txn state — Postgres marks
       // the surrounding txn as aborted on any error, but ROLLBACK TO
       // SAVEPOINT restores it without unwinding the outer withRollback.
-      await asAuthenticated();
+      await asAuthenticated(pg);
       await setTestUid(pg, memberA);
       await pg.query('SAVEPOINT before_rejected_update');
       await expect(
@@ -822,7 +800,7 @@ describe('AC8.11 — trigger firing order invariant', () => {
 
       // updated_at must equal its prior value — the txn aborted before
       // set_updated_at could persist its bump.
-      await asServiceRole();
+      await asServiceRole(pg);
       const after = await pg.query<{ updated_at: string }>(
         'SELECT updated_at FROM profiles WHERE id = $1',
         [memberA],
@@ -859,7 +837,7 @@ describe('AC8.11 — trigger firing order invariant', () => {
 // =============================================================================
 describe('AC8.12 — service-role bypass', () => {
   it('cleared test.uid permits role change (auth.uid() IS NULL bypass)', async () => {
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       // Service-role bypass in production is two-axis:
       //   (a) RLS row-policies are bypassed because `service_role` has
       //       BYPASSRLS at the Postgres-role level.
@@ -895,7 +873,7 @@ describe('AC8.12 — service-role bypass', () => {
 
   it('non-bypass equivalent: same UPDATE under member-A own uid rejects with 42501 (paired negative)', async () => {
     expect.assertions(1);
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       await setTestUid(pg, memberA);
       await expect(
         pg.query(
@@ -912,7 +890,7 @@ describe('AC8.12 — service-role bypass', () => {
     // is `auth.uid() IS NULL`, NOT `auth.role() = 'service_role'`. Setting
     // test.role does NOT clear test.uid, so the trigger still rejects.
     expect.assertions(1);
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       await setTestUid(pg, memberA);
       await setTestRole(pg, 'service_role');
       await expect(
@@ -943,7 +921,7 @@ describe('AC8.12 — service-role bypass', () => {
 describe('+ WITH CHECK behavioral coverage', () => {
   it('member-A cannot rewrite their own id to a different uuid (WITH CHECK rejects)', async () => {
     expect.assertions(1);
-    await withRollback(async () => {
+    await withRollback(pg, async () => {
       // Seed a fresh auth.users row (so FK doesn't trip first).
       await resetAuthStub(pg);
       const freshUid = crypto.randomUUID();
