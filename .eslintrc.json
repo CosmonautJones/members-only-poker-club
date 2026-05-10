@@ -31,5 +31,13 @@
       }
     ]
   },
+  "overrides": [
+    {
+      "files": ["app/(auth)/**/actions.ts"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
   "ignorePatterns": ["_design/**", "node_modules", ".next", "out", "coverage"]
 }
