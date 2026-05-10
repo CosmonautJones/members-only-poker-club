@@ -67,3 +67,4 @@ Anything surprising, any gotchas, anything that would have saved time today.
 | 2026-05-06 | [01 — Marketing home MVP shipped to Vercel preview](2026-05-06-01-marketing-home-mvp.md) | 0002 | implementation |
 | 2026-05-08 | [01 — ADR-0024 cookie & consent banner conductor run](2026-05-08-01-conductor-run-adr-0024-consent.md) | 0024 | implementation |
 | 2026-05-09 | [03 — ADR-0003 roles + RLS conductor run](2026-05-09-03-conductor-run-adr-0003-rls.md) | 0003 | implementation |
+| 2026-05-10 | [01 — ADR-0006 audit log conductor run](2026-05-10-01-conductor-run-adr-0006-audit-log.md) | 0006 | implementation |
