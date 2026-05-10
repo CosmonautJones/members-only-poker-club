@@ -179,10 +179,7 @@ export async function seedAuditLog(
   // count under a `target_id = ... AND action = ...` filter; colliding
   // defaults from a sibling seed would silently flip that assertion.
   const suffix = crypto.randomUUID().slice(0, 8);
-  const defaults: Pick<
-    AuditLogRow,
-    (typeof V1_DEFAULTED_COLUMNS)[number]
-  > = {
+  const defaults: Pick<AuditLogRow, (typeof V1_DEFAULTED_COLUMNS)[number]> = {
     actor_id: null,
     action: `test.action.${suffix}`,
     target_type: 'test',

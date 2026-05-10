@@ -350,15 +350,11 @@ describe('audit_log migration — AST tier (AC8 parser-fidelity assertions)', ()
     const constraints = collectNodes<Record<string, unknown>>(actorCol, 'Constraint');
 
     // No CONSTR_NOTNULL constraint on actor_id (premortem R3).
-    const hasNotNull = constraints.some(
-      (c) => c.contype === 'CONSTR_NOTNULL' || c.contype === 1,
-    );
+    const hasNotNull = constraints.some((c) => c.contype === 'CONSTR_NOTNULL' || c.contype === 1);
     expect(hasNotNull).toBe(false);
 
     // FK Constraint references auth.users.
-    const fkConstraint = constraints.find(
-      (c) => c.contype === 'CONSTR_FOREIGN' || c.contype === 8,
-    );
+    const fkConstraint = constraints.find((c) => c.contype === 'CONSTR_FOREIGN' || c.contype === 8);
     expect(fkConstraint).toBeDefined();
     const pktable = fkConstraint!.pktable as Record<string, unknown> | undefined;
     expect(pktable?.relname).toBe('users');
@@ -425,7 +421,8 @@ describe('audit_log migration — AST tier (AC8 parser-fidelity assertions)', ()
     // SortByDir enum: SORTBY_DEFAULT=0, SORTBY_ASC=1, SORTBY_DESC=2,
     // SORTBY_USING=3. Some versions also emit the symbolic string form
     // 'SORTBY_DESC' — accept either.
-    const lastOf = (elems: Record<string, unknown>[]): Record<string, unknown> => elems[elems.length - 1]!;
+    const lastOf = (elems: Record<string, unknown>[]): Record<string, unknown> =>
+      elems[elems.length - 1]!;
     const isDesc = (elem: Record<string, unknown>): boolean => {
       const ord = elem.ordering;
       return ord === 2 || ord === 'SORTBY_DESC';

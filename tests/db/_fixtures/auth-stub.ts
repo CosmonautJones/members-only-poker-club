@@ -124,9 +124,7 @@ export async function setupAuthStub(pg: PGlite): Promise<void> {
   //    This is the bypass-predicate invariant: t1's trigger uses
   //    `auth.uid() IS NULL`. If this assertion fails, the bypass simulation
   //    is broken and every service-role test will lie.
-  const uidProbe = await pg.query<{ is_null: boolean }>(
-    'SELECT auth.uid() IS NULL AS is_null',
-  );
+  const uidProbe = await pg.query<{ is_null: boolean }>('SELECT auth.uid() IS NULL AS is_null');
   if (uidProbe.rows[0]?.is_null !== true) {
     throw new Error(
       'auth-stub: auth.uid() did not return NULL when test.uid was cleared. ' +
@@ -138,9 +136,7 @@ export async function setupAuthStub(pg: PGlite): Promise<void> {
   // 7. Smoke test — auth.role() defaults to 'authenticated' when test.role
   //    is unset. This matches production Supabase behavior for any logged-in
   //    user without an explicit role claim.
-  const roleProbe = await pg.query<{ r: string }>(
-    'SELECT auth.role() AS r',
-  );
+  const roleProbe = await pg.query<{ r: string }>('SELECT auth.role() AS r');
   if (roleProbe.rows[0]?.r !== 'authenticated') {
     throw new Error(
       `auth-stub: auth.role() default was not 'authenticated'. ` +
@@ -174,10 +170,7 @@ export async function setupAuthStub(pg: PGlite): Promise<void> {
  * until cleared. Always call `resetAuthStub(pg)` in `beforeEach` to prevent
  * identity leaks between tests.
  */
-export async function setTestUid(
-  pg: PGlite,
-  uid: string | null,
-): Promise<void> {
+export async function setTestUid(pg: PGlite, uid: string | null): Promise<void> {
   await pg.query("SELECT set_config('test.uid', $1, false)", [uid ?? '']);
 }
 
@@ -195,10 +188,7 @@ export async function setTestUid(
  * The `role` parameter type is a strict union — passing an unknown role like
  * `'admin'` is a compile-time error, preventing silent denial bugs.
  */
-export async function setTestRole(
-  pg: PGlite,
-  role: AuthRole | null,
-): Promise<void> {
+export async function setTestRole(pg: PGlite, role: AuthRole | null): Promise<void> {
   await pg.query("SELECT set_config('test.role', $1, false)", [role ?? '']);
 }
 

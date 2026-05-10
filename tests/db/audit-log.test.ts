@@ -47,23 +47,12 @@
  * is required to run.
  */
 
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-  afterAll,
-} from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { PGlite, type Results } from '@electric-sql/pglite';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  setupAuthStub,
-  setTestUid,
-  resetAuthStub,
-} from './_fixtures/auth-stub';
+import { setupAuthStub, setTestUid, resetAuthStub } from './_fixtures/auth-stub';
 import { seedProfile } from './_fixtures/profiles';
 import { seedAuditLog } from './_fixtures/audit-log';
 import {
@@ -78,8 +67,7 @@ const __filename =
   typeof __dirname === 'undefined'
     ? fileURLToPath(import.meta.url)
     : `${__dirname}/__placeholder__`;
-const TEST_DIR =
-  typeof __dirname === 'undefined' ? dirname(__filename) : __dirname;
+const TEST_DIR = typeof __dirname === 'undefined' ? dirname(__filename) : __dirname;
 const MIGRATION_0002_PATH = resolve(
   TEST_DIR,
   '..',
@@ -120,14 +108,9 @@ let owner = '';
  *
  * Returns the body's value so callers can assert on its result.
  */
-async function withAuthUid<T>(
-  uid: string,
-  body: () => Promise<T>,
-): Promise<T> {
+async function withAuthUid<T>(uid: string, body: () => Promise<T>): Promise<T> {
   await setTestUid(pg, uid);
-  const probe = await pg.query<{ uid: string | null }>(
-    'SELECT auth.uid()::text AS uid',
-  );
+  const probe = await pg.query<{ uid: string | null }>('SELECT auth.uid()::text AS uid');
   // Strict equality — uuid round-trip via text. If the GUC didn't take
   // (driver bug, typo in the helper, copy-paste error in the test), this
   // fails fast at setup rather than letting an actor_id = NULL assertion
@@ -165,9 +148,7 @@ beforeAll(async () => {
     role: 'member' | 'cashier' | 'manager' | 'owner',
     label: string,
   ): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -217,9 +198,7 @@ beforeEach(async () => {
 describe('AC7.1 — smoke', () => {
   it('audit_log table exists and is empty under service-role read', async () => {
     await asServiceRole(pg);
-    const r = await pg.query<{ n: number }>(
-      'SELECT COUNT(*)::int AS n FROM audit_log',
-    );
+    const r = await pg.query<{ n: number }>('SELECT COUNT(*)::int AS n FROM audit_log');
     expect(r.rows[0]!.n).toBe(0);
   });
 
@@ -334,9 +313,7 @@ describe('AC7.2 — SELECT denial member', () => {
       // Switch to member-A authenticated. RLS filters: manager+ only.
       await asAuthenticated(pg);
       await setTestUid(pg, memberA);
-      const denied = await pg.query<{ id: number }>(
-        'SELECT id FROM audit_log',
-      );
+      const denied = await pg.query<{ id: number }>('SELECT id FROM audit_log');
       expect(denied.rows).toHaveLength(0);
     });
   });
@@ -351,9 +328,7 @@ describe('AC7.2 — SELECT denial member', () => {
 describe('AC7.2-isolation — withRollback isolation proof (R2)', () => {
   it('service-role read sees no leakage from the prior seeded sub-case', async () => {
     await asServiceRole(pg);
-    const r = await pg.query<{ n: number }>(
-      'SELECT COUNT(*)::int AS n FROM audit_log',
-    );
+    const r = await pg.query<{ n: number }>('SELECT COUNT(*)::int AS n FROM audit_log');
     expect(r.rows[0]!.n).toBe(0);
   });
 });
@@ -406,9 +381,7 @@ describe('AC7.4 — SELECT permitted manager + owner', () => {
 
       await asAuthenticated(pg);
       await setTestUid(pg, manager);
-      const r = await pg.query<{ n: number }>(
-        'SELECT COUNT(*)::int AS n FROM audit_log',
-      );
+      const r = await pg.query<{ n: number }>('SELECT COUNT(*)::int AS n FROM audit_log');
       // Manager sees both seeded rows.
       expect(r.rows[0]!.n).toBe(2);
     });
@@ -426,9 +399,7 @@ describe('AC7.4 — SELECT permitted manager + owner', () => {
 
       await asAuthenticated(pg);
       await setTestUid(pg, owner);
-      const r = await pg.query<{ n: number }>(
-        'SELECT COUNT(*)::int AS n FROM audit_log',
-      );
+      const r = await pg.query<{ n: number }>('SELECT COUNT(*)::int AS n FROM audit_log');
       expect(r.rows[0]!.n).toBe(1);
     });
   });
@@ -525,9 +496,7 @@ describe('AC7.5 — INSERT permitted authenticated user (R1 positive control)', 
     // direction is deferred to production.
     expect.assertions(2);
     await withRollback(pg, async () => {
-      const probe = await pg.query<{ is_null: boolean }>(
-        'SELECT auth.uid() IS NULL AS is_null',
-      );
+      const probe = await pg.query<{ is_null: boolean }>('SELECT auth.uid() IS NULL AS is_null');
       expect(probe.rows[0]!.is_null).toBe(true);
 
       await expect(
@@ -552,9 +521,7 @@ describe('AC7.6 — INSERT denial anon', () => {
     await withRollback(pg, async () => {
       // app_authenticated + cleared test.uid (anon path). beforeEach already
       // set this up; assert defensively.
-      const probe = await pg.query<{ is_null: boolean }>(
-        'SELECT auth.uid() IS NULL AS is_null',
-      );
+      const probe = await pg.query<{ is_null: boolean }>('SELECT auth.uid() IS NULL AS is_null');
       expect(probe.rows[0]!.is_null).toBe(true);
 
       await expect(
@@ -600,10 +567,9 @@ describe('AC7.7 — UPDATE denial (append-only invariant)', () => {
 
       await asAuthenticated(pg);
       await setTestUid(pg, memberA);
-      const upd = (await pg.query(
-        `UPDATE audit_log SET action = 'forged' WHERE id = $1`,
-        [seeded.id],
-      )) as Results;
+      const upd = (await pg.query(`UPDATE audit_log SET action = 'forged' WHERE id = $1`, [
+        seeded.id,
+      ])) as Results;
       expect(upd.affectedRows ?? 0).toBe(0);
 
       // Service-role read confirms no row was actually changed.
@@ -626,10 +592,9 @@ describe('AC7.7 — UPDATE denial (append-only invariant)', () => {
 
       await asAuthenticated(pg);
       await setTestUid(pg, manager);
-      const upd = (await pg.query(
-        `UPDATE audit_log SET action = 'forged' WHERE id = $1`,
-        [seeded.id],
-      )) as Results;
+      const upd = (await pg.query(`UPDATE audit_log SET action = 'forged' WHERE id = $1`, [
+        seeded.id,
+      ])) as Results;
       expect(upd.affectedRows ?? 0).toBe(0);
 
       await asServiceRole(pg);
@@ -651,10 +616,9 @@ describe('AC7.7 — UPDATE denial (append-only invariant)', () => {
 
       await asAuthenticated(pg);
       await setTestUid(pg, owner);
-      const upd = (await pg.query(
-        `UPDATE audit_log SET action = 'forged' WHERE id = $1`,
-        [seeded.id],
-      )) as Results;
+      const upd = (await pg.query(`UPDATE audit_log SET action = 'forged' WHERE id = $1`, [
+        seeded.id,
+      ])) as Results;
       expect(upd.affectedRows ?? 0).toBe(0);
 
       await asServiceRole(pg);
@@ -688,10 +652,7 @@ describe('AC7.8 — DELETE denial (append-only invariant)', () => {
 
       await asAuthenticated(pg);
       await setTestUid(pg, memberA);
-      const del = (await pg.query(
-        'DELETE FROM audit_log WHERE id = $1',
-        [seeded.id],
-      )) as Results;
+      const del = (await pg.query('DELETE FROM audit_log WHERE id = $1', [seeded.id])) as Results;
       expect(del.affectedRows ?? 0).toBe(0);
 
       // Service-role read confirms the row still exists (was not deleted).
@@ -713,10 +674,7 @@ describe('AC7.8 — DELETE denial (append-only invariant)', () => {
 
       await asAuthenticated(pg);
       await setTestUid(pg, manager);
-      const del = (await pg.query(
-        'DELETE FROM audit_log WHERE id = $1',
-        [seeded.id],
-      )) as Results;
+      const del = (await pg.query('DELETE FROM audit_log WHERE id = $1', [seeded.id])) as Results;
       expect(del.affectedRows ?? 0).toBe(0);
 
       await asServiceRole(pg);
@@ -737,10 +695,7 @@ describe('AC7.8 — DELETE denial (append-only invariant)', () => {
 
       await asAuthenticated(pg);
       await setTestUid(pg, owner);
-      const del = (await pg.query(
-        'DELETE FROM audit_log WHERE id = $1',
-        [seeded.id],
-      )) as Results;
+      const del = (await pg.query('DELETE FROM audit_log WHERE id = $1', [seeded.id])) as Results;
       expect(del.affectedRows ?? 0).toBe(0);
 
       await asServiceRole(pg);
@@ -774,9 +729,7 @@ describe('AC7.9 — service-role bypass (R3 split)', () => {
       // auth.uid() returns — i.e., the real user we set.
       await setTestUid(pg, manager);
       await pg.query('RESET ROLE');
-      const probe = await pg.query<{ uid: string | null }>(
-        'SELECT auth.uid()::text AS uid',
-      );
+      const probe = await pg.query<{ uid: string | null }>('SELECT auth.uid()::text AS uid');
       expect(probe.rows[0]!.uid).toBe(manager); // pre-condition pinned (R10).
 
       const ins = await pg.query<{ id: number; actor_id: string | null }>(
@@ -818,9 +771,7 @@ describe('AC7.9 — service-role bypass (R3 split)', () => {
       // test.uid means auth.uid() IS NULL means policy denies. This is
       // the conjugate axis: same caller as axis (a)'s INSERT but with the
       // BYPASSRLS attribute removed.
-      const probe = await pg.query<{ is_null: boolean }>(
-        'SELECT auth.uid() IS NULL AS is_null',
-      );
+      const probe = await pg.query<{ is_null: boolean }>('SELECT auth.uid() IS NULL AS is_null');
       expect(probe.rows[0]!.is_null).toBe(true);
 
       await expect(
@@ -865,10 +816,9 @@ describe('AC7.10 — positive integration (manager role change writes audit row)
       // Setup the manager identity with the strict-assertion helper.
       // R10: setTestUid + auth.uid() readback are inside withAuthUid.
       await withAuthUid(manager, async () => {
-        const upd = (await pg.query(
-          `UPDATE profiles SET role = 'cashier' WHERE id = $1`,
-          [memberA],
-        )) as Results;
+        const upd = (await pg.query(`UPDATE profiles SET role = 'cashier' WHERE id = $1`, [
+          memberA,
+        ])) as Results;
         expect(upd.affectedRows ?? 0).toBe(1);
       });
 
@@ -943,10 +893,7 @@ describe('AC7.11 — negative integration (failed role-change writes NO audit ro
       // uses the same pattern in AC8.11.
       await pg.query('SAVEPOINT before_failed_escalation');
       await expect(
-        pg.query(
-          `UPDATE profiles SET role = 'manager' WHERE id = $1`,
-          [memberA],
-        ),
+        pg.query(`UPDATE profiles SET role = 'manager' WHERE id = $1`, [memberA]),
       ).rejects.toMatchObject({ code: '42501' });
       await pg.query('ROLLBACK TO SAVEPOINT before_failed_escalation');
 
@@ -975,15 +922,12 @@ describe('AC7.12 — service-role role-change writes NULL actor_id', () => {
       // (auth.uid() IS NULL). This is the documented system-action /
       // webhook path per ADR-0006.
       await asServiceRole(pg);
-      const probe = await pg.query<{ is_null: boolean }>(
-        'SELECT auth.uid() IS NULL AS is_null',
-      );
+      const probe = await pg.query<{ is_null: boolean }>('SELECT auth.uid() IS NULL AS is_null');
       expect(probe.rows[0]!.is_null).toBe(true);
 
-      const upd = (await pg.query(
-        `UPDATE profiles SET role = 'cashier' WHERE id = $1`,
-        [memberA],
-      )) as Results;
+      const upd = (await pg.query(`UPDATE profiles SET role = 'cashier' WHERE id = $1`, [
+        memberA,
+      ])) as Results;
       expect(upd.affectedRows ?? 0).toBe(1);
 
       // Verify audit row written with NULL actor_id and correct shape.

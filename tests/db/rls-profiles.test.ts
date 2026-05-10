@@ -43,12 +43,7 @@ import { PGlite, type Results } from '@electric-sql/pglite';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  setupAuthStub,
-  setTestUid,
-  setTestRole,
-  resetAuthStub,
-} from './_fixtures/auth-stub';
+import { setupAuthStub, setTestUid, setTestRole, resetAuthStub } from './_fixtures/auth-stub';
 import { seedProfile } from './_fixtures/profiles';
 import {
   setupAppAuthenticatedRole,
@@ -65,8 +60,7 @@ const __filename =
   typeof __dirname === 'undefined'
     ? fileURLToPath(import.meta.url)
     : `${__dirname}/__placeholder__`;
-const TEST_DIR =
-  typeof __dirname === 'undefined' ? dirname(__filename) : __dirname;
+const TEST_DIR = typeof __dirname === 'undefined' ? dirname(__filename) : __dirname;
 const MIGRATION_PATH = resolve(
   TEST_DIR,
   '..',
@@ -128,9 +122,7 @@ beforeAll(async () => {
     role: 'member' | 'cashier' | 'manager' | 'owner',
     label: string,
   ): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -219,18 +211,14 @@ describe('smoke', () => {
     // and COUNT returns 0. Switch to service-role for the count, then restore
     // app_authenticated so subsequent tests aren't surprised.
     await asServiceRole(pg);
-    const r = await pg.query<{ n: number }>(
-      'SELECT COUNT(*)::int AS n FROM profiles',
-    );
+    const r = await pg.query<{ n: number }>('SELECT COUNT(*)::int AS n FROM profiles');
     expect(r.rows[0]!.n).toBeGreaterThanOrEqual(5);
     await asAuthenticated(pg);
   });
 
   it('auth.uid() returns NULL after resetAuthStub (bypass-predicate sanity)', async () => {
     await resetAuthStub(pg);
-    const r = await pg.query<{ is_null: boolean }>(
-      'SELECT auth.uid() IS NULL AS is_null',
-    );
+    const r = await pg.query<{ is_null: boolean }>('SELECT auth.uid() IS NULL AS is_null');
     expect(r.rows[0]!.is_null).toBe(true);
   });
 
@@ -263,28 +251,23 @@ describe('AC8.1 — cross-tenant SELECT denial', () => {
   it('member-A authenticated cannot SELECT member-B row', async () => {
     // Positive control — prove member-B's row exists (service-role path).
     await asServiceRole(pg);
-    const sentinel = await pg.query<{ id: string }>(
-      'SELECT id FROM profiles WHERE id = $1',
-      [memberB],
-    );
+    const sentinel = await pg.query<{ id: string }>('SELECT id FROM profiles WHERE id = $1', [
+      memberB,
+    ]);
     expect(sentinel.rows).toHaveLength(1);
 
     // Switch to member-A and assert RLS filters member-B's row to zero.
     await asAuthenticated(pg);
     await setTestUid(pg, memberA);
-    const denied = await pg.query<{ id: string }>(
-      'SELECT id FROM profiles WHERE id = $1',
-      [memberB],
-    );
+    const denied = await pg.query<{ id: string }>('SELECT id FROM profiles WHERE id = $1', [
+      memberB,
+    ]);
     expect(denied.rows).toHaveLength(0);
   });
 
   it('member-A authenticated CAN SELECT their own row (positive)', async () => {
     await setTestUid(pg, memberA);
-    const r = await pg.query<{ id: string }>(
-      'SELECT id FROM profiles WHERE id = $1',
-      [memberA],
-    );
+    const r = await pg.query<{ id: string }>('SELECT id FROM profiles WHERE id = $1', [memberA]);
     expect(r.rows).toHaveLength(1);
     expect(r.rows[0]!.id).toBe(memberA);
   });
@@ -303,19 +286,15 @@ describe('AC8.2 — cross-tenant UPDATE denial', () => {
       const before = await pg.query<{
         full_name: string;
         updated_at: string;
-      }>(
-        'SELECT full_name, updated_at FROM profiles WHERE id = $1',
-        [memberB],
-      );
+      }>('SELECT full_name, updated_at FROM profiles WHERE id = $1', [memberB]);
       expect(before.rows).toHaveLength(1);
 
       // Attempt cross-tenant UPDATE under member-A.
       await asAuthenticated(pg);
       await setTestUid(pg, memberA);
-      const upd = (await pg.query(
-        `UPDATE profiles SET full_name = 'pwned' WHERE id = $1`,
-        [memberB],
-      )) as Results;
+      const upd = (await pg.query(`UPDATE profiles SET full_name = 'pwned' WHERE id = $1`, [
+        memberB,
+      ])) as Results;
       expect(upd.affectedRows ?? 0).toBe(0);
 
       // Snapshot AFTER — same name, same updated_at (proves RLS filtered,
@@ -324,10 +303,7 @@ describe('AC8.2 — cross-tenant UPDATE denial', () => {
       const after = await pg.query<{
         full_name: string;
         updated_at: string;
-      }>(
-        'SELECT full_name, updated_at FROM profiles WHERE id = $1',
-        [memberB],
-      );
+      }>('SELECT full_name, updated_at FROM profiles WHERE id = $1', [memberB]);
       expect(after.rows[0]!.full_name).toBe(before.rows[0]!.full_name);
       expect(after.rows[0]!.updated_at).toEqual(before.rows[0]!.updated_at);
     });
@@ -351,10 +327,7 @@ describe('AC8.3 — cross-tenant DELETE denial', () => {
       // Attempt DELETE under member-A.
       await asAuthenticated(pg);
       await setTestUid(pg, memberA);
-      const del = (await pg.query(
-        'DELETE FROM profiles WHERE id = $1',
-        [memberB],
-      )) as Results;
+      const del = (await pg.query('DELETE FROM profiles WHERE id = $1', [memberB])) as Results;
       expect(del.affectedRows ?? 0).toBe(0);
 
       // After — member-B still present.
@@ -372,10 +345,7 @@ describe('AC8.3 — cross-tenant DELETE denial', () => {
     // Members are not in the manager+ ladder, so even self-delete is denied.
     await withRollback(pg, async () => {
       await setTestUid(pg, memberA);
-      const del = (await pg.query(
-        'DELETE FROM profiles WHERE id = $1',
-        [memberA],
-      )) as Results;
+      const del = (await pg.query('DELETE FROM profiles WHERE id = $1', [memberA])) as Results;
       expect(del.affectedRows ?? 0).toBe(0);
 
       // Sanity — row still there.
@@ -397,14 +367,11 @@ describe('AC8.3 — cross-tenant DELETE denial', () => {
 describe('AC8.4 — cashier read', () => {
   it('cashier authenticated CAN SELECT any member row', async () => {
     await setTestUid(pg, cashier);
-    const r = await pg.query<{ id: string }>(
-      'SELECT id FROM profiles WHERE id = ANY($1::uuid[])',
-      [[memberA, memberB]],
-    );
+    const r = await pg.query<{ id: string }>('SELECT id FROM profiles WHERE id = ANY($1::uuid[])', [
+      [memberA, memberB],
+    ]);
     // Both rows visible (cashier ladder permits SELECT).
-    expect(r.rows.map((row) => row.id).sort()).toEqual(
-      [memberA, memberB].sort(),
-    );
+    expect(r.rows.map((row) => row.id).sort()).toEqual([memberA, memberB].sort());
   });
 });
 
@@ -416,10 +383,9 @@ describe('AC8.5 — manager write', () => {
   it('manager authenticated CAN UPDATE any member row including the role column', async () => {
     await withRollback(pg, async () => {
       await setTestUid(pg, manager);
-      const upd = (await pg.query(
-        `UPDATE profiles SET role = 'cashier' WHERE id = $1`,
-        [memberA],
-      )) as Results;
+      const upd = (await pg.query(`UPDATE profiles SET role = 'cashier' WHERE id = $1`, [
+        memberA,
+      ])) as Results;
       expect(upd.affectedRows ?? 0).toBe(1);
 
       // Verify post-state explicitly (premortem R7) — role actually changed.
@@ -476,12 +442,7 @@ describe('AC5 — auth.role_at_least 4×4 matrix', () => {
   };
   const targets: Role[] = ['member', 'cashier', 'manager', 'owner'];
 
-  for (const callerRole of [
-    'member',
-    'cashier',
-    'manager',
-    'owner',
-  ] as Role[]) {
+  for (const callerRole of ['member', 'cashier', 'manager', 'owner'] as Role[]) {
     for (const target of targets) {
       const expected = ladder[callerRole][target];
       it(`caller=${callerRole} target=${target} → ${expected}`, async () => {
@@ -494,10 +455,7 @@ describe('AC5 — auth.role_at_least 4×4 matrix', () => {
                 ? manager
                 : owner;
         await setTestUid(pg, callerId);
-        const r = await pg.query<{ ok: boolean }>(
-          'SELECT auth.role_at_least($1) AS ok',
-          [target],
-        );
+        const r = await pg.query<{ ok: boolean }>('SELECT auth.role_at_least($1) AS ok', [target]);
         expect(r.rows[0]!.ok).toBe(expected);
       });
     }
@@ -505,10 +463,9 @@ describe('AC5 — auth.role_at_least 4×4 matrix', () => {
 
   it('unknown target returns FALSE (defense in depth)', async () => {
     await setTestUid(pg, owner);
-    const r = await pg.query<{ ok: boolean }>(
-      'SELECT auth.role_at_least($1) AS ok',
-      ['superadmin'],
-    );
+    const r = await pg.query<{ ok: boolean }>('SELECT auth.role_at_least($1) AS ok', [
+      'superadmin',
+    ]);
     expect(r.rows[0]!.ok).toBe(false);
   });
 });
@@ -520,9 +477,7 @@ describe('AC8.7 — anon SELECT', () => {
   it('anon (test.uid cleared) sees zero rows from profiles', async () => {
     await resetAuthStub(pg);
     // Sanity — bypass predicate holds (auth.uid() IS NULL).
-    const probe = await pg.query<{ is_null: boolean }>(
-      'SELECT auth.uid() IS NULL AS is_null',
-    );
+    const probe = await pg.query<{ is_null: boolean }>('SELECT auth.uid() IS NULL AS is_null');
     expect(probe.rows[0]!.is_null).toBe(true);
 
     // SELECT under anon. profiles_select_self_or_staff requires
@@ -553,10 +508,9 @@ describe('AC8.8 — anon write', () => {
       // resetAuthStub already clears uid in beforeEach; asServiceRole then
       // flipped role to superuser; asAuthenticated puts us back into
       // app_authenticated and uid is still NULL → this is the anon path.
-      const upd = (await pg.query(
-        `UPDATE profiles SET full_name = 'anon-pwned' WHERE id = $1`,
-        [memberA],
-      )) as Results;
+      const upd = (await pg.query(`UPDATE profiles SET full_name = 'anon-pwned' WHERE id = $1`, [
+        memberA,
+      ])) as Results;
       // anon (auth.uid() IS NULL) is the bypass path for the protection
       // trigger, AND the UPDATE policy `id = auth.uid() OR
       // auth.role_at_least('manager')` evaluates the first disjunct as
@@ -581,10 +535,7 @@ describe('AC8.8 — anon write', () => {
     await withRollback(pg, async () => {
       // beforeEach already left us as app_authenticated with uid cleared
       // (the anon path). Issue the DELETE directly — RLS denies it.
-      const del = (await pg.query(
-        'DELETE FROM profiles WHERE id = $1',
-        [memberA],
-      )) as Results;
+      const del = (await pg.query('DELETE FROM profiles WHERE id = $1', [memberA])) as Results;
       // delete policy is profiles_delete_manager — anon is not manager+,
       // so RLS filters: rowCount = 0.
       expect(del.affectedRows ?? 0).toBe(0);
@@ -675,13 +626,7 @@ describe('AC8.9 — anon INSERT denial', () => {
       pg.query(
         `INSERT INTO profiles (id, full_name, dob, email, role)
          VALUES ($1, $2, $3, $4, $5)`,
-        [
-          freshId,
-          'Truly Anon Should Not Insert',
-          '1990-01-01',
-          freshEmail,
-          'member',
-        ],
+        [freshId, 'Truly Anon Should Not Insert', '1990-01-01', freshEmail, 'member'],
       ),
     ).rejects.toMatchObject({ code: '42501' });
 
@@ -707,10 +652,7 @@ describe('AC8.10 — privilege escalation: member-A self-update role', () => {
     await withRollback(pg, async () => {
       await setTestUid(pg, memberA);
       await expect(
-        pg.query(
-          `UPDATE profiles SET role = 'manager' WHERE id = $1`,
-          [memberA],
-        ),
+        pg.query(`UPDATE profiles SET role = 'manager' WHERE id = $1`, [memberA]),
       ).rejects.toMatchObject({ code: '42501' });
     });
   });
@@ -739,10 +681,7 @@ describe('AC8.10 — privilege escalation: member-A self-update role', () => {
     await withRollback(pg, async () => {
       await setTestUid(pg, memberA);
       await expect(
-        pg.query(
-          `UPDATE profiles SET role = role WHERE id = $1`,
-          [memberA],
-        ),
+        pg.query(`UPDATE profiles SET role = role WHERE id = $1`, [memberA]),
       ).rejects.toMatchObject({ code: '42501' });
     });
   });
@@ -791,10 +730,7 @@ describe('AC8.11 — trigger firing order invariant', () => {
       await setTestUid(pg, memberA);
       await pg.query('SAVEPOINT before_rejected_update');
       await expect(
-        pg.query(
-          `UPDATE profiles SET role = 'manager' WHERE id = $1`,
-          [memberA],
-        ),
+        pg.query(`UPDATE profiles SET role = 'manager' WHERE id = $1`, [memberA]),
       ).rejects.toMatchObject({ code: '42501' });
       await pg.query('ROLLBACK TO SAVEPOINT before_rejected_update');
 
@@ -851,15 +787,12 @@ describe('AC8.12 — service-role bypass', () => {
       await resetAuthStub(pg);
 
       // Sanity: bypass predicate holds.
-      const probe = await pg.query<{ is_null: boolean }>(
-        'SELECT auth.uid() IS NULL AS is_null',
-      );
+      const probe = await pg.query<{ is_null: boolean }>('SELECT auth.uid() IS NULL AS is_null');
       expect(probe.rows[0]!.is_null).toBe(true);
 
-      const upd = (await pg.query(
-        `UPDATE profiles SET role = 'manager' WHERE id = $1`,
-        [memberA],
-      )) as Results;
+      const upd = (await pg.query(`UPDATE profiles SET role = 'manager' WHERE id = $1`, [
+        memberA,
+      ])) as Results;
       expect(upd.affectedRows ?? 0).toBe(1);
 
       // Post-state: role is actually 'manager' now (premortem R7).
@@ -876,10 +809,7 @@ describe('AC8.12 — service-role bypass', () => {
     await withRollback(pg, async () => {
       await setTestUid(pg, memberA);
       await expect(
-        pg.query(
-          `UPDATE profiles SET role = 'manager' WHERE id = $1`,
-          [memberA],
-        ),
+        pg.query(`UPDATE profiles SET role = 'manager' WHERE id = $1`, [memberA]),
       ).rejects.toMatchObject({ code: '42501' });
     });
   });
@@ -894,10 +824,7 @@ describe('AC8.12 — service-role bypass', () => {
       await setTestUid(pg, memberA);
       await setTestRole(pg, 'service_role');
       await expect(
-        pg.query(
-          `UPDATE profiles SET role = 'manager' WHERE id = $1`,
-          [memberA],
-        ),
+        pg.query(`UPDATE profiles SET role = 'manager' WHERE id = $1`, [memberA]),
       ).rejects.toMatchObject({ code: '42501' });
     });
   });
@@ -933,10 +860,7 @@ describe('+ WITH CHECK behavioral coverage', () => {
       // member-A's auth.uid() = memberA, not freshUid; member-A is not
       // manager+; so WITH CHECK fails → 42501.
       await expect(
-        pg.query(
-          `UPDATE profiles SET id = $1 WHERE id = $2`,
-          [freshUid, memberA],
-        ),
+        pg.query(`UPDATE profiles SET id = $1 WHERE id = $2`, [freshUid, memberA]),
       ).rejects.toMatchObject({ code: '42501' });
     });
   });

@@ -72,14 +72,7 @@ export interface ProfileRow {
  * default-fill and the parameterized INSERT column list. Order is stable so
  * the generated SQL is deterministic for snapshot-friendly debugging.
  */
-const V1_COLUMNS = [
-  'id',
-  'full_name',
-  'dob',
-  'phone',
-  'email',
-  'role',
-] as const;
+const V1_COLUMNS = ['id', 'full_name', 'dob', 'phone', 'email', 'role'] as const;
 
 /**
  * Build the INSERT statement for the columns actually present in `row`
@@ -109,9 +102,7 @@ function buildInsert(row: Record<string, unknown>): {
     bindings.push(value);
     idx += 1;
   }
-  const sql = `INSERT INTO profiles (${keys.join(
-    ', ',
-  )}) VALUES (${placeholders.join(', ')})`;
+  const sql = `INSERT INTO profiles (${keys.join(', ')}) VALUES (${placeholders.join(', ')})`;
   return { sql, bindings };
 }
 
@@ -147,10 +138,7 @@ export async function seedProfile(
   // construction (UNIQUE constraint at the DB layer; see migration 0002
   // line 40). Multiple seedProfile() calls in one test will not collide.
   const suffix = id.slice(0, 8);
-  const defaults: Pick<
-    ProfileRow,
-    (typeof V1_COLUMNS)[number]
-  > = {
+  const defaults: Pick<ProfileRow, (typeof V1_COLUMNS)[number]> = {
     id,
     full_name: `Test User ${suffix}`,
     dob: '1990-01-01',
@@ -173,10 +161,7 @@ export async function seedProfile(
   // header), the SELECT returns zero rows and we throw with a pointed
   // message rather than letting the test fail downstream with a confusing
   // "row not found" error.
-  const result = await pg.query<ProfileRow>(
-    'SELECT * FROM profiles WHERE id = $1',
-    [id],
-  );
+  const result = await pg.query<ProfileRow>('SELECT * FROM profiles WHERE id = $1', [id]);
   const inserted = result.rows[0];
   if (!inserted) {
     throw new Error(
@@ -197,10 +182,7 @@ export async function seedProfile(
  * Use this in t4's cross-tenant SELECT/UPDATE/DELETE denial sub-cases where
  * the test only needs distinct-but-otherwise-uninteresting member rows.
  */
-export async function seedMembers(
-  pg: PGlite,
-  count: number,
-): Promise<string[]> {
+export async function seedMembers(pg: PGlite, count: number): Promise<string[]> {
   const ids: string[] = [];
   for (let i = 0; i < count; i += 1) {
     const profile = await seedProfile(pg, {});
