@@ -202,14 +202,7 @@ describe('getCurrentProfile — React.cache wrap (static-source assertion)', () 
   // module-level Map/WeakMap/LRU/globalThis cache would fail this assertion.
   // Same pattern as t0's anti-leak source-grep test for lib/supabase/admin.
   it('SUT wraps the helper in React.cache and contains no module-level state', () => {
-    const sutPath = path.resolve(
-      __dirname,
-      '..',
-      '..',
-      'lib',
-      'auth',
-      'getCurrentProfile.ts',
-    );
+    const sutPath = path.resolve(__dirname, '..', '..', 'lib', 'auth', 'getCurrentProfile.ts');
     const source = readFileSync(sutPath, 'utf8');
 
     // Positive guard: the React.cache() wrap is present.

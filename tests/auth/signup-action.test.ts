@@ -225,9 +225,9 @@ describe('signupAction', () => {
     const { signupAction } = await import('@/app/(auth)/signup/actions');
 
     // 12 chars exactly — boundary, MUST pass the length gate.
-    await expect(
-      signupAction(makeFormData({ password: 'aaaaaaaaaaaa' })),
-    ).rejects.toMatchObject({ name: 'RedirectError' });
+    await expect(signupAction(makeFormData({ password: 'aaaaaaaaaaaa' }))).rejects.toMatchObject({
+      name: 'RedirectError',
+    });
     expect(mocks.signUp).toHaveBeenCalledTimes(1);
 
     vi.useRealTimers();
@@ -349,9 +349,9 @@ describe('signupAction', () => {
     // Premortem R9 mitigation 2: signup MUST NOT honor a `next`
     // field. Passing `next='/profile'` in FormData should be silently
     // ignored — redirect target is always /confirm-email-pending.
-    await expect(
-      signupAction(makeFormData({ next: '/profile' })),
-    ).rejects.toMatchObject({ name: 'RedirectError' });
+    await expect(signupAction(makeFormData({ next: '/profile' }))).rejects.toMatchObject({
+      name: 'RedirectError',
+    });
 
     expect(mocks.redirect).toHaveBeenCalledTimes(1);
     const target = mocks.redirect.mock.calls[0]![0] as string;
@@ -427,7 +427,7 @@ describe('signup action source-text invariants', () => {
     expect(source).toContain('TODO(cycle-4)');
   });
 
-  it("the duplicate-email message is a literal static string (no `${...}` interpolation)", () => {
+  it('the duplicate-email message is a literal static string (no `${...}` interpolation)', () => {
     // Premortem R3 mitigation 2: the message must be a literal —
     // template-literal interpolation would risk leaking the email
     // value into the response body, converting an existence disclosure

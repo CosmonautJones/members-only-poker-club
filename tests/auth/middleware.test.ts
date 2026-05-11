@@ -314,8 +314,9 @@ describe('middleware (root) — x-pathname / x-search request headers (AC10)', (
     const sentinel = makeSentinel();
     let pathnameAtUpdateSessionCallTime: string | null = null;
     mocks.updateSession.mockImplementationOnce(async (request) => {
-      pathnameAtUpdateSessionCallTime =
-        (request as unknown as NextRequest).headers.get('x-pathname');
+      pathnameAtUpdateSessionCallTime = (request as unknown as NextRequest).headers.get(
+        'x-pathname',
+      );
       return { response: sentinel, user: makeUser() };
     });
 

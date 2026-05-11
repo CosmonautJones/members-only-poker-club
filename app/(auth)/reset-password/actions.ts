@@ -17,9 +17,7 @@ export type FormError = {
   message: string;
 };
 
-export async function resetPasswordAction(
-  formData: FormData,
-): Promise<FormError | undefined> {
+export async function resetPasswordAction(formData: FormData): Promise<FormError | undefined> {
   const passwordEntry = formData.get('password');
   const password = typeof passwordEntry === 'string' ? passwordEntry : '';
   const confirmPasswordEntry = formData.get('confirmPassword');

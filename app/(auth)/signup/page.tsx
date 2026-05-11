@@ -143,19 +143,10 @@ export default function SignupPage() {
           >
             Date Of Birth
           </span>
-          <input
-            type="date"
-            name="dob"
-            required
-            style={{ padding: '12px 14px', fontSize: 15 }}
-          />
+          <input type="date" name="dob" required style={{ padding: '12px 14px', fontSize: 15 }} />
         </label>
 
-        <button
-          type="submit"
-          className="btn btn-primary btn-lg"
-          style={{ marginTop: 16 }}
-        >
+        <button type="submit" className="btn btn-primary btn-lg" style={{ marginTop: 16 }}>
           Create Account
         </button>
       </form>

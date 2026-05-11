@@ -147,9 +147,7 @@ describe('loginAction', () => {
     // The SUT's redirect() throws the NEXT_REDIRECT sentinel; wrap so the
     // test does not treat it as an unhandled rejection.
     await expect(
-      loginAction(
-        makeForm({ email: 'alice@example.com', password: 'password123XX' }),
-      ),
+      loginAction(makeForm({ email: 'alice@example.com', password: 'password123XX' })),
     ).rejects.toThrow(/NEXT_REDIRECT/);
 
     expect(mocks.redirect).toHaveBeenCalledWith('/dashboard');
@@ -276,9 +274,7 @@ describe('loginAction', () => {
       error: { code: 'invalid_credentials', message: 'Invalid login credentials' },
     });
 
-    await loginAction(
-      makeForm({ email: 'AlICE@Example.COM', password: 'password123XX' }),
-    );
+    await loginAction(makeForm({ email: 'AlICE@Example.COM', password: 'password123XX' }));
 
     // `email` MUST be the lowercase form. Match using objectContaining so
     // the assertion does not over-pin shape (the SUT may pass additional
@@ -303,9 +299,7 @@ describe('loginAction', () => {
     const password = '  password123XX  ';
     await loginAction(makeForm({ email: 'alice@example.com', password }));
 
-    expect(mocks.signInWithPassword).toHaveBeenCalledWith(
-      expect.objectContaining({ password }),
-    );
+    expect(mocks.signInWithPassword).toHaveBeenCalledWith(expect.objectContaining({ password }));
   });
 });
 
@@ -329,18 +323,10 @@ describe('loginAction', () => {
 // ---------------------------------------------------------------------
 
 describe('loginAction source invariants', () => {
-  const sourcePath = path.resolve(
-    __dirname,
-    '..',
-    '..',
-    'app',
-    '(auth)',
-    'login',
-    'actions.ts',
-  );
+  const sourcePath = path.resolve(__dirname, '..', '..', 'app', '(auth)', 'login', 'actions.ts');
   const source = readFileSync(sourcePath, 'utf8');
 
-  it('12. first non-comment line is `\'use server\';`', () => {
+  it("12. first non-comment line is `'use server';`", () => {
     expect.assertions(1);
     // Strip leading shebang/blank/comment lines, then assert the next
     // non-empty line is the use-server directive. We support both block

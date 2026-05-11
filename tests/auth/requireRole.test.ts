@@ -262,31 +262,28 @@ describe('requireRole — full 4×4 hierarchy matrix', () => {
     ['owner', 'cashier', true],
     ['owner', 'manager', true],
     ['owner', 'owner', true],
-  ])(
-    'actual=%s required=%s passes=%s',
-    async (actual, required, passes) => {
-      const profile = makeProfile(actual);
-      mocks.getCurrentProfile.mockResolvedValueOnce(profile);
+  ])('actual=%s required=%s passes=%s', async (actual, required, passes) => {
+    const profile = makeProfile(actual);
+    mocks.getCurrentProfile.mockResolvedValueOnce(profile);
 
-      if (passes) {
-        const result = await requireRole(required);
-        expect(result).toEqual({ profile });
-        expect(mocks.redirect).not.toHaveBeenCalled();
-      } else {
-        let caught: unknown;
-        try {
-          await requireRole(required);
-        } catch (e) {
-          caught = e;
-        }
-        expect(caught).toBeInstanceOf(InsufficientRoleError);
-        const err = caught as InsufficientRoleError;
-        expect(err.required).toBe(required);
-        expect(err.actual).toBe(actual);
-        expect(mocks.redirect).not.toHaveBeenCalled();
+    if (passes) {
+      const result = await requireRole(required);
+      expect(result).toEqual({ profile });
+      expect(mocks.redirect).not.toHaveBeenCalled();
+    } else {
+      let caught: unknown;
+      try {
+        await requireRole(required);
+      } catch (e) {
+        caught = e;
       }
-    },
-  );
+      expect(caught).toBeInstanceOf(InsufficientRoleError);
+      const err = caught as InsufficientRoleError;
+      expect(err.required).toBe(required);
+      expect(err.actual).toBe(actual);
+      expect(mocks.redirect).not.toHaveBeenCalled();
+    }
+  });
 });
 
 describe('requireRole — discrimination: redirect vs. throw branches never collide', () => {

@@ -18,11 +18,15 @@ import { redirect } from 'next/navigation';
 
 import { getCurrentProfile } from '@/lib/auth/getCurrentProfile';
 
-export default async function MemberLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+// Opt out of static prerender — every page under (member) reads the
+// Supabase session via cookies, which Next.js cannot evaluate at build
+// time. Without this, `next build` attempts to prerender /dashboard and
+// /profile and throws "Supabase env vars are missing or placeholders"
+// in CI where only placeholder env vars are set. The directive cascades
+// to all nested routes in this segment.
+export const dynamic = 'force-dynamic';
+
+export default async function MemberLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile();
   if (!profile) {
     // Read `x-pathname` (set by middleware AC10). Fall back to `/dashboard`

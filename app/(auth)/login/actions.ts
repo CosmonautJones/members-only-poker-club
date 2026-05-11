@@ -45,8 +45,7 @@ export async function loginAction(formData: FormData): Promise<FormError | undef
   if (error) {
     const code = (error as { code?: string }).code ?? '';
     const message = error.message ?? '';
-    const looksUnconfirmed =
-      code === 'email_not_confirmed' || /not confirmed/i.test(message);
+    const looksUnconfirmed = code === 'email_not_confirmed' || /not confirmed/i.test(message);
     if (looksUnconfirmed) {
       return {
         field: 'form',

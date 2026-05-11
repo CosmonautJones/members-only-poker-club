@@ -72,11 +72,7 @@ export interface RoleSetupOptions {
   schemas?: string[];
 }
 
-const DEFAULT_FUNCTIONS = [
-  'auth.role_at_least(text)',
-  'auth.uid()',
-  'auth.role()',
-];
+const DEFAULT_FUNCTIONS = ['auth.role_at_least(text)', 'auth.uid()', 'auth.role()'];
 const DEFAULT_SCHEMAS = ['auth', 'public'];
 
 // pglite multi-statement raw-SQL entrypoint — cast to a narrow function type
@@ -139,9 +135,7 @@ export async function setupAppAuthenticatedRole(
     grants.push(`GRANT USAGE ON SCHEMA ${schema} TO app_authenticated;`);
   }
   for (const table of options.tables) {
-    grants.push(
-      `GRANT SELECT, INSERT, UPDATE, DELETE ON ${table} TO app_authenticated;`,
-    );
+    grants.push(`GRANT SELECT, INSERT, UPDATE, DELETE ON ${table} TO app_authenticated;`);
   }
   for (const sequence of sequences) {
     grants.push(`GRANT USAGE, SELECT ON SEQUENCE ${sequence} TO app_authenticated;`);
@@ -216,10 +210,7 @@ export async function asServiceRole(pg: PGlite): Promise<void> {
  * computed value out of the rolled-back txn can do so. Cycle 1 callers
  * always return void, which `Promise<void>` satisfies.
  */
-export async function withRollback<T>(
-  pg: PGlite,
-  body: () => Promise<T>,
-): Promise<T> {
+export async function withRollback<T>(pg: PGlite, body: () => Promise<T>): Promise<T> {
   await pg.query('BEGIN');
   try {
     return await body();

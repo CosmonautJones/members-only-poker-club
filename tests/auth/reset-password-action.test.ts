@@ -63,16 +63,13 @@ vi.mock('next/navigation', () => ({ redirect: mocks.redirect }));
 // file, this import throws. We catch it so the static-source tests
 // below can still report `awaiting worker` cleanly rather than a
 // confusing `Cannot find module` error during the action tests.
-let resetPasswordAction:
-  | ((formData: FormData) => Promise<unknown>)
-  | undefined;
+let resetPasswordAction: ((formData: FormData) => Promise<unknown>) | undefined;
 let importError: unknown = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const mod = await import('@/app/(auth)/reset-password/actions');
-  resetPasswordAction = (
-    mod as { resetPasswordAction?: (fd: FormData) => Promise<unknown> }
-  ).resetPasswordAction;
+  resetPasswordAction = (mod as { resetPasswordAction?: (fd: FormData) => Promise<unknown> })
+    .resetPasswordAction;
 } catch (e) {
   importError = e;
 }
@@ -98,32 +95,38 @@ describe('resetPasswordAction', () => {
   // app/(auth)/reset-password/actions.ts, all tests in this file activate.
   const it_ = resetPasswordAction ? it : it.skip;
 
-  it_('1. password mismatch returns confirmPassword field error and does not call updateUser', async () => {
-    expect.assertions(3);
-    const result = (await resetPasswordAction!(
-      makeForm({
-        password: 'aaaaaaaaaaaa',
-        confirmPassword: 'bbbbbbbbbbbb',
-      }),
-    )) as { field: string; message: string } | undefined;
+  it_(
+    '1. password mismatch returns confirmPassword field error and does not call updateUser',
+    async () => {
+      expect.assertions(3);
+      const result = (await resetPasswordAction!(
+        makeForm({
+          password: 'aaaaaaaaaaaa',
+          confirmPassword: 'bbbbbbbbbbbb',
+        }),
+      )) as { field: string; message: string } | undefined;
 
-    expect(result?.field).toBe('confirmPassword');
-    expect(mocks.updateUser).not.toHaveBeenCalled();
-    expect(mocks.redirect).not.toHaveBeenCalled();
-  });
+      expect(result?.field).toBe('confirmPassword');
+      expect(mocks.updateUser).not.toHaveBeenCalled();
+      expect(mocks.redirect).not.toHaveBeenCalled();
+    },
+  );
 
-  it_('2. password shorter than 12 chars returns password field error and does not call updateUser', async () => {
-    expect.assertions(3);
-    // 10 chars — below the NIST 800-63B floor pinned by the spec.
-    const pass = '11charsxx0';
-    const result = (await resetPasswordAction!(
-      makeForm({ password: pass, confirmPassword: pass }),
-    )) as { field: string; message: string } | undefined;
+  it_(
+    '2. password shorter than 12 chars returns password field error and does not call updateUser',
+    async () => {
+      expect.assertions(3);
+      // 10 chars — below the NIST 800-63B floor pinned by the spec.
+      const pass = '11charsxx0';
+      const result = (await resetPasswordAction!(
+        makeForm({ password: pass, confirmPassword: pass }),
+      )) as { field: string; message: string } | undefined;
 
-    expect(result?.field).toBe('password');
-    expect(mocks.updateUser).not.toHaveBeenCalled();
-    expect(mocks.redirect).not.toHaveBeenCalled();
-  });
+      expect(result?.field).toBe('password');
+      expect(mocks.updateUser).not.toHaveBeenCalled();
+      expect(mocks.redirect).not.toHaveBeenCalled();
+    },
+  );
 
   it_('3. password exactly 12 chars passes the length gate and calls updateUser', async () => {
     expect.assertions(2);
@@ -137,9 +140,7 @@ describe('resetPasswordAction', () => {
       resetPasswordAction!(makeForm({ password: pass, confirmPassword: pass })),
     ).rejects.toThrow(/NEXT_REDIRECT/);
 
-    expect(mocks.updateUser).toHaveBeenCalledWith(
-      expect.objectContaining({ password: pass }),
-    );
+    expect(mocks.updateUser).toHaveBeenCalledWith(expect.objectContaining({ password: pass }));
   });
 
   it_('4. updateUser success redirects to /dashboard', async () => {
@@ -182,28 +183,14 @@ describe('resetPasswordAction', () => {
 
 describe('reset-password source invariants', () => {
   const repoRoot = path.resolve(__dirname, '..', '..');
-  const pagePath = path.resolve(
-    repoRoot,
-    'app',
-    '(auth)',
-    'reset-password',
-    'page.tsx',
-  );
-  const actionsPath = path.resolve(
-    repoRoot,
-    'app',
-    '(auth)',
-    'reset-password',
-    'actions.ts',
-  );
+  const pagePath = path.resolve(repoRoot, 'app', '(auth)', 'reset-password', 'page.tsx');
+  const actionsPath = path.resolve(repoRoot, 'app', '(auth)', 'reset-password', 'actions.ts');
 
   // Read once; if the file is missing, leave source as null and let
   // each `it` produce a clear `awaiting worker` failure rather than a
   // single readFileSync throw that masks all 5 assertions.
   const pageSource = existsSync(pagePath) ? readFileSync(pagePath, 'utf8') : null;
-  const actionsSource = existsSync(actionsPath)
-    ? readFileSync(actionsPath, 'utf8')
-    : null;
+  const actionsSource = existsSync(actionsPath) ? readFileSync(actionsPath, 'utf8') : null;
 
   it('6. page.tsx imports `createClient` from `@/lib/supabase/server`', () => {
     expect.assertions(1);
@@ -246,7 +233,7 @@ describe('reset-password source invariants', () => {
     expect(pageSource).toMatch(/['"]recovery['"]/);
   });
 
-  it('9. actions.ts first non-comment line is `\'use server\';`', () => {
+  it("9. actions.ts first non-comment line is `'use server';`", () => {
     expect.assertions(1);
     if (actionsSource === null) {
       throw new Error('awaiting worker — app/(auth)/reset-password/actions.ts not yet shipped');

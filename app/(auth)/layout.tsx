@@ -13,22 +13,18 @@
 
 import Link from 'next/link';
 
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="auth-shell min-h-screen flex flex-col">
-      <header className="flex items-center justify-between p-4 border-b">
-        <Link href="/" className="font-bold text-lg" aria-label="Home">
+    <div className="auth-shell flex min-h-screen flex-col">
+      <header className="flex items-center justify-between border-b p-4">
+        <Link href="/" className="text-lg font-bold" aria-label="Home">
           Poker Club
         </Link>
         <Link href="/" className="text-sm underline">
           Back to site
         </Link>
       </header>
-      <main className="flex-1 flex items-center justify-center p-4">
+      <main className="flex flex-1 items-center justify-center p-4">
         <div className="w-full max-w-md">{children}</div>
       </main>
     </div>

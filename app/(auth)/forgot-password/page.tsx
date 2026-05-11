@@ -16,8 +16,8 @@ export default function ForgotPasswordPage() {
     <main>
       <h1>Reset your password</h1>
       <p>
-        Enter the email associated with your account. If it&apos;s on file,
-        we&apos;ll send you a link to set a new password.
+        Enter the email associated with your account. If it&apos;s on file, we&apos;ll send you a
+        link to set a new password.
       </p>
 
       <form
@@ -28,18 +28,10 @@ export default function ForgotPasswordPage() {
         // ships pure server-side re-render without inline display, and
         // a future cycle's useFormState wiring can consume the typed
         // return.
-        action={
-          forgotPasswordAction as unknown as (formData: FormData) => Promise<void>
-        }
+        action={forgotPasswordAction as unknown as (formData: FormData) => Promise<void>}
       >
         <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-        />
+        <input id="email" name="email" type="email" autoComplete="email" required />
 
         <button type="submit">Send reset link</button>
       </form>

@@ -13,11 +13,7 @@ import Link from 'next/link';
 
 import { loginAction } from './actions';
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams?: { next?: string };
-}) {
+export default function LoginPage({ searchParams }: { searchParams?: { next?: string } }) {
   const next = searchParams?.next ?? '';
 
   return (
@@ -35,13 +31,7 @@ export default function LoginPage({
         {next ? <input type="hidden" name="next" value={next} /> : null}
 
         <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-        />
+        <input id="email" name="email" type="email" autoComplete="email" required />
 
         <label htmlFor="password">Password</label>
         <input

@@ -49,7 +49,16 @@ describe('profiles migration — regex tier (AC9 lexical assertions)', () => {
 
   it('creates profiles table with all required v1 columns', () => {
     expect(SQL).toMatch(/CREATE TABLE\s+profiles/i);
-    for (const col of ['id', 'full_name', 'dob', 'phone', 'email', 'role', 'created_at', 'updated_at']) {
+    for (const col of [
+      'id',
+      'full_name',
+      'dob',
+      'phone',
+      'email',
+      'role',
+      'created_at',
+      'updated_at',
+    ]) {
       expect(SQL).toMatch(new RegExp(`\\b${col}\\b`));
     }
   });
@@ -250,9 +259,7 @@ describe('profiles migration — AST tier (AC9 parser-fidelity assertions)', () 
       .find((c) => c?.colname === 'role');
     expect(roleCol).toBeDefined();
     const constraints = collectNodes<Record<string, unknown>>(roleCol, 'Constraint');
-    const hasNotNull = constraints.some(
-      (c) => c.contype === 'CONSTR_NOTNULL' || c.contype === 1,
-    );
+    const hasNotNull = constraints.some((c) => c.contype === 'CONSTR_NOTNULL' || c.contype === 1);
     expect(hasNotNull).toBe(true);
     // DEFAULT 'member' — the constraint with contype CONSTR_DEFAULT carries
     // a raw_expr. Use subtreeContains as the path varies across versions.

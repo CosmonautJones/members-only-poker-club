@@ -43,9 +43,7 @@ export async function signupAction(formData: FormData): Promise<FormError | unde
   // yet) so the canonicalized value is what reaches both auth.signUp
   // and the profiles INSERT.
   const emailEntry = formData.get('email');
-  const email = (typeof emailEntry === 'string' ? emailEntry : '')
-    .toLowerCase()
-    .trim();
+  const email = (typeof emailEntry === 'string' ? emailEntry : '').toLowerCase().trim();
 
   // DOB gate (21+). parseISO strictly parses YYYY-MM-DD; rejects
   // locale-ambiguous formats. The locale-dependent Date constructor

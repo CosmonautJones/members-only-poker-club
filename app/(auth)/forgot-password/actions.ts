@@ -13,12 +13,9 @@
 
 import { createClient } from '@/lib/supabase/server';
 
-const STATIC_MESSAGE =
-  "If that email is on file, we've sent a reset link.";
+const STATIC_MESSAGE = "If that email is on file, we've sent a reset link.";
 
-export async function forgotPasswordAction(
-  formData: FormData,
-): Promise<{ message: string }> {
+export async function forgotPasswordAction(formData: FormData): Promise<{ message: string }> {
   const emailEntry = formData.get('email');
   const rawEmail = typeof emailEntry === 'string' ? emailEntry : '';
   const email = rawEmail.toLowerCase().trim();

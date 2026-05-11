@@ -13,8 +13,7 @@ export default function AuthCodeErrorPage() {
     <div>
       <h1>We couldn&apos;t verify that link.</h1>
       <p>
-        The link may be expired or already used.{' '}
-        <a href="/forgot-password">Request a new one</a>.
+        The link may be expired or already used. <a href="/forgot-password">Request a new one</a>.
       </p>
     </div>
   );

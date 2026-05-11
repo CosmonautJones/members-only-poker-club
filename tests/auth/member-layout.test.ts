@@ -76,13 +76,7 @@ import MemberLayout from '@/app/(member)/layout';
 // directories up lands at the repo root regardless of the test runner's cwd.
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const LAYOUT_PATH = path.join(REPO_ROOT, 'app', '(member)', 'layout.tsx');
-const DASHBOARD_PATH = path.join(
-  REPO_ROOT,
-  'app',
-  '(member)',
-  'dashboard',
-  'page.tsx',
-);
+const DASHBOARD_PATH = path.join(REPO_ROOT, 'app', '(member)', 'dashboard', 'page.tsx');
 const PROFILE_PATH = path.join(REPO_ROOT, 'app', '(member)', 'profile', 'page.tsx');
 
 const MEMBER_SURFACE_FILES = [LAYOUT_PATH, DASHBOARD_PATH, PROFILE_PATH];
@@ -126,9 +120,7 @@ describe('member layout', () => {
       return null;
     });
 
-    await expect(MemberLayout({ children: 'kids' })).rejects.toThrow(
-      /NEXT_REDIRECT/,
-    );
+    await expect(MemberLayout({ children: 'kids' })).rejects.toThrow(/NEXT_REDIRECT/);
 
     const target = mocks.redirect.mock.calls[0]![0] as string;
     // The search string is concatenated then encoded: ?page=2 → %3Fpage%3D2.
@@ -144,9 +136,7 @@ describe('member layout', () => {
     mocks.getCurrentProfile.mockResolvedValueOnce(null);
     mocks.headersGet.mockImplementation(() => null);
 
-    await expect(MemberLayout({ children: 'kids' })).rejects.toThrow(
-      /NEXT_REDIRECT/,
-    );
+    await expect(MemberLayout({ children: 'kids' })).rejects.toThrow(/NEXT_REDIRECT/);
 
     const target = mocks.redirect.mock.calls[0]![0] as string;
     expect(target).toBe('/login?next=%2Fdashboard');

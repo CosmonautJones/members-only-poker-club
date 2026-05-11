@@ -21,8 +21,7 @@ export type { Profile };
 // this list — cycle 4 will extend `Profile` with `id_verified_at`, and
 // keeping the SELECT in lockstep with the type means the helper picks up
 // new columns on the next migration without a behavior change here.
-const PROFILE_COLUMNS =
-  'id, full_name, dob, phone, email, role, created_at, updated_at';
+const PROFILE_COLUMNS = 'id, full_name, dob, phone, email, role, created_at, updated_at';
 
 export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   // eslint-disable-next-line @typescript-eslint/await-thenable -- createClient() is sync in lib/supabase/server.ts but tests mock it as async; keeping the await makes both paths work.

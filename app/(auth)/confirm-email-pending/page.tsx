@@ -20,8 +20,7 @@ export default function ConfirmEmailPendingPage({ searchParams }: Props) {
     <div>
       <h1>Check your email</h1>
       <p>
-        We sent a confirmation link to <strong>{email}</strong>. Click it to
-        finish signing up.
+        We sent a confirmation link to <strong>{email}</strong>. Click it to finish signing up.
       </p>
     </div>
   );

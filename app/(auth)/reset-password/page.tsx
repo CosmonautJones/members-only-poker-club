@@ -32,11 +32,7 @@ type SearchParams = {
   type?: string;
 };
 
-export default async function ResetPasswordPage({
-  searchParams,
-}: {
-  searchParams?: SearchParams;
-}) {
+export default async function ResetPasswordPage({ searchParams }: { searchParams?: SearchParams }) {
   const tokenHash = searchParams?.token_hash;
   const type = searchParams?.type;
 
@@ -86,9 +82,7 @@ export default async function ResetPasswordPage({
         // The discarded return is harmless here — cycle 3 ships pure
         // server-side re-render without inline error display; a future
         // cycle's useFormState wiring can consume the typed return.
-        action={
-          resetPasswordAction as unknown as (formData: FormData) => Promise<void>
-        }
+        action={resetPasswordAction as unknown as (formData: FormData) => Promise<void>}
       >
         <label htmlFor="password">New password</label>
         <input

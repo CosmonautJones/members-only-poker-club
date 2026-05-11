@@ -39,9 +39,7 @@ export async function middleware(request: NextRequest) {
   // Use exact-match-or-prefix-with-slash to avoid the substring trap:
   // `/admin-evil` MUST NOT match `/admin`. `pathname === p` covers `/admin`,
   // `pathname.startsWith(p + '/')` covers `/admin/users` etc.
-  const isGated = GATED_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
+  const isGated = GATED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
   if (isGated && !user) {
     const next = encodeURIComponent(pathname + search);
