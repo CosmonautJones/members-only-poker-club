@@ -11,6 +11,7 @@
 import { defaultStore, type Store } from './store';
 import { rateLimitHeaders } from './headers';
 import type { BucketKey, Decision } from './types';
+import { nowUtc } from '../time';
 
 export interface RateLimitResult {
   decision: Decision;
@@ -60,7 +61,7 @@ export function isEnforceMode(): boolean {
  */
 export function rateLimitedBody(
   decision: Decision,
-  nowMs: number = Date.now(),
+  nowMs: number = nowUtc().getTime(),
 ): {
   error: 'rate_limited';
   retry_after_seconds: number;

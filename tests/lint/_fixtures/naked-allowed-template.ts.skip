@@ -1,0 +1,11 @@
+// Fixture template (raw text, NOT compiled by tsc — the `.ts.skip`
+// suffix excludes it from tsc and from the vitest include glob).
+// At test runtime, `tests/lint/no-naked-date.test.ts` reads this file
+// as text and writes its contents to a tmp path UNDER `lib/time/`
+// (e.g. `lib/time/_tmp-fixtures/naked-allowed.ts`). Running ESLint
+// against that copy MUST produce zero findings — proving that the
+// `lib/time/**/*.ts` override glob is effective (AC4 sub-case 5).
+export function getNowInsideLibTime(): Date {
+  const d = new Date();
+  return d;
+}

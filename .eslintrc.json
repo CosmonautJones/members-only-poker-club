@@ -30,6 +30,17 @@
           }
         ]
       }
+    ],
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "NewExpression[callee.name='Date'][arguments.length=0]",
+        "message": "Use nowUtc() from lib/time/ instead of new Date() — ADR-0034 single-source-of-truth."
+      },
+      {
+        "selector": "CallExpression[callee.object.name='Date'][callee.property.name='now']",
+        "message": "Use nowUtc() from lib/time/ instead of Date.now() — ADR-0034 single-source-of-truth."
+      }
     ]
   },
   "overrides": [
@@ -41,6 +52,12 @@
       ],
       "rules": {
         "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["lib/time/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts", "scripts/**/*.mjs", "scripts/**/*.js"],
+      "rules": {
+        "no-restricted-syntax": "off"
       }
     }
   ],

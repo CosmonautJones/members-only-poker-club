@@ -12,6 +12,7 @@
  *   - error      → stderr
  */
 import { redactPii } from './redact';
+import { nowUtc } from '../time';
 
 export type LogLevel = 'info' | 'warn' | 'error';
 
@@ -25,7 +26,7 @@ interface LogLine {
 
 function emit(level: LogLevel, msg: string, fields?: Record<string, unknown>): void {
   const line: LogLine = {
-    ts: new Date().toISOString(),
+    ts: nowUtc().toISOString(),
     level,
     msg,
     ...(fields !== undefined ? { fields: redactPii(fields) as Record<string, unknown> } : {}),

@@ -22,6 +22,8 @@ Workers, test-writers, and spec-writers read the relevant topic slice on every d
 | [server-only-and-tests.md](server-only-and-tests.md) | 0007, 0006 (cross-cutting test pattern) |
 | [conductor-loop.md](conductor-loop.md) | conductor harness (cross-cutting; spec fidelity, critic-diff, revise iters) |
 | [admin-console.md](admin-console.md) | 0035 (three-layer defense, server-action contract, typed-confirmation dialogs) |
+| [timestamps.md](timestamps.md) | 0034 |
+| [eslint-config.md](eslint-config.md) | 0034 (cross-cutting lint patterns) |
 
 New topics: append a row above and create the file. Curator may propose new topics that don't fit existing ones.
 
