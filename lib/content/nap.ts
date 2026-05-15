@@ -20,13 +20,19 @@ export const NAP = {
   },
   // TODO(travis): replace placeholder before merge
   telephone: '+1-000-000-0000',
-  // TODO(travis): replace placeholder before merge — use schema.org OpeningHoursSpecification day-of-week format
+  // 24/7 schedule (owner correction 2026-05-15). schema.org idiom for
+  // continuous operation: a single OpeningHoursSpecification entry
+  // listing all seven days with `opens: 00:00` and `closes: 23:59`.
+  // Google's structured-data validator accepts this; Apple Business
+  // Connect prefers per-day entries with the same range — if/when we
+  // add an Apple feed, generate seven rows from this shape rather than
+  // hand-maintain two lists.
   openingHoursSpecification: [
     {
       '@type': 'OpeningHoursSpecification',
-      dayOfWeek: 'Monday',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
       opens: '00:00',
-      closes: '00:00',
+      closes: '23:59',
     },
   ],
 } as const;

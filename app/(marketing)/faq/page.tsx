@@ -99,13 +99,13 @@ const FAQ_ENTRIES: FaqEntry[] = [
     question: 'When are you open?',
     answer: (
       <>
-        Hours vary by day; we open in the afternoon and run until the last hand. Day-of hours and
-        any holiday adjustments live on the{' '}
-        <Link href="/contact" className="gold-text" style={{ textDecoration: 'underline' }}>
-          contact page
-        </Link>{' '}
-        — bookmark it. If you&rsquo;re a member, the dashboard surfaces the current hours and any
-        wait-list status before you leave the house.
+        <strong>24/7.</strong> Every hour of every day, including holidays. The only schedule that
+        varies is tournament start times — those live on the{' '}
+        <Link href="/games" className="gold-text" style={{ textDecoration: 'underline' }}>
+          games page
+        </Link>
+        . If you&rsquo;re a member, the dashboard surfaces live wait-list status and any room
+        notes (deep cleans, private events) before you leave the house.
       </>
     ),
   },

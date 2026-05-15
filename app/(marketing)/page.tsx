@@ -47,18 +47,6 @@ const VALUE_CARDS: ValueCard[] = [
   },
 ];
 
-type HoursRow = readonly [day: string, hours: string, closed?: boolean];
-
-const HOURS_ROWS: HoursRow[] = [
-  ['Monday', 'Closed', true],
-  ['Tuesday', '4:00 PM — 2:00 AM'],
-  ['Wednesday', '4:00 PM — 2:00 AM'],
-  ['Thursday', '4:00 PM — 2:00 AM'],
-  ['Friday', '2:00 PM — 4:00 AM'],
-  ['Saturday', '12:00 PM — 4:00 AM'],
-  ['Sunday', '12:00 PM — Midnight'],
-];
-
 export default function HomePage() {
   return (
     <div>
@@ -144,7 +132,7 @@ export default function HomePage() {
               lineHeight: 1.6,
             }}
           >
-            Members-funded poker, held to a higher standard. No rake. No tilt. Just twelve tables
+            Members-funded poker, held to a higher standard. No rake. No tilt. Just fifteen tables
             and the people you wanted to play with anyway.
           </p>
           <div
@@ -398,7 +386,7 @@ export default function HomePage() {
               The House
             </div>
             <h2 className="section-title home-h2-sm" style={{ fontSize: 56, marginBottom: 24 }}>
-              Twelve tables.
+              Fifteen tables.
               <br />
               <em className="gold-text" style={{ fontStyle: 'italic' }}>
                 One standard.
@@ -413,7 +401,7 @@ export default function HomePage() {
               }}
             >
               Tournament-grade Copag cards. Cushioned rails. Properly trained dealers — not a
-              hobbyist with a button. A bar stocked the way a poker night should be.
+              hobbyist with a button. Bring your own bottle while we wait on the TABC license.
             </p>
             <p
               style={{
@@ -423,8 +411,8 @@ export default function HomePage() {
                 marginBottom: 40,
               }}
             >
-              We open the doors at 4. Last seat goes at 2. Sundays are cash only. Tuesdays we run
-              the bounty. Thursday is ladies night, by which we mean ladies sit free.
+              The room runs every hour of every day. Sundays are cash only. Tuesdays we run the
+              bounty. Thursday is ladies night, by which we mean ladies sit free.
             </p>
             <Link href="/club" className="btn">
               Tour The Club <Icon name="arrowRight" size={14} />
@@ -433,73 +421,42 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* HOURS */}
+      {/* HOURS — 24/7 (owner correction 2026-05-15) */}
       <section
         className="home-section"
         style={{
-          padding: '100px 40px',
-          maxWidth: 1280,
+          padding: '120px 40px',
+          maxWidth: 880,
           margin: '0 auto',
+          textAlign: 'center',
         }}
       >
-        <div
-          className="home-grid-hours"
+        <div className="eyebrow" style={{ marginBottom: 16 }}>
+          Open Now · Always
+        </div>
+        <h2
+          className="section-title home-h2-sm"
+          style={{ fontSize: 64, marginBottom: 24, lineHeight: 1.05 }}
+        >
+          We never close.
+          <br />
+          <em className="gold-text" style={{ fontStyle: 'italic' }}>
+            Every day. Every night.
+          </em>
+        </h2>
+        <hr className="gold-rule-short" style={{ margin: '0 auto 32px', maxWidth: 320 }} />
+        <p
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 2fr',
-            gap: 80,
+            color: 'var(--ivory-300)',
+            fontSize: 17,
+            maxWidth: 620,
+            margin: '0 auto',
+            lineHeight: 1.7,
           }}
         >
-          <div>
-            <div className="eyebrow" style={{ marginBottom: 16 }}>
-              Open Tonight
-            </div>
-            <h2 className="section-title home-h2-sm" style={{ fontSize: 48, marginBottom: 16 }}>
-              4:00 PM
-              <br />
-              <em className="gold-text" style={{ fontStyle: 'italic' }}>
-                until last hand
-              </em>
-            </h2>
-          </div>
-          <div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <tbody>
-                {HOURS_ROWS.map(([day, hours, closed]) => (
-                  <tr
-                    key={day}
-                    style={{
-                      borderBottom: '1px solid var(--border-faint)',
-                    }}
-                  >
-                    <td
-                      style={{
-                        padding: '16px 0',
-                        fontFamily: 'Cormorant Garamond, serif',
-                        fontSize: 22,
-                        color: 'var(--ivory-200)',
-                      }}
-                    >
-                      {day}
-                    </td>
-                    <td
-                      style={{
-                        padding: '16px 0',
-                        textAlign: 'right',
-                        color: closed ? 'var(--text-dim)' : 'var(--gold-300)',
-                        fontFamily: 'JetBrains Mono, monospace',
-                        fontSize: 13,
-                        letterSpacing: '0.05em',
-                      }}
-                    >
-                      {hours}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          The door is unlocked from Monday morning to Sunday night and back to Monday again. Come
+          when the rest of the city is asleep.
+        </p>
       </section>
 
       {/* CTA */}

@@ -11,10 +11,12 @@
  * harm NAP consistency on every off-site directory that scrapes them;
  * omission is the safer default.
  *
- * Hours are duplicated here from `app/(marketing)/page.tsx` rather than
- * extracted to a shared module. Two consumers is below the threshold
- * where deduping pays for itself; if a third page wants hours, lift to
- * `lib/content/hours.ts` then.
+ * Hours: owner correction 2026-05-15 — the club is 24/7. The day-by-day
+ * HOURS_ROWS table (originally added per audit P1 #6) was replaced with
+ * a single "Open. Always." statement. The `id="hours"` anchor on the
+ * wrapping section is preserved so the footer `/contact#hours` link
+ * still scrolls correctly. The schema.org `openingHoursSpecification`
+ * lives in `lib/content/nap.ts` and is read by `<LocalBusinessJsonLd />`.
  *
  * Per audit P2 #9: the h1 is intentionally plain Cormorant serif text
  * (matching `/accessibility` and the rest of the marketing pages) — the
@@ -51,18 +53,6 @@ export const metadata: Metadata = {
     images: ['/og?title=Contact&subtitle=Members%20Only%20Poker%20Social%20Club'],
   },
 };
-
-type HoursRow = readonly [day: string, hours: string, closed?: boolean];
-
-const HOURS_ROWS: HoursRow[] = [
-  ['Monday', 'Closed', true],
-  ['Tuesday', '4:00 PM — 2:00 AM'],
-  ['Wednesday', '4:00 PM — 2:00 AM'],
-  ['Thursday', '4:00 PM — 2:00 AM'],
-  ['Friday', '2:00 PM — 4:00 AM'],
-  ['Saturday', '12:00 PM — 4:00 AM'],
-  ['Sunday', '12:00 PM — Midnight'],
-];
 
 export default function ContactPage() {
   const { address } = NAP;
@@ -145,49 +135,47 @@ export default function ContactPage() {
         style={{
           maxWidth: 620,
           margin: '64px auto 0',
+          textAlign: 'center',
         }}
       >
-        <div
-          className="eyebrow"
-          style={{ marginBottom: 24, textAlign: 'center' }}
-        >
-          Hours
+        <div className="eyebrow" style={{ marginBottom: 16 }}>
+          Open Now · Always
         </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <tbody>
-            {HOURS_ROWS.map(([day, hours, closed]) => (
-              <tr
-                key={day}
-                style={{
-                  borderBottom: '1px solid var(--border-faint)',
-                }}
-              >
-                <td
-                  style={{
-                    padding: '16px 0',
-                    fontFamily: 'Cormorant Garamond, serif',
-                    fontSize: 22,
-                    color: 'var(--ivory-200)',
-                  }}
-                >
-                  {day}
-                </td>
-                <td
-                  style={{
-                    padding: '16px 0',
-                    textAlign: 'right',
-                    color: closed ? 'var(--text-dim)' : 'var(--gold-300)',
-                    fontFamily: 'JetBrains Mono, monospace',
-                    fontSize: 13,
-                    letterSpacing: '0.05em',
-                  }}
-                >
-                  {hours}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <h2
+          style={{
+            fontFamily: 'Cormorant Garamond, serif',
+            fontSize: 52,
+            fontWeight: 500,
+            lineHeight: 1.05,
+            marginBottom: 24,
+          }}
+        >
+          We never close.
+          <br />
+          <em className="gold-text" style={{ fontStyle: 'italic' }}>
+            Every day. Every night.
+          </em>
+        </h2>
+        <hr className="gold-rule-short" style={{ margin: '0 auto 24px', maxWidth: 280 }} />
+        <p
+          style={{
+            color: 'var(--ivory-300)',
+            fontSize: 16,
+            lineHeight: 1.7,
+            maxWidth: 520,
+            margin: '0 auto',
+          }}
+        >
+          The room runs 24/7. Tournament start times are the only thing on a schedule — see the{' '}
+          <a
+            href="/games"
+            className="gold-text"
+            style={{ textDecoration: 'underline' }}
+          >
+            games page
+          </a>{' '}
+          for those.
+        </p>
       </section>
 
       <p

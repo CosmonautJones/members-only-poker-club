@@ -249,7 +249,8 @@ export default function TermsPage() {
             'Keep your voice at the level of the room. The room sets the tone.',
             'Intoxication that disrupts a game is grounds for a cab ride home and a sit-down with management the next afternoon.',
             'Harassment of staff or members — verbal, physical, sexual, or otherwise — is grounds for immediate and permanent expulsion. We do not negotiate this one.',
-            'No outside food or beverage. The bar and kitchen exist for a reason.',
+            'No outside food — the kitchen exists for a reason.',
+            'BYOB while the Club operates without a TABC liquor license: members may bring their own beverages; staff handles glassware and opening. No glass on the felt — drinks live on the rail or in the lounge.',
             'The dress code in Article III of the House Rules is part of this agreement. Floor may ask you to change or cover up.',
           ]}
         />
@@ -401,12 +402,14 @@ export default function TermsPage() {
           within forty-eight hours.
         </p>
 
-        <SubHead>VI.3 — Alcohol</SubHead>
+        <SubHead>VI.3 — Alcohol &amp; BYOB</SubHead>
         <p>
-          The bar serves responsibly. Members are adults and are responsible for the consequences
-          of their own consumption, including their ability to drive home. Ask the floor for a
-          cab or rideshare any time. We will not let you leave the building behind the wheel of a
-          car if we believe you&rsquo;re not fit to.
+          Until our TABC liquor license is issued, the Club operates BYOB. Members may bring their
+          own beverages onto the private-club premises; staff will not sell or serve alcohol while
+          BYOB is in effect. Members are adults and are responsible for the consequences of their
+          own consumption, including their ability to drive home. Ask the floor for a cab or
+          rideshare any time. We will not let you leave the building behind the wheel of a car if
+          we believe you&rsquo;re not fit to.
         </p>
 
         <SubHead>VI.4 — Cap on damages</SubHead>

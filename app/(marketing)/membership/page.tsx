@@ -58,8 +58,8 @@ const BENEFITS = [
   },
   {
     num: 'IV',
-    title: 'A Fully Stocked Bar',
-    body: 'Spirits, wine, beer, and a short cocktail list. Pour is honest. Glassware is grown-up. No outside bottles — the bar is the bar.',
+    title: 'BYOB, For Now',
+    body: 'The Club operates BYOB while our TABC liquor-license application is in process. Members are welcome to bring their own beverages. The 21+ door rule is unaffected either way — see the FAQ for the full policy.',
   },
   {
     num: 'V',

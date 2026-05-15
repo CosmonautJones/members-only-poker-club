@@ -16,11 +16,11 @@ import { Icon } from '@/components/marketing/primitives';
 export const metadata: Metadata = {
   title: 'Our Club',
   description:
-    'Inside Members Only Poker Social Club: twelve tournament-grade tables, trained dealers, and a private members-only room in Houston, Texas.',
+    'Inside Members Only Poker Social Club: fifteen tournament-grade tables, trained dealers, and a private members-only room in Houston, Texas.',
   openGraph: {
     title: 'Our Club',
     description:
-      'Inside Members Only Poker Social Club: twelve tournament-grade tables, trained dealers, and a private members-only room in Houston, Texas.',
+      'Inside Members Only Poker Social Club: fifteen tournament-grade tables, trained dealers, and a private members-only room in Houston, Texas.',
     images: [
       {
         url: '/og?title=Our%20Club&subtitle=Members%20Only%20Poker%20Social%20Club',
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Our Club',
     description:
-      'Inside Members Only Poker Social Club: twelve tables, trained dealers, a private room in Houston.',
+      'Inside Members Only Poker Social Club: fifteen tables, trained dealers, a private room in Houston.',
     images: ['/og?title=Our%20Club&subtitle=Members%20Only%20Poker%20Social%20Club'],
   },
 };
@@ -43,7 +43,7 @@ const ROOM_FEATURES = [
   {
     num: 'I',
     title: 'Tournament-Grade Felt',
-    body: "Twelve full-size tables. Cushioned padded rails so an eight-hour session doesn't cost you your elbows. Cup holders that hold a proper rocks glass.",
+    body: "Fifteen full-size tables. Cushioned padded rails so an eight-hour session doesn't cost you your elbows. Cup holders that hold a proper rocks glass.",
   },
   {
     num: 'II',
@@ -57,8 +57,8 @@ const ROOM_FEATURES = [
   },
   {
     num: 'IV',
-    title: 'The Bar',
-    body: "Fully stocked, fully staffed. Spirits, beer, wine, a short cocktail list a bartender wrote. No outside bottles. No corkage games.",
+    title: 'BYOB',
+    body: "The Club operates BYOB until our TABC liquor-license application is approved. Members bring their own beverages; staff handles glassware and opening. No glass on the felt — the lounge is where the bottles live.",
   },
   {
     num: 'V',
@@ -155,7 +155,7 @@ export default function ClubPage() {
             lineHeight: 1.7,
           }}
         >
-          Twelve tables. Dark wood. Warm lamps. Leather that&rsquo;s already breaking in. The room
+          Fifteen tables. Dark wood. Warm lamps. Leather that&rsquo;s already breaking in. The room
           sits north of the city, off the freeway, behind a door that locks. Inside, it&rsquo;s
           quiet enough to think.
         </p>
@@ -175,7 +175,7 @@ export default function ClubPage() {
               lineHeight: 1.1,
             }}
           >
-            Twelve tables.{' '}
+            Fifteen tables.{' '}
             <em className="gold-text" style={{ fontStyle: 'italic' }}>
               One standard.
             </em>
