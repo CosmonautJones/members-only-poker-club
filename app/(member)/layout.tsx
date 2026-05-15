@@ -12,10 +12,10 @@
  * RSC navigations that bypass middleware still preserve the original
  * destination. Falls back to `/dashboard` if the header is absent.
  *
- * The shell — sidebar nav + topbar — wraps `{children}` in a single
- * `<MemberShell>` element so member-layout.test.ts's tree-walk for
- * `children` still finds the original node regardless of the wrapper's
- * internal structure.
+ * Sidebar active state + breadcrumb live in tiny client islands
+ * (`SidebarNav`, `BreadcrumbCurrent`) because layouts are mounted
+ * once and reused across intra-segment navigations — server-side
+ * pathname reads would be stuck on whichever route loaded first.
  */
 
 import { headers } from 'next/headers';
@@ -23,6 +23,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { Chip, Wordmark } from '@/components/marketing/primitives';
+import { BreadcrumbCurrent, SidebarNav } from '@/components/member/portal-nav';
 import { getCurrentProfile } from '@/lib/auth/getCurrentProfile';
 import type { Profile } from '@/lib/auth/types';
 
@@ -36,52 +37,35 @@ export const dynamic = 'force-dynamic';
 
 export default async function MemberLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile();
-  // eslint-disable-next-line @typescript-eslint/await-thenable -- headers() is sync in Next 14 but tests mock it as async (Next 15 forward-compat); the await keeps both paths working.
-  const hdrs = await headers();
-  const pathname = hdrs.get('x-pathname') ?? '/dashboard';
 
   if (!profile) {
+    // eslint-disable-next-line @typescript-eslint/await-thenable -- headers() is sync in Next 14 but tests mock it as async (Next 15 forward-compat); the await keeps both paths working.
+    const hdrs = await headers();
+    const pathname = hdrs.get('x-pathname') ?? '/dashboard';
     const search = hdrs.get('x-search') ?? '';
     redirect(`/login?next=${encodeURIComponent(pathname + search)}`);
   }
 
-  return (
-    <MemberShell profile={profile} pathname={pathname}>
-      {children}
-    </MemberShell>
-  );
+  return <MemberShell profile={profile}>{children}</MemberShell>;
 }
 
 // ============================================================
-// MemberShell — sidebar nav + topbar + main content area
-// Server-component only. No client interactions; the nav uses
-// <Link> (RSC navigation) and Sign Out is a POST form.
+// MemberShell — sidebar + topbar + main content area.
+// Server-renderable wrapper. The active-state nav and breadcrumb
+// label are client islands (see ./components/member/portal-nav.tsx);
+// everything else stays on the server side. The Chip + Wordmark
+// SVGs MUST render server-side per the known float-precision
+// hydration gotcha (see CLAUDE.md memory).
 // ============================================================
 
-const NAV: ReadonlyArray<{
-  href: string;
-  label: string;
-  glyph: string;
-  ready: boolean;
-}> = [
-  { href: '/dashboard', label: 'Dashboard', glyph: '◆', ready: true },
-  { href: '/profile', label: 'Profile', glyph: '○', ready: true },
-  { href: '/buytime', label: 'Buy Time', glyph: '◷', ready: false },
-  { href: '/billing', label: 'Billing', glyph: '$', ready: false },
-  { href: '/activity', label: 'Activity', glyph: '≡', ready: false },
-];
+function MemberShell({ profile, children }: { profile: Profile; children: React.ReactNode }) {
+  const initials = profile.full_name
+    .split(/\s+/)
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
-function MemberShell({
-  profile,
-  pathname,
-  children,
-}: {
-  profile: Profile;
-  pathname: string;
-  children: React.ReactNode;
-}) {
-  const currentLabel = NAV.find((n) => pathname === n.href || pathname.startsWith(n.href + '/'))
-    ?.label;
   return (
     <div
       style={{
@@ -128,77 +112,7 @@ function MemberShell({
           Portal
         </div>
 
-        {NAV.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + '/');
-          const baseStyle: React.CSSProperties = {
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '10px 12px',
-            borderRadius: 6,
-            color: isActive ? 'var(--gold-200)' : 'var(--ivory-300)',
-            background: isActive ? 'rgba(201, 162, 74, 0.08)' : 'transparent',
-            fontSize: 14,
-            fontWeight: 500,
-            marginBottom: 2,
-            borderLeft: isActive
-              ? '2px solid var(--gold-400)'
-              : '2px solid transparent',
-            textDecoration: 'none',
-          };
-          if (!item.ready) {
-            return (
-              <div
-                key={item.href}
-                aria-disabled="true"
-                title="Coming soon"
-                style={{ ...baseStyle, opacity: 0.4, cursor: 'not-allowed' }}
-              >
-                <span
-                  aria-hidden="true"
-                  style={{
-                    color: 'var(--gold-400)',
-                    fontSize: 12,
-                    width: 16,
-                    display: 'inline-flex',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {item.glyph}
-                </span>
-                <span style={{ flex: 1 }}>{item.label}</span>
-                <span
-                  style={{
-                    fontSize: 9,
-                    letterSpacing: '0.18em',
-                    color: 'var(--text-dim)',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Soon
-                </span>
-              </div>
-            );
-          }
-          return (
-            <Link key={item.href} href={item.href} style={baseStyle}>
-              <span
-                aria-hidden="true"
-                style={{
-                  color: 'var(--gold-400)',
-                  fontSize: 12,
-                  width: 16,
-                  display: 'inline-flex',
-                  justifyContent: 'center',
-                }}
-              >
-                {item.glyph}
-              </span>
-              {item.label}
-            </Link>
-          );
-        })}
+        <SidebarNav />
 
         <div style={{ flex: 1 }} />
 
@@ -235,12 +149,7 @@ function MemberShell({
                 fontSize: 13,
               }}
             >
-              {profile.full_name
-                .split(/\s+/)
-                .map((s) => s[0])
-                .slice(0, 2)
-                .join('')
-                .toUpperCase()}
+              {initials}
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div
@@ -307,9 +216,7 @@ function MemberShell({
           >
             <span>Members Portal</span>
             <span aria-hidden="true">/</span>
-            <span style={{ color: 'var(--gold-300)' }}>
-              {currentLabel ?? 'Dashboard'}
-            </span>
+            <BreadcrumbCurrent />
           </div>
           <Link
             href="/"
