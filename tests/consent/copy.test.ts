@@ -23,4 +23,9 @@ describe('COPY module', () => {
   it('exports footer link label', () => {
     expect(COPY.footer_link).toBeTruthy();
   });
+
+  it('exports policy_link as a non-empty string (AC7)', () => {
+    expect(typeof COPY.policy_link).toBe('string');
+    expect(COPY.policy_link.length).toBeGreaterThan(0);
+  });
 });

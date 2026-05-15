@@ -1,15 +1,16 @@
 /**
- * /privacy placeholder stub.
+ * /privacy — ADR-0023 slice 1, AC6.
  *
- * Created by T0 of ADR-0030 so subsequent SEO tasks (T2 metadata,
- * sitemap enumeration, e2e crawl) have a route to attach to. The full
- * privacy-policy copy is owned by the legal/compliance work and lands
- * separately.
+ * Delegates body content to lib/legal/privacy-policy.tsx so the policy
+ * is versioned in the codebase and can be re-rendered from anywhere.
  *
- * T2 (ADR-0030) added the per-page `metadata` override; the title slot
- * fills the layout's `%s | ...` template.
+ * The existing `metadata` export (added by ADR-0030 T2) is retained verbatim.
  */
 import type { Metadata } from 'next';
+import PrivacyPolicy, {
+  PRIVACY_POLICY_EFFECTIVE_DATE,
+  PRIVACY_POLICY_VERSION,
+} from '@/lib/legal/privacy-policy';
 
 export const metadata: Metadata = {
   title: 'Privacy',
@@ -38,9 +39,12 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <main className="container mx-auto py-12">
+    <main className="container mx-auto py-12 prose">
       <h1>Privacy</h1>
-      <p>This page is under construction.</p>
+      <p className="text-sm text-text-muted">
+        Effective {PRIVACY_POLICY_EFFECTIVE_DATE} (version {PRIVACY_POLICY_VERSION})
+      </p>
+      <PrivacyPolicy />
     </main>
   );
 }

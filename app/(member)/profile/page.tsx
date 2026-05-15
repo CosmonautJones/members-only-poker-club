@@ -7,6 +7,7 @@
  * narrow, not a security boundary.
  */
 
+import Link from 'next/link';
 import { getCurrentProfile } from '@/lib/auth/getCurrentProfile';
 
 export default async function ProfilePage() {
@@ -22,6 +23,7 @@ export default async function ProfilePage() {
         <dt>Role</dt>
         <dd>{profile.role}</dd>
       </dl>
+      <Link href="/profile/privacy">Privacy &amp; data</Link>
     </div>
   );
 }

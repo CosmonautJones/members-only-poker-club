@@ -1,4 +1,5 @@
 {
+  "root": true,
   "extends": [
     "next/core-web-vitals",
     "plugin:@typescript-eslint/recommended-type-checked",
@@ -33,7 +34,7 @@
   },
   "overrides": [
     {
-      "files": ["app/(auth)/**/actions.ts"],
+      "files": ["app/(auth)/**/actions.ts", "app/api/**/*.ts"],
       "rules": {
         "no-restricted-imports": "off"
       }
