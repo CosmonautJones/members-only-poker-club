@@ -17,6 +17,7 @@
  * See ADR-0002 §C2 (PKCE query-param flow) for resolution rationale.
  */
 
+import { revalidatePath } from 'next/cache';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { createClient } from '@/lib/supabase/server';
@@ -36,6 +37,10 @@ export async function GET(request: NextRequest) {
     const supabase = createClient();
     const { error } = await supabase.auth.verifyOtp({ token_hash, type });
     if (!error) {
+      // Match the login/reset-password actions: revalidate root layout so
+      // the (member) layout's getCurrentProfile() reads the verifyOtp-set
+      // session cookie instead of a stale null snapshot.
+      revalidatePath('/', 'layout');
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }

@@ -8,6 +8,7 @@
 // re-verify password >= 12 chars and confirmPassword equality — the
 // HTML attributes on the form are UX hints only.
 
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
@@ -51,6 +52,12 @@ export async function resetPasswordAction(formData: FormData): Promise<FormError
       message: 'Could not update password. Please request a new reset link.',
     };
   }
+
+  // Revalidate root layout so the (member) layout reads the freshly-set
+  // recovery session cookie. Matches the login action's pattern; without
+  // this the layout's getCurrentProfile() reads a stale null and bounces
+  // the user back to /login.
+  revalidatePath('/', 'layout');
 
   // Redirect lives OUTSIDE any try/catch. Next 14's redirect() throws
   // the NEXT_REDIRECT sentinel; wrapping it would swallow the

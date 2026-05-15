@@ -64,3 +64,5 @@ temp/
 
 # Playwright MCP artifacts (console logs, snapshots, ad-hoc screenshots)
 .playwright-mcp/
+
+.vercel

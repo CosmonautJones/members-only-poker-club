@@ -17,6 +17,7 @@
 // and absolute URL (`https://evil.com`) shapes — see spec AC3
 // sub-cases 4-6.
 
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { safeNext } from '@/lib/auth/safeNext';
@@ -58,6 +59,13 @@ export async function loginAction(formData: FormData): Promise<FormError | undef
     // to the same string.
     return { field: 'form', message: 'Invalid email or password.' };
   }
+
+  // Per Supabase + Next 14 docs: revalidate the root layout before
+  // redirecting so the (member) layout's getCurrentProfile() reads the
+  // freshly-set auth cookie instead of a stale null snapshot. Without
+  // this the redirected /dashboard request renders with no profile and
+  // the layout bounces back to /login?next=/dashboard.
+  revalidatePath('/', 'layout');
 
   // Redirect lives OUTSIDE any try/catch. Next 14's redirect() throws
   // the NEXT_REDIRECT sentinel; wrapping it would swallow the sentinel
