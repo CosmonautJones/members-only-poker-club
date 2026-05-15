@@ -17,6 +17,7 @@
  * `lib/consent/copy.ts`).
  */
 
+import Link from 'next/link';
 import { useConsent } from './consent-provider';
 import { COPY } from '@/lib/consent/copy';
 
@@ -63,6 +64,11 @@ export function CookieBanner() {
         >
           {COPY.banner.customize}
         </button>
+      </div>
+      <div className="mt-3 text-sm">
+        <Link href="/privacy" className="text-ivory-200 underline hover:text-ivory-100">
+          {COPY.policy_link}
+        </Link>
       </div>
     </div>
   );

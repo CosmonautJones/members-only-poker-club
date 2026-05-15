@@ -31,6 +31,7 @@ export const COPY = {
     cancel: 'Cancel',
   },
   footer_link: 'Cookie preferences',
+  policy_link: 'Privacy policy',
 } as const;
 
 export type ConsentCopy = typeof COPY;

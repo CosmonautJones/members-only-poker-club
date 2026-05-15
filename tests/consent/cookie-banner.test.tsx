@@ -19,6 +19,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ConsentProvider } from '@/components/site/consent-provider';
 import { CookieBanner } from '@/components/site/cookie-banner';
+import { COPY } from '@/lib/consent/copy';
 
 beforeEach(() => {
   document.cookie = 'mopc-consent=; Max-Age=0; Path=/';
@@ -43,6 +44,22 @@ describe('CookieBanner — prefers-reduced-motion', () => {
     if (className.includes('slide-in')) {
       expect(className).toMatch(/motion-safe:[^ ]*slide-in/);
     }
+  });
+
+  it('renders a Privacy policy link inside the cookie consent region', async () => {
+    render(
+      <ConsentProvider>
+        <CookieBanner />
+      </ConsentProvider>,
+    );
+    // Banner must be visible (isLoaded && state === null).
+    const banner = await screen.findByRole('region', { name: /cookie consent/i });
+    expect(banner).toBeTruthy();
+
+    // The privacy-policy link must be inside the banner region.
+    const link = await screen.findByRole('link', { name: new RegExp(COPY.policy_link, 'i') });
+    expect(link).toBeTruthy();
+    expect(link.getAttribute('href')).toBe('/privacy');
   });
 
   it('SSR snapshot is empty (no banner emitted server-side)', async () => {
