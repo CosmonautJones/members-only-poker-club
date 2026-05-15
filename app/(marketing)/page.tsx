@@ -155,7 +155,7 @@ export default function HomePage() {
               justifyContent: 'center',
             }}
           >
-            <Link href="/membership" className="btn btn-primary btn-lg">
+            <Link href="/signup" className="btn btn-primary btn-lg">
               Apply for Membership
             </Link>
             <Link href="/games" className="btn btn-lg">

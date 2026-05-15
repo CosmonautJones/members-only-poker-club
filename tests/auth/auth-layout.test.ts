@@ -60,14 +60,16 @@ describe('app/(auth)/layout.tsx (file existence + structure)', () => {
     expect(src).toMatch(/href=["']\/["']/);
   });
 
-  it('contains the brand wordmark (literal site name)', () => {
-    // Per AC8 the auth shell carries the site brand. Loose check — any
-    // literal text that survives the JSX render qualifies. We pin
-    // "Poker Club" as the brand string the layout currently ships
-    // because that is the build-time decision; if the brand renames,
-    // update this test deliberately.
+  it('contains the brand mark (Chip + Wordmark primitives)', () => {
+    // Per AC8 the auth shell carries the site brand. Audit 2026-05-15
+    // P1 #7 swapped the plain literal "Poker Club" text for the branded
+    // <Chip /> + <Wordmark /> SVG primitives shared with the marketing
+    // header. Pin the imports/usages so a regression to plain text fails
+    // loudly.
     const src = readFileSync(AUTH_LAYOUT_PATH, 'utf8');
-    expect(src).toMatch(/Poker Club/);
+    expect(src).toMatch(/from\s+['"]@\/components\/marketing\/primitives['"]/);
+    expect(src).toMatch(/\bChip\b/);
+    expect(src).toMatch(/\bWordmark\b/);
   });
 
   it('exports a default function (server component shape)', () => {

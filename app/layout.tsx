@@ -33,7 +33,7 @@ const fontMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://membersonlypoker.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://membersonlypokersocial.com'),
   title: {
     default: 'Members Only Poker Social Club',
     template: '%s · Members Only Poker Social Club',

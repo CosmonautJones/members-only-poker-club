@@ -61,3 +61,6 @@ temp/
 
 # Conductor orchestrator working memory (never committed)
 .conductor/
+
+# Playwright MCP artifacts (console logs, snapshots, ad-hoc screenshots)
+.playwright-mcp/

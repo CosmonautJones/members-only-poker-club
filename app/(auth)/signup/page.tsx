@@ -14,9 +14,16 @@
  * per spec §"Auth pages" hint).
  */
 
+import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { signupAction } from './actions';
+
+export const metadata: Metadata = {
+  title: 'Apply for Membership',
+  description:
+    'Apply to join Members Only Poker Social Club — five-minute form, reviewed within twenty-four hours.',
+};
 
 export default function SignupPage() {
   return (

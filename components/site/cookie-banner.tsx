@@ -38,7 +38,11 @@ export function CookieBanner() {
     <div
       role="region"
       aria-label="Cookie consent"
-      className="fixed bottom-4 right-4 z-50 max-w-md rounded-lg border-2 border-gold-400 bg-ink-850 p-6 text-ivory-200 shadow-lg motion-safe:animate-in motion-safe:slide-in-from-bottom-4"
+      // Audit 2026-05-15 P1 #5: narrower max-width (max-w-sm) AND
+      // bottom-2 anchor so the banner clears the hero's right edge on
+      // first paint. Entry slide is kept under motion-safe so reduced-
+      // motion users see a static banner.
+      className="fixed bottom-2 right-4 z-50 max-w-sm rounded-lg border-2 border-gold-400 bg-ink-850 p-6 text-ivory-200 shadow-lg motion-safe:animate-in motion-safe:slide-in-from-bottom-4"
     >
       <h2 className="font-display text-2xl text-gold-400">{COPY.banner.title}</h2>
       <p className="mt-2 text-sm">{COPY.banner.body}</p>

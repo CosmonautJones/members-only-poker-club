@@ -43,7 +43,7 @@ const COLUMNS: FooterColumn[] = [
     title: 'Visit',
     links: [
       { label: 'Find Us', href: '/contact' },
-      { label: 'Hours', href: '/contact' },
+      { label: 'Hours', href: '/contact#hours' },
       { label: 'Member Portal', href: '/login' },
     ],
   },
