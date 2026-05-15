@@ -67,12 +67,20 @@ describe('no-pii-in-audit (AC13 source-grep guard)', () => {
     }
   });
 
-  it('combined before+after regions near withAudit do not contain PII', () => {
-    const withAuditIdx = SOURCE.indexOf('withAudit(');
-    expect(withAuditIdx).toBeGreaterThanOrEqual(0);
+  it('combined before+after regions near audit_log.insert do not contain PII', () => {
+    // Anchor on the audit_log.insert call. Slice 1 path uses supabase-js
+    // .from('audit_log').insert({ ... before, after ... }); Slice 2 will
+    // route through withAudit once the pg driver lands. Test stays valid
+    // across both anchors via the insert(/withAudit(/ alternation.
+    const auditAnchorIdx = (() => {
+      const insertIdx = SOURCE.indexOf("from('audit_log').insert(");
+      if (insertIdx >= 0) return insertIdx;
+      return SOURCE.indexOf('withAudit(');
+    })();
+    expect(auditAnchorIdx).toBeGreaterThanOrEqual(0);
     const snippet = SOURCE.slice(
-      Math.max(0, withAuditIdx - 50),
-      Math.min(SOURCE.length, withAuditIdx + 2000),
+      Math.max(0, auditAnchorIdx - 50),
+      Math.min(SOURCE.length, auditAnchorIdx + 2000),
     );
     const beforeRegion = extractSnapshotContents(snippet, 'before');
     const afterRegion = extractSnapshotContents(snippet, 'after');
