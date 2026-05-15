@@ -12,6 +12,15 @@
  * side re-render on error; the form re-submits to the same URL. Polished
  * inline-error UX lands in a follow-up cycle (or cookies()-flash carry,
  * per spec §"Auth pages" hint).
+ *
+ * Pre-Supabase graceful fallback (owner bug 2026-05-15): when the
+ * NEXT_PUBLIC_SUPABASE_URL env var is missing or placeholder, the
+ * server action would throw at submit (createClient() validates env at
+ * call-time and surfaces a server-side exception to the user). Until
+ * the owner provisions Supabase on Vercel, show an "Applications
+ * opening soon" panel instead of the form. The form returns
+ * automatically once the env vars are configured — no code change
+ * needed at that point.
  */
 
 import type { Metadata } from 'next';
@@ -25,7 +34,19 @@ export const metadata: Metadata = {
     'Apply to join Members Only Poker Social Club — five-minute form, reviewed within twenty-four hours.',
 };
 
+function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) return false;
+  if (url.includes('placeholder')) return false;
+  return true;
+}
+
 export default function SignupPage() {
+  if (!isSupabaseConfigured()) {
+    return <ComingSoonPanel />;
+  }
+
   return (
     <div
       style={{
@@ -150,7 +171,21 @@ export default function SignupPage() {
           >
             Date Of Birth
           </span>
-          <input type="date" name="dob" required style={{ padding: '12px 14px', fontSize: 15 }} />
+          {/* `colorScheme: 'light'` overrides the page-level dark scheme
+              so the browser-native date control renders with readable
+              contrast (placeholder hint, calendar icon). Explicit dark
+              `color` covers the typed value (owner bug 2026-05-15). */}
+          <input
+            type="date"
+            name="dob"
+            required
+            style={{
+              padding: '12px 14px',
+              fontSize: 15,
+              colorScheme: 'light',
+              color: '#0B0B0B',
+            }}
+          />
         </label>
 
         <button type="submit" className="btn btn-primary btn-lg" style={{ marginTop: 16 }}>
@@ -171,6 +206,72 @@ export default function SignupPage() {
           Sign in
         </Link>
       </p>
+    </div>
+  );
+}
+
+function ComingSoonPanel() {
+  return (
+    <div
+      style={{
+        maxWidth: 560,
+        margin: '0 auto',
+        padding: '80px 40px 120px',
+        textAlign: 'center',
+      }}
+    >
+      <div className="eyebrow" style={{ marginBottom: 12 }}>
+        Apply For Membership
+      </div>
+      <h1
+        style={{
+          fontFamily: 'Cormorant Garamond, serif',
+          fontSize: 56,
+          fontWeight: 500,
+          lineHeight: 1.05,
+          letterSpacing: '-0.015em',
+          marginBottom: 24,
+        }}
+      >
+        Applications opening soon.
+      </h1>
+      <hr className="gold-rule-short" style={{ margin: '0 auto 32px', maxWidth: 320 }} />
+      <p
+        style={{
+          color: 'var(--ivory-300)',
+          fontSize: 16,
+          lineHeight: 1.7,
+          marginBottom: 24,
+        }}
+      >
+        We&rsquo;re putting the finishing touches on the application portal. The room is ready;
+        the membership system is coming online in the next few days.
+      </p>
+      <p
+        style={{
+          color: 'var(--ivory-300)',
+          fontSize: 16,
+          lineHeight: 1.7,
+          marginBottom: 40,
+        }}
+      >
+        In the meantime, learn about the club, the room, and the games we&rsquo;ll be running.
+      </p>
+      <div
+        style={{
+          display: 'flex',
+          gap: 16,
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+        }}
+      >
+        <Link href="/club" className="btn">
+          Tour The Club
+        </Link>
+        <Link href="/membership" className="btn">
+          Read About Membership
+        </Link>
+      </div>
     </div>
   );
 }
