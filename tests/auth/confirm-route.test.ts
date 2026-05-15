@@ -37,6 +37,11 @@ const mocks = vi.hoisted(() => ({
   verifyOtp: vi.fn(),
 }));
 
+// revalidatePath is called between verifyOtp and the 307 redirect so
+// the (member) layout reads the freshly-set session cookie. Stub it —
+// the real impl requires Next's static-generation store which is absent.
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
+
 vi.mock('@/lib/supabase/server', () => ({
   createClient: () => ({ auth: { verifyOtp: mocks.verifyOtp } }),
 }));

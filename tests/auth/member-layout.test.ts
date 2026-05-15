@@ -154,15 +154,22 @@ describe('member layout', () => {
     // No throw expected. The layout returns a JSX element wrapping `children`.
     const result = await MemberLayout({ children: 'kids' });
 
-    // The wrapper element's children prop equals the children we passed.
-    // We don't pin the wrapper tag/className — those are styling churn.
-    // What matters is that the children prop survives the wrap.
+    // The children survive the wrap somewhere in the rendered tree. We
+    // intentionally do NOT pin the wrapper tag, className, or nesting
+    // depth — the layout grew a portal shell (sidebar nav + topbar) in
+    // a later slice and the test would otherwise need an edit every
+    // time the shell's structure changes.
     expect(result).toBeTruthy();
-    // result is a React element: { type, props: { children, ... }, ... }.
-    // Using a loose type assertion because the SUT's return type is
-    // `Promise<JSX.Element>` and we want to inspect the props bag at runtime.
-    const element = result as unknown as { props: { children: unknown } };
-    expect(element.props.children).toBe('kids');
+    const containsKids = (node: unknown): boolean => {
+      if (node === 'kids') return true;
+      if (Array.isArray(node)) return node.some(containsKids);
+      if (node && typeof node === 'object' && 'props' in node) {
+        const props = (node as { props?: { children?: unknown } }).props;
+        if (props && 'children' in props) return containsKids(props.children);
+      }
+      return false;
+    };
+    expect(containsKids(result)).toBe(true);
 
     // And critically: redirect was NOT called on the happy path.
     expect(mocks.redirect).not.toHaveBeenCalled();
@@ -224,29 +231,34 @@ describe('member surface source invariants', () => {
     expect(src).not.toContain('"use client"');
   });
 
-  it('dashboard source uses <form method="post" action="/logout">', () => {
-    const src = readFileSync(DASHBOARD_PATH, 'utf8');
-    // Loose check: the same opening <form ...> tag must contain BOTH
-    // method="post" AND action="/logout". We don't pin attribute order.
-    expect(src).toMatch(/<form[^>]*method="post"[^>]*action="\/logout"[^>]*>/);
-    // AND the inverse order, in case a future edit flips the attribute order.
-    // Combined into a single OR check via a more permissive multiline regex:
-    const hasFormPostLogout =
-      /<form[^>]*method="post"[^>]*action="\/logout"[^>]*>/.test(src) ||
-      /<form[^>]*action="\/logout"[^>]*method="post"[^>]*>/.test(src);
+  it('(member) surface uses <form method="post" action="/logout"> for sign-out', () => {
+    // The logout control moved out of the dashboard page into the (member)
+    // layout sidebar in the portal-shell slice. The CSRF invariant (POST,
+    // never GET) is what matters — search across the whole surface so this
+    // test doesn't need to know which file currently houses the form.
+    const sources = MEMBER_SURFACE_FILES.map((p) => readFileSync(p, 'utf8'));
+    const hasFormPostLogout = sources.some(
+      (src) =>
+        /<form[^>]*method="post"[^>]*action="\/logout"[^>]*>/.test(src) ||
+        /<form[^>]*action="\/logout"[^>]*method="post"[^>]*>/.test(src),
+    );
     expect(hasFormPostLogout).toBe(true);
   });
 
-  it('dashboard source does NOT contain an <a href="/logout"> link (CSRF)', () => {
-    const src = readFileSync(DASHBOARD_PATH, 'utf8');
+  it('(member) surface does NOT contain an <a href="/logout"> link (CSRF)', () => {
     // CSRF defense: logout MUST be POST. A GET-able <a href="/logout">
     // would let any third-party origin trigger logout via image/link
-    // prefetch. We reject any anchor whose href is exactly "/logout"
-    // (single OR double quoted). We allow anchors to OTHER URLs that
-    // happen to mention logout (e.g., /logout-help — none today, but
-    // future-proof) by anchoring the regex to the closing quote.
-    expect(src).not.toMatch(/<a\s[^>]*href="\/logout"/);
-    expect(src).not.toMatch(/<a\s[^>]*href='\/logout'/);
+    // prefetch. Reject anchors with href exactly "/logout" (single OR
+    // double quoted) anywhere in the member surface.
+    for (const filePath of MEMBER_SURFACE_FILES) {
+      const src = readFileSync(filePath, 'utf8');
+      expect(src, `${path.relative(REPO_ROOT, filePath)}`).not.toMatch(
+        /<a\s[^>]*href="\/logout"/,
+      );
+      expect(src, `${path.relative(REPO_ROOT, filePath)}`).not.toMatch(
+        /<a\s[^>]*href='\/logout'/,
+      );
+    }
   });
 
   it('profile source contains profile.email and profile.role', () => {

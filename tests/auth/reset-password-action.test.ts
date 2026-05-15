@@ -49,6 +49,12 @@ const mocks = vi.hoisted(() => ({
   }),
 }));
 
+// revalidatePath is called between auth.updateUser and redirect() to
+// invalidate the (member) layout cache so the recovery session cookie is
+// read fresh on the redirected /dashboard request. Stub it — the real
+// impl requires Next's static-generation store which isn't present here.
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
+
 // Sync factory — see comment in login-action.test.ts. The real
 // `createClient()` in lib/supabase/server.ts is sync.
 vi.mock('@/lib/supabase/server', () => ({

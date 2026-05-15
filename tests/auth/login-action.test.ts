@@ -48,6 +48,12 @@ const mocks = vi.hoisted(() => ({
 // in tests/auth/signup-action.test.ts.
 vi.mock('server-only', () => ({}));
 
+// revalidatePath is called between auth.signInWithPassword and redirect()
+// to invalidate the (member) layout cache so it reads the freshly-set
+// session cookie on the redirected request. Stub it — the real impl
+// requires Next's static-generation store which isn't present under vitest.
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
+
 // NOTE on shape: the real `createClient()` in lib/supabase/server.ts is
 // SYNCHRONOUS and returns the supabase client directly. The SUT does
 // `const supabase = createClient()` (no await). The mock therefore must
