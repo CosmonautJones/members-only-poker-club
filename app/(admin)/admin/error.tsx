@@ -88,9 +88,7 @@ export default function AdminError({
           marginBottom: 16,
         }}
       >
-        {isInsufficientRole
-          ? 'You do not have access to this area.'
-          : 'Something went wrong.'}
+        {isInsufficientRole ? 'You do not have access to this area.' : 'Something went wrong.'}
       </h1>
       <p
         style={{

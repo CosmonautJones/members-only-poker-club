@@ -204,7 +204,8 @@ export async function searchMembers(
   // The same column list is reused by both the count and the row query
   // so the two cannot drift. The `count` query uses `{ count: 'exact',
   // head: true }` so Supabase returns only the count, no rows.
-  const SELECT_COLUMNS = 'id, full_name, email, member_number, role, id_verified_at, created_at, deleted_at, memberships:memberships(status)';
+  const SELECT_COLUMNS =
+    'id, full_name, email, member_number, role, id_verified_at, created_at, deleted_at, memberships:memberships(status)';
 
   // ---- Build the filter chain (shared by count + rows) ------------------
   //

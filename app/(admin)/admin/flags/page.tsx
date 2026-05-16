@@ -36,6 +36,7 @@
 
 import { requireRole } from '@/lib/auth/requireRole';
 import { createClient } from '@/lib/supabase/server';
+import { nowUtc } from '@/lib/time';
 
 import { FlagRow, type FlagRowData } from './_components/flag-row.client';
 import type { Role } from '@/lib/auth/types';
@@ -69,17 +70,11 @@ function formatUtcAndCentral(iso: string): { utc: string; central: string } {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return { utc: iso, central: iso };
 
-  const utcParts = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZone: 'UTC',
-  }).formatToParts(date);
-  const utc = `${pick(utcParts, 'year')}-${pick(utcParts, 'month')}-${pick(utcParts, 'day')} ${pick(utcParts, 'hour')}:${pick(utcParts, 'minute')}:${pick(utcParts, 'second')} UTC`;
+  // UTC: derive from toISOString() (ECMAScript-standard, locale-stable).
+  // Avoids the Intl 'en-CA' midnight-hour='24' quirk on some Node ICU
+  // builds (Linux CI) that rotated 00:00 displays to 24:00 of the prior day.
+  const isoStr = date.toISOString();
+  const utc = `${isoStr.slice(0, 10)} ${isoStr.slice(11, 19)} UTC`;
 
   const centralParts = new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
@@ -130,7 +125,9 @@ export default async function AdminFlagsPage(): Promise<JSX.Element> {
   // is stable across renders.
   const { data, error } = await supabase
     .from('feature_flags')
-    .select('key, enabled, percent, allowlist, role_gate, owner, expires_at, updated_at, updated_by')
+    .select(
+      'key, enabled, percent, allowlist, role_gate, owner, expires_at, updated_at, updated_by',
+    )
     .order('key', { ascending: true });
 
   if (error) {
@@ -163,7 +160,7 @@ export default async function AdminFlagsPage(): Promise<JSX.Element> {
     }
   }
 
-  const now = new Date();
+  const now = nowUtc();
   const flags: FlagRowData[] = rawFlags.map((f) => ({
     key: f.key,
     enabled: f.enabled,
@@ -173,7 +170,7 @@ export default async function AdminFlagsPage(): Promise<JSX.Element> {
     owner: f.owner,
     expires_at: f.expires_at,
     updated_at: f.updated_at,
-    updated_by_email: f.updated_by !== null ? emailMap.get(f.updated_by) ?? null : null,
+    updated_by_email: f.updated_by !== null ? (emailMap.get(f.updated_by) ?? null) : null,
     expires_at_formatted: f.expires_at !== null ? formatUtcAndCentral(f.expires_at) : null,
     updated_at_formatted: formatUtcAndCentral(f.updated_at),
     stale: isStale(f.expires_at, f.percent, now),

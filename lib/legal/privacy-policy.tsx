@@ -60,17 +60,15 @@ export default function PrivacyPolicy(): JSX.Element {
 
       <h2>Who sees it</h2>
       <p>
-        Club staff (cashiers and managers) can see your name, email, and role so they can assist
-        you at the table. Only managers and above can see soft-deleted or anonymized account records
-        for compliance purposes. We share data with our service providers — Supabase (database and
+        Club staff (cashiers and managers) can see your name, email, and role so they can assist you
+        at the table. Only managers and above can see soft-deleted or anonymized account records for
+        compliance purposes. We share data with our service providers — Supabase (database and
         authentication), Stripe (payments), Sentry (error tracking), and PostHog (analytics) — only
         as necessary to operate the club.
       </p>
 
       <h2>How long we keep it</h2>
-      <p>
-        Different types of data have different retention schedules:
-      </p>
+      <p>Different types of data have different retention schedules:</p>
       <ul>
         <li>
           <strong>ID document image:</strong> Deleted 30 days after your identity is verified.
@@ -80,9 +78,11 @@ export default function PrivacyPolicy(): JSX.Element {
         </li>
         <li>
           <strong>Financial records (ledger and payments):</strong> Retained for at least 7 years
-          per IRS and tax requirements. <strong>Requesting deletion of your account does not
-          remove your financial history.</strong> This is a legal exception under CCPA and
-          applicable tax law.
+          per IRS and tax requirements.{' '}
+          <strong>
+            Requesting deletion of your account does not remove your financial history.
+          </strong>{' '}
+          This is a legal exception under CCPA and applicable tax law.
         </li>
         <li>
           <strong>Error tracking (Sentry):</strong> 90 days.
@@ -101,8 +101,8 @@ export default function PrivacyPolicy(): JSX.Element {
       <h2>Your rights</h2>
       <p>
         You have the right to access, correct, and delete your personal information. You can
-        exercise these rights from the{' '}
-        <a href="/profile/privacy">Privacy &amp; data</a> section of your profile:
+        exercise these rights from the <a href="/profile/privacy">Privacy &amp; data</a> section of
+        your profile:
       </p>
       <ul>
         <li>
@@ -123,8 +123,8 @@ export default function PrivacyPolicy(): JSX.Element {
         </li>
       </ul>
       <p>
-        To exercise rights that are not available self-serve, email us at the address in the
-        Contact section below.
+        To exercise rights that are not available self-serve, email us at the address in the Contact
+        section below.
       </p>
 
       <h2>Cookies &amp; tracking</h2>
@@ -132,8 +132,7 @@ export default function PrivacyPolicy(): JSX.Element {
         We use cookies to keep you signed in (essential) and, with your consent, to collect
         analytics data and error reports. You can manage your cookie preferences from the cookie
         banner that appears when you first visit the site, or by clearing your browser cookies at
-        any time. For full details see our{' '}
-        <a href="/privacy#cookies">cookie policy section</a>.
+        any time. For full details see our <a href="/privacy#cookies">cookie policy section</a>.
       </p>
 
       <h2>Children</h2>

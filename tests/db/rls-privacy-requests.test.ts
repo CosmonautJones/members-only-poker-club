@@ -46,11 +46,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setupAuthStub, setTestUid, resetAuthStub } from './_fixtures/auth-stub';
 import { seedProfile } from './_fixtures/profiles';
-import {
-  setupAppAuthenticatedRole,
-  asServiceRole,
-  withRollback,
-} from './_fixtures/rls-helpers';
+import { setupAppAuthenticatedRole, asServiceRole, withRollback } from './_fixtures/rls-helpers';
 
 const __filename =
   typeof __dirname === 'undefined'
@@ -104,9 +100,7 @@ beforeAll(async () => {
     role: 'member' | 'cashier' | 'manager' | 'owner',
     label: string,
   ): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -204,9 +198,7 @@ describe('SELECT policy — self OR manager+', () => {
 
   it('memberB sees ONLY their own request', async () => {
     await setTestUid(pg, memberB);
-    const r = await pg.query<{ profile_id: string }>(
-      'SELECT profile_id FROM privacy_requests',
-    );
+    const r = await pg.query<{ profile_id: string }>('SELECT profile_id FROM privacy_requests');
     expect(r.rows).toHaveLength(1);
     expect(r.rows[0]?.profile_id).toBe(memberB);
   });
@@ -221,17 +213,13 @@ describe('SELECT policy — self OR manager+', () => {
 
   it('owner sees ALL requests', async () => {
     await setTestUid(pg, owner);
-    const r = await pg.query<{ profile_id: string }>(
-      'SELECT profile_id FROM privacy_requests',
-    );
+    const r = await pg.query<{ profile_id: string }>('SELECT profile_id FROM privacy_requests');
     expect(r.rows).toHaveLength(2);
   });
 
   it('anon (uid cleared) sees zero rows', async () => {
     // beforeEach already cleared uid and set role to app_authenticated.
-    const r = await pg.query<{ profile_id: string }>(
-      'SELECT profile_id FROM privacy_requests',
-    );
+    const r = await pg.query<{ profile_id: string }>('SELECT profile_id FROM privacy_requests');
     expect(r.rows).toHaveLength(0);
   });
 });

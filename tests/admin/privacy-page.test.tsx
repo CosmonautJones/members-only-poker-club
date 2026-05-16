@@ -75,7 +75,22 @@ vi.mock('@/lib/supabase/server', () => ({
     function makeChain(table: string): Record<string, unknown> {
       const chain: Record<string, unknown> = {};
       const passthrough = () => chain;
-      for (const m of ['select', 'is', 'not', 'like', 'order', 'limit', 'gt', 'gte', 'lt', 'lte', 'or', 'ilike', 'filter', 'range']) {
+      for (const m of [
+        'select',
+        'is',
+        'not',
+        'like',
+        'order',
+        'limit',
+        'gt',
+        'gte',
+        'lt',
+        'lte',
+        'or',
+        'ilike',
+        'filter',
+        'range',
+      ]) {
         chain[m] = passthrough;
       }
       chain['eq'] = (column: string, value: unknown) => {
@@ -359,7 +374,9 @@ describe('privacy page — populated queue (pending delete)', () => {
       error: null,
     });
     mocks.results.set('profiles', {
-      data: [profileRow({ id: 'uuid-profile-b', full_name: 'Bob Brown', email: 'bob@example.com' })],
+      data: [
+        profileRow({ id: 'uuid-profile-b', full_name: 'Bob Brown', email: 'bob@example.com' }),
+      ],
       error: null,
     });
   });
@@ -424,7 +441,9 @@ describe('privacy page — anonymized fallback', () => {
       error: null,
     });
     mocks.results.set('profiles', {
-      data: [profileRow({ id: 'uuid-profile-c', full_name: 'Carol Carter', email: 'carol@example.com' })],
+      data: [
+        profileRow({ id: 'uuid-profile-c', full_name: 'Carol Carter', email: 'carol@example.com' }),
+      ],
       error: null,
     });
     await renderPage({ status: 'completed' });

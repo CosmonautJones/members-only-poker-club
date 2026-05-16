@@ -83,8 +83,7 @@ interface ForbiddenToken {
 const FORBIDDEN: ReadonlyArray<ForbiddenToken> = [
   {
     needle: 'email',
-    rationale:
-      'Email addresses are PII. Capture only `request_id` or `_length` (premortem R4/R7).',
+    rationale: 'Email addresses are PII. Capture only `request_id` or `_length` (premortem R4/R7).',
     allowSuffix: true,
   },
   {
@@ -179,17 +178,12 @@ function scanPayloadForPii(file: string, payload: string): Finding[] {
   const findings: Finding[] = [];
   // Strip JS-style comments inside the span so reviewer JSDoc-style
   // mentions don't false-positive.
-  const stripped = payload
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/\/\/[^\n]*/g, ' ');
+  const stripped = payload.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
   for (const tok of FORBIDDEN) {
     let idx = stripped.indexOf(tok.needle);
     while (idx !== -1) {
       if (tok.allowSuffix) {
-        const tail = stripped.slice(
-          idx + tok.needle.length,
-          idx + tok.needle.length + 12,
-        );
+        const tail = stripped.slice(idx + tok.needle.length, idx + tok.needle.length + 12);
         if (/^_(length|hash|digest)\b/.test(tail)) {
           idx = stripped.indexOf(tok.needle, idx + 1);
           continue;
@@ -199,10 +193,7 @@ function scanPayloadForPii(file: string, payload: string): Finding[] {
         file,
         token: tok.needle,
         rationale: tok.rationale,
-        preview: stripped.slice(
-          Math.max(0, idx - 30),
-          Math.min(stripped.length, idx + 60),
-        ),
+        preview: stripped.slice(Math.max(0, idx - 30), Math.min(stripped.length, idx + 60)),
       });
       idx = stripped.indexOf(tok.needle, idx + 1);
     }

@@ -77,9 +77,8 @@ export default function ProfilePrivacyPage() {
     <div>
       <h1>Privacy &amp; data</h1>
       <p>
-        Read our{' '}
-        <Link href="/privacy">privacy policy</Link> to understand how we collect and use your
-        data.
+        Read our <Link href="/privacy">privacy policy</Link> to understand how we collect and use
+        your data.
       </p>
 
       <section aria-labelledby="download-heading">

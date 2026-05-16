@@ -93,13 +93,9 @@ vi.mock('@/lib/supabase/server', () => ({
         chain[m] = passthrough;
       }
       chain['then'] = (
-        onFulfilled: (v: {
-          data?: unknown;
-          error?: { message: string } | null;
-        }) => unknown,
+        onFulfilled: (v: { data?: unknown; error?: { message: string } | null }) => unknown,
       ) => {
-        const result =
-          table === 'feature_flags' ? mocks.flagsResult : mocks.profilesResult;
+        const result = table === 'feature_flags' ? mocks.flagsResult : mocks.profilesResult;
         return Promise.resolve(result).then(onFulfilled);
       };
       return chain;
@@ -383,9 +379,7 @@ describe('flags page — kill-switch typed-confirmation', () => {
     await user.click(screen.getByTestId('flag-enabled-kill-stripe-webhook'));
     await user.click(screen.getByTestId('flag-save-kill-stripe-webhook'));
 
-    const confirm = (await screen.findByTestId(
-      'typed-confirmation-confirm',
-    )) as HTMLButtonElement;
+    const confirm = (await screen.findByTestId('typed-confirmation-confirm')) as HTMLButtonElement;
     expect(confirm.disabled).toBe(true);
 
     await user.type(screen.getByTestId('typed-confirmation-input'), 'enable');
@@ -430,9 +424,7 @@ describe('flags page — kill-switch typed-confirmation', () => {
     await user.click(screen.getByTestId('flag-enabled-kill-stripe-webhook'));
     await user.click(screen.getByTestId('flag-save-kill-stripe-webhook'));
 
-    const confirm = (await screen.findByTestId(
-      'typed-confirmation-confirm',
-    )) as HTMLButtonElement;
+    const confirm = (await screen.findByTestId('typed-confirmation-confirm')) as HTMLButtonElement;
     await user.type(screen.getByTestId('typed-confirmation-input'), 'ENABLE');
     expect(confirm.disabled).toBe(true);
   });

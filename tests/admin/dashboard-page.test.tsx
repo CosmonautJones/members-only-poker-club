@@ -387,7 +387,7 @@ describe('admin dashboard — source invariants (AC7 + AC35)', () => {
     expect(src).toMatch(/revalidate:\s*30\b/);
   });
 
-  it('first body statement is `await requireRole(\'manager\')` (AC5 defense-in-depth)', () => {
+  it("first body statement is `await requireRole('manager')` (AC5 defense-in-depth)", () => {
     // Mirrors the walker in tests/auth/admin-routes.test.ts so future
     // refactors that split the page into multiple statements still pass
     // — provided the FIRST statement remains the requireRole call.
@@ -447,7 +447,7 @@ describe('admin dashboard — source invariants (AC7 + AC35)', () => {
     expect(src).not.toMatch(/from\s*['"]@\/lib\/supabase\/admin['"]/);
   });
 
-  it('source does NOT contain `\'use client\'` (server-component-only)', () => {
+  it("source does NOT contain `'use client'` (server-component-only)", () => {
     const src = readFileSync(PAGE_PATH, 'utf8');
     expect(src).not.toContain("'use client'");
     expect(src).not.toContain('"use client"');

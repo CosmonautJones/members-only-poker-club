@@ -37,9 +37,8 @@ const requireRoleState = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth/requireRole', async () => {
-  const { InsufficientRoleError } = await vi.importActual<
-    typeof import('@/lib/auth/errors')
-  >('@/lib/auth/errors');
+  const { InsufficientRoleError } =
+    await vi.importActual<typeof import('@/lib/auth/errors')>('@/lib/auth/errors');
   return {
     requireRole: vi.fn(async (required: 'manager' | 'owner') => {
       const actor = requireRoleState.currentActor;
@@ -75,11 +74,7 @@ import {
   type TransactionRunner,
 } from '@/app/(admin)/admin/members/[id]/_actions/initiateMemberDeletion';
 // eslint-disable-next-line import/first
-import {
-  SelfEditViolation,
-  RejectReasonInvalid,
-  BadRequest,
-} from '@/app/(admin)/admin/_errors';
+import { SelfEditViolation, RejectReasonInvalid, BadRequest } from '@/app/(admin)/admin/_errors';
 // eslint-disable-next-line import/first
 import { setupAuthStub, resetAuthStub, setTestUid } from '../db/_fixtures/auth-stub';
 // eslint-disable-next-line import/first
@@ -96,10 +91,31 @@ const __filename =
     ? fileURLToPath(import.meta.url)
     : `${__dirname}/__placeholder__`;
 const TEST_DIR = typeof __dirname === 'undefined' ? dirname(__filename) : __dirname;
-const MIG_0002 = resolve(TEST_DIR, '..', '..', 'supabase', 'migrations', '0002_profiles_and_roles.sql');
+const MIG_0002 = resolve(
+  TEST_DIR,
+  '..',
+  '..',
+  'supabase',
+  'migrations',
+  '0002_profiles_and_roles.sql',
+);
 const MIG_0003 = resolve(TEST_DIR, '..', '..', 'supabase', 'migrations', '0003_audit_log.sql');
-const MIG_0004 = resolve(TEST_DIR, '..', '..', 'supabase', 'migrations', '0004_privacy_soft_delete.sql');
-const MIG_0005 = resolve(TEST_DIR, '..', '..', 'supabase', 'migrations', '0005_privacy_requests.sql');
+const MIG_0004 = resolve(
+  TEST_DIR,
+  '..',
+  '..',
+  'supabase',
+  'migrations',
+  '0004_privacy_soft_delete.sql',
+);
+const MIG_0005 = resolve(
+  TEST_DIR,
+  '..',
+  '..',
+  'supabase',
+  'migrations',
+  '0005_privacy_requests.sql',
+);
 const ACTION_PATH = resolve(
   TEST_DIR,
   '..',
@@ -182,9 +198,7 @@ beforeAll(async () => {
     role: 'member' | 'cashier' | 'manager' | 'owner',
     label: string,
   ): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -225,9 +239,9 @@ beforeEach(async () => {
   await pg.query('DELETE FROM privacy_requests');
 });
 
-async function readAuditRows(targetId: string): Promise<
-  Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>
-> {
+async function readAuditRows(
+  targetId: string,
+): Promise<Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>> {
   await asServiceRole(pg);
   const result = await pg.query<{
     action: string;
@@ -345,10 +359,7 @@ describe('initiateMemberDeletion — AC34 reason length validation', () => {
     await asAuthenticated(pg, manager1);
 
     await expect(
-      initiateMemberDeletion(
-        { profileId: target1, reason: '' },
-        pgliteRunner(pg),
-      ),
+      initiateMemberDeletion({ profileId: target1, reason: '' }, pgliteRunner(pg)),
     ).rejects.toBeInstanceOf(RejectReasonInvalid);
 
     const rows = await readAuditRows(target1);
@@ -365,10 +376,7 @@ describe('initiateMemberDeletion — AC34 reason length validation', () => {
 
     const longReason = 'x'.repeat(501);
     await expect(
-      initiateMemberDeletion(
-        { profileId: target1, reason: longReason },
-        pgliteRunner(pg),
-      ),
+      initiateMemberDeletion({ profileId: target1, reason: longReason }, pgliteRunner(pg)),
     ).rejects.toBeInstanceOf(RejectReasonInvalid);
 
     const rows = await readAuditRows(target1);
@@ -446,9 +454,7 @@ describe('initiateMemberDeletion — AC34 nonexistent profile', () => {
     ).rejects.toBeInstanceOf(BadRequest);
 
     await asServiceRole(pg);
-    const all = await pg.query<{ count: string }>(
-      'SELECT COUNT(*)::text AS count FROM audit_log',
-    );
+    const all = await pg.query<{ count: string }>('SELECT COUNT(*)::text AS count FROM audit_log');
     expect(all.rows[0]!.count).toBe('0');
   });
 });
@@ -508,7 +514,7 @@ describe('initiateMemberDeletion — source-shape invariants', () => {
     expect(src).toMatch(/INSERT\s+INTO\s+privacy_requests/i);
   });
 
-  it("contains the `del:` anonymization-prefix check", () => {
+  it('contains the `del:` anonymization-prefix check', () => {
     const src = readFileSync(ACTION_PATH, 'utf8');
     expect(src).toMatch(/del:/);
   });

@@ -14,9 +14,7 @@ import { expectNoSeriousAxeViolations, BASE_MANAGER_PROFILE } from './_helpers';
 
 const mocks = vi.hoisted(() => ({
   requireRole: vi.fn<
-    (
-      required: string,
-    ) => Promise<{
+    (required: string) => Promise<{
       profile: { id: string; role: string; full_name: string; email: string };
     }>
   >(),
@@ -61,13 +59,7 @@ vi.mock('@/lib/auth/requireRole', () => ({
 // the page DOM only. The dialog component has its own a11y coverage via
 // the typed-confirmation-dialog primitive tests (ADR-0023).
 vi.mock('@/app/(admin)/admin/members/[id]/_components/actions-panel.client', () => ({
-  ActionsPanel: ({
-    profileId,
-    memberEmail,
-  }: {
-    profileId: string;
-    memberEmail: string;
-  }) => (
+  ActionsPanel: ({ profileId, memberEmail }: { profileId: string; memberEmail: string }) => (
     <div data-testid="actions-panel" data-profile-id={profileId} data-member-email={memberEmail}>
       <button type="button">Change role</button>
       <button type="button">Request re-verification</button>
@@ -102,8 +94,7 @@ vi.mock('@/lib/supabase/server', () => ({
       ]) {
         chain[m] = passthrough;
       }
-      const resolveValue = () =>
-        mocks.tableResolvers.get(table) ?? { data: null, error: null };
+      const resolveValue = () => mocks.tableResolvers.get(table) ?? { data: null, error: null };
       chain['maybeSingle'] = (): Promise<unknown> => Promise.resolve(resolveValue());
       chain['single'] = (): Promise<unknown> => Promise.resolve(resolveValue());
       chain['then'] = (

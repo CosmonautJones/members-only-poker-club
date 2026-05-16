@@ -104,8 +104,8 @@ const FAQ_ENTRIES: FaqEntry[] = [
         <Link href="/games" className="gold-text" style={{ textDecoration: 'underline' }}>
           games page
         </Link>
-        . If you&rsquo;re a member, the dashboard surfaces live wait-list status and any room
-        notes (deep cleans, private events) before you leave the house.
+        . If you&rsquo;re a member, the dashboard surfaces live wait-list status and any room notes
+        (deep cleans, private events) before you leave the house.
       </>
     ),
   },

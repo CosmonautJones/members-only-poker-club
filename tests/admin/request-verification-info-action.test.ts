@@ -35,9 +35,8 @@ const requireRoleState = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth/requireRole', async () => {
-  const { InsufficientRoleError } = await vi.importActual<
-    typeof import('@/lib/auth/errors')
-  >('@/lib/auth/errors');
+  const { InsufficientRoleError } =
+    await vi.importActual<typeof import('@/lib/auth/errors')>('@/lib/auth/errors');
   return {
     requireRole: vi.fn(async (required: 'manager' | 'owner') => {
       const actor = requireRoleState.currentActor;
@@ -77,10 +76,7 @@ import {
   type TransactionRunner,
 } from '@/app/(admin)/admin/verifications/_actions/requestVerificationInfo';
 // eslint-disable-next-line import/first
-import {
-  SelfEditViolation,
-  MessageInvalid,
-} from '@/app/(admin)/admin/_errors';
+import { SelfEditViolation, MessageInvalid } from '@/app/(admin)/admin/_errors';
 // eslint-disable-next-line import/first
 import { setupAuthStub, resetAuthStub, setTestUid } from '../db/_fixtures/auth-stub';
 // eslint-disable-next-line import/first
@@ -158,9 +154,7 @@ beforeAll(async () => {
   await runSqlBlock(readFileSync(MIG_0003, 'utf8'));
 
   const seedAs = async (role: 'member' | 'manager', label: string): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -192,9 +186,9 @@ beforeEach(async () => {
   await pg.query('TRUNCATE TABLE audit_log RESTART IDENTITY');
 });
 
-async function readAuditRows(targetId: string): Promise<
-  Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>
-> {
+async function readAuditRows(
+  targetId: string,
+): Promise<Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>> {
   await asServiceRole(pg);
   const result = await pg.query<{
     action: string;
@@ -213,10 +207,9 @@ async function readAuditRows(targetId: string): Promise<
 
 async function readProfileSnapshot(profileId: string): Promise<Record<string, unknown> | null> {
   await asServiceRole(pg);
-  const result = await pg.query<Record<string, unknown>>(
-    'SELECT * FROM profiles WHERE id = $1',
-    [profileId],
-  );
+  const result = await pg.query<Record<string, unknown>>('SELECT * FROM profiles WHERE id = $1', [
+    profileId,
+  ]);
   return result.rows[0] ?? null;
 }
 
@@ -331,10 +324,7 @@ describe('requestVerificationInfo — AC14 message length validation', () => {
     await asAuthenticated(pg, manager1);
 
     await expect(
-      requestVerificationInfo(
-        { profileId: target1, message: 'x'.repeat(1001) },
-        pgliteRunner(pg),
-      ),
+      requestVerificationInfo({ profileId: target1, message: 'x'.repeat(1001) }, pgliteRunner(pg)),
     ).rejects.toBeInstanceOf(MessageInvalid);
 
     const rows = await readAuditRows(target1);
@@ -356,10 +346,7 @@ describe('requestVerificationInfo — audit row contains ONLY message_length', (
     const uniqueToken = 'UNIQUE_MESSAGE_TOKEN_8675309';
     const messageText = `Hello, ${uniqueToken}, please re-upload your ID.`;
 
-    await requestVerificationInfo(
-      { profileId: target1, message: messageText },
-      pgliteRunner(pg),
-    );
+    await requestVerificationInfo({ profileId: target1, message: messageText }, pgliteRunner(pg));
 
     const rows = await readAuditRows(target1);
     expect(rows).toHaveLength(1);

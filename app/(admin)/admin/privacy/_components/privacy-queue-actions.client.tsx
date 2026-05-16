@@ -30,11 +30,7 @@
 import { useState, useTransition } from 'react';
 
 import { TypedConfirmationDialog } from '@/components/admin/typed-confirmation-dialog';
-import {
-  approveExportAction,
-  approveDeletionAction,
-  rejectRequestAction,
-} from '../_actions';
+import { approveExportAction, approveDeletionAction, rejectRequestAction } from '../_actions';
 
 export interface PrivacyQueueActionsProps {
   requestId: string;
@@ -69,11 +65,7 @@ const ERROR_STYLE: React.CSSProperties = {
   flexBasis: '100%',
 };
 
-export function PrivacyQueueActions({
-  requestId,
-  kind,
-  requesterEmail,
-}: PrivacyQueueActionsProps) {
+export function PrivacyQueueActions({ requestId, kind, requesterEmail }: PrivacyQueueActionsProps) {
   const [openDialog, setOpenDialog] = useState<DialogKey>(null);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -174,9 +166,7 @@ export function PrivacyQueueActions({
       {/* Approve export dialog (typed 'approve') */}
       <TypedConfirmationDialog
         open={openDialog === 'approve-export'}
-        onOpenChange={(next) =>
-          next ? setOpenDialog('approve-export') : closeDialog()
-        }
+        onOpenChange={(next) => (next ? setOpenDialog('approve-export') : closeDialog())}
         title="Approve data export"
         description="This generates a signed export URL with a 24-hour TTL and emails it to the requester. Approval is irreversible — the request transitions pending → in_progress → completed."
         confirmPhrase="approve"
@@ -189,9 +179,7 @@ export function PrivacyQueueActions({
       {/* Approve deletion dialog (typed member email) */}
       <TypedConfirmationDialog
         open={openDialog === 'approve-deletion'}
-        onOpenChange={(next) =>
-          next ? setOpenDialog('approve-deletion') : closeDialog()
-        }
+        onOpenChange={(next) => (next ? setOpenDialog('approve-deletion') : closeDialog())}
         title="Approve account deletion"
         description="This anonymizes the member's profile (name, email, phone) and sends a confirmation email. Financial and audit records are retained per law. This cannot be undone."
         confirmPhrase={requesterEmail}

@@ -13,11 +13,7 @@
  */
 
 export { nowUtc } from './now';
-export {
-  CLUB_TZ_DEFAULT,
-  isValidIanaZone,
-  type IanaZone,
-} from './zones';
+export { CLUB_TZ_DEFAULT, isValidIanaZone, type IanaZone } from './zones';
 export { formatInZone } from './display';
 export {
   momentUtc,

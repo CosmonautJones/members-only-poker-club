@@ -430,9 +430,10 @@ describe('AC2.6 — manager+ writes succeed', () => {
       )) as Results;
       expect(ins.affectedRows ?? 0).toBe(1);
 
-      const after = await pg.query<{ key: string }>('SELECT key FROM feature_flags WHERE key = $1', [
-        'new-experiment',
-      ]);
+      const after = await pg.query<{ key: string }>(
+        'SELECT key FROM feature_flags WHERE key = $1',
+        ['new-experiment'],
+      );
       expect(after.rows[0]?.key).toBe('new-experiment');
     });
   });

@@ -75,10 +75,12 @@ function makeRequest(headers: Record<string, string> = {}): Request {
 
 // Default behavior: profile update returns a single row (success path);
 // audit_log insert succeeds.
-function wireSupabaseChain(opts: {
-  maybeSingleResult?: { data: { id: string } | null; error: unknown };
-  auditResult?: { error: unknown };
-} = {}): void {
+function wireSupabaseChain(
+  opts: {
+    maybeSingleResult?: { data: { id: string } | null; error: unknown };
+    auditResult?: { error: unknown };
+  } = {},
+): void {
   const profilesChain = {
     update: mocks.profilesUpdate,
     eq: mocks.profilesEq,
@@ -170,7 +172,9 @@ describe('POST /api/privacy/delete', () => {
   it('audit insert payload carries ip + user_agent from request headers', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: USER_ID } }, error: null });
 
-    await POST(makeRequest({ 'x-forwarded-for': '1.2.3.4, 5.6.7.8', 'user-agent': 'TestBrowser/1.0' }));
+    await POST(
+      makeRequest({ 'x-forwarded-for': '1.2.3.4, 5.6.7.8', 'user-agent': 'TestBrowser/1.0' }),
+    );
 
     const auditPayload = mocks.auditInsert.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(auditPayload.ip).toBe('1.2.3.4');

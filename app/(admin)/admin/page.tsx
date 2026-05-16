@@ -157,18 +157,11 @@ function formatUtcAndCentral(iso: string): { utc: string; central: string } {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return { utc: iso, central: iso };
 
-  // UTC: 2026-05-15 14:32:08 UTC
-  const utcParts = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZone: 'UTC',
-  }).formatToParts(date);
-  const utc = `${pick(utcParts, 'year')}-${pick(utcParts, 'month')}-${pick(utcParts, 'day')} ${pick(utcParts, 'hour')}:${pick(utcParts, 'minute')}:${pick(utcParts, 'second')} UTC`;
+  // UTC: derive from toISOString() (ECMAScript-standard, locale-stable).
+  // Avoids the Intl 'en-CA' midnight-hour='24' quirk on some Node ICU
+  // builds (Linux CI) that rotated 00:00 displays to 24:00 of the prior day.
+  const isoStr = date.toISOString();
+  const utc = `${isoStr.slice(0, 10)} ${isoStr.slice(11, 19)} UTC`;
 
   // Central: 2026-05-15 09:32:08 CDT
   const centralParts = new Intl.DateTimeFormat('en-US', {
@@ -260,7 +253,10 @@ function Card({ href, label, count, description }: CardProps) {
 }
 
 function slugify(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 // ---- Page ------------------------------------------------------------------
@@ -317,8 +313,7 @@ export default async function AdminDashboardPage() {
           Dashboard
         </h1>
         <p style={{ color: 'var(--ivory-300)', fontSize: 15, lineHeight: 1.65 }}>
-          Signed in as {profile.role}. Counts refresh every 30 seconds or on the next staff
-          action.
+          Signed in as {profile.role}. Counts refresh every 30 seconds or on the next staff action.
         </p>
       </header>
 
@@ -464,9 +459,7 @@ export default async function AdminDashboardPage() {
                     <td style={{ padding: '14px 24px' }}>
                       <span style={{ color: 'var(--ivory-400)' }}>{row.target_type}</span>
                       <span style={{ color: 'var(--text-muted)' }}> / </span>
-                      <span style={{ fontFamily: 'monospace', fontSize: 12 }}>
-                        {row.target_id}
-                      </span>
+                      <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{row.target_id}</span>
                     </td>
                     <td style={{ padding: '14px 24px' }}>
                       <div>{utc}</div>

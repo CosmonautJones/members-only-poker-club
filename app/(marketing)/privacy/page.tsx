@@ -39,9 +39,9 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <main className="container mx-auto py-12 prose">
+    <main className="container prose mx-auto py-12">
       <h1>Privacy</h1>
-      <p className="text-sm text-text-muted">
+      <p className="text-text-muted text-sm">
         Effective {PRIVACY_POLICY_EFFECTIVE_DATE} (version {PRIVACY_POLICY_VERSION})
       </p>
       <PrivacyPolicy />

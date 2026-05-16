@@ -252,12 +252,8 @@ describe('member surface source invariants', () => {
     // double quoted) anywhere in the member surface.
     for (const filePath of MEMBER_SURFACE_FILES) {
       const src = readFileSync(filePath, 'utf8');
-      expect(src, `${path.relative(REPO_ROOT, filePath)}`).not.toMatch(
-        /<a\s[^>]*href="\/logout"/,
-      );
-      expect(src, `${path.relative(REPO_ROOT, filePath)}`).not.toMatch(
-        /<a\s[^>]*href='\/logout'/,
-      );
+      expect(src, `${path.relative(REPO_ROOT, filePath)}`).not.toMatch(/<a\s[^>]*href="\/logout"/);
+      expect(src, `${path.relative(REPO_ROOT, filePath)}`).not.toMatch(/<a\s[^>]*href='\/logout'/);
     }
   });
 

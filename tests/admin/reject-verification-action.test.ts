@@ -44,9 +44,8 @@ const requireRoleState = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth/requireRole', async () => {
-  const { InsufficientRoleError } = await vi.importActual<
-    typeof import('@/lib/auth/errors')
-  >('@/lib/auth/errors');
+  const { InsufficientRoleError } =
+    await vi.importActual<typeof import('@/lib/auth/errors')>('@/lib/auth/errors');
   return {
     requireRole: vi.fn(async (required: 'manager' | 'owner') => {
       const actor = requireRoleState.currentActor;
@@ -86,10 +85,7 @@ import {
   type TransactionRunner,
 } from '@/app/(admin)/admin/verifications/_actions/rejectVerification';
 // eslint-disable-next-line import/first
-import {
-  SelfEditViolation,
-  RejectReasonInvalid,
-} from '@/app/(admin)/admin/_errors';
+import { SelfEditViolation, RejectReasonInvalid } from '@/app/(admin)/admin/_errors';
 // eslint-disable-next-line import/first
 import { setupAuthStub, resetAuthStub, setTestUid } from '../db/_fixtures/auth-stub';
 // eslint-disable-next-line import/first
@@ -170,17 +166,11 @@ beforeAll(async () => {
   // ADR-0009 cycle 4 owns these columns — add them here so the action's
   // SELECT / UPDATE have something to address. Production migration
   // responsibility stays with ADR-0009.
-  await runSqlBlock(
-    'ALTER TABLE profiles ADD COLUMN id_verification_rejected_at TIMESTAMPTZ',
-  );
-  await runSqlBlock(
-    'ALTER TABLE profiles ADD COLUMN id_verification_rejected_reason TEXT',
-  );
+  await runSqlBlock('ALTER TABLE profiles ADD COLUMN id_verification_rejected_at TIMESTAMPTZ');
+  await runSqlBlock('ALTER TABLE profiles ADD COLUMN id_verification_rejected_reason TEXT');
 
   const seedAs = async (role: 'member' | 'manager', label: string): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -220,9 +210,9 @@ beforeEach(async () => {
   await pg.query('TRUNCATE TABLE audit_log RESTART IDENTITY');
 });
 
-async function readAuditRows(targetId: string): Promise<
-  Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>
-> {
+async function readAuditRows(
+  targetId: string,
+): Promise<Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>> {
   await asServiceRole(pg);
   const result = await pg.query<{
     action: string;
@@ -306,10 +296,7 @@ describe('rejectVerification — AC13 happy path', () => {
     await asAuthenticated(pg, manager1);
 
     const reasonText = 'r'.repeat(500);
-    await rejectVerification(
-      { profileId: target1, reason: reasonText },
-      pgliteRunner(pg),
-    );
+    await rejectVerification({ profileId: target1, reason: reasonText }, pgliteRunner(pg));
 
     const rows = await readAuditRows(target1);
     expect(rows).toHaveLength(1);
@@ -323,14 +310,8 @@ describe('rejectVerification — AC13 happy path', () => {
     await setTestUid(pg, manager1);
     await asAuthenticated(pg, manager1);
 
-    await rejectVerification(
-      { profileId: target1, reason: 'first reason' },
-      pgliteRunner(pg),
-    );
-    await rejectVerification(
-      { profileId: target1, reason: 'second reason' },
-      pgliteRunner(pg),
-    );
+    await rejectVerification({ profileId: target1, reason: 'first reason' }, pgliteRunner(pg));
+    await rejectVerification({ profileId: target1, reason: 'second reason' }, pgliteRunner(pg));
 
     const rows = await readAuditRows(target1);
     expect(rows).toHaveLength(2);
@@ -358,10 +339,7 @@ describe('rejectVerification — AC13 self-edit guard', () => {
     await asAuthenticated(pg, manager1);
 
     await expect(
-      rejectVerification(
-        { profileId: manager1, reason: 'self-edit attempt' },
-        pgliteRunner(pg),
-      ),
+      rejectVerification({ profileId: manager1, reason: 'self-edit attempt' }, pgliteRunner(pg)),
     ).rejects.toBeInstanceOf(SelfEditViolation);
 
     const rows = await readAuditRows(manager1);
@@ -394,10 +372,7 @@ describe('rejectVerification — AC13 reason length validation', () => {
     await asAuthenticated(pg, manager1);
 
     await expect(
-      rejectVerification(
-        { profileId: target1, reason: 'x'.repeat(501) },
-        pgliteRunner(pg),
-      ),
+      rejectVerification({ profileId: target1, reason: 'x'.repeat(501) }, pgliteRunner(pg)),
     ).rejects.toBeInstanceOf(RejectReasonInvalid);
 
     const rows = await readAuditRows(target1);

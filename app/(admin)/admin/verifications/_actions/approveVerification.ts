@@ -88,10 +88,7 @@ import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 import { SelfEditViolation } from '@/app/(admin)/admin/_errors';
-import {
-  trackAdminEvent,
-  readVerificationQueueDepth,
-} from '@/lib/analytics/admin-events';
+import { trackAdminEvent, readVerificationQueueDepth } from '@/lib/analytics/admin-events';
 
 // ---- Public types ---------------------------------------------------------
 
@@ -159,130 +156,130 @@ export async function approveVerification(
   let assignedMemberNumber: number | null = null;
   let didMutate = false;
 
-  await runner.transaction(async (tx) =>
-    withAudit(
-      tx,
-      {
-        action: 'admin.verification.approved',
-        targetType: 'profile',
-        targetId: params.profileId,
-        actorId: actor.id,
-      },
-      async (txInner) => {
-        // SELECT ... FOR UPDATE locks the row against concurrent
-        // approve/reject inside the same tx. The captured `before` is
-        // the post-lock value (matches the audit-log invariant that
-        // before/after reflect the moment of the change). The row
-        // lock also defeats the two-managers-approve-same-profile race
-        // documented in premortem R5.
-        const beforeRead = await txInner.query(
-          'SELECT id_verified_at, member_number FROM profiles WHERE id = $1 FOR UPDATE',
-          [params.profileId],
-        );
-        const beforeRow = beforeRead.rows[0] as
-          | { id_verified_at: string | Date | null; member_number: number | string | null }
-          | undefined;
-        if (!beforeRow) {
-          throw new Error(
-            `approveVerification: profile not found (id=${params.profileId})`,
+  await runner
+    .transaction(async (tx) =>
+      withAudit(
+        tx,
+        {
+          action: 'admin.verification.approved',
+          targetType: 'profile',
+          targetId: params.profileId,
+          actorId: actor.id,
+        },
+        async (txInner) => {
+          // SELECT ... FOR UPDATE locks the row against concurrent
+          // approve/reject inside the same tx. The captured `before` is
+          // the post-lock value (matches the audit-log invariant that
+          // before/after reflect the moment of the change). The row
+          // lock also defeats the two-managers-approve-same-profile race
+          // documented in premortem R5.
+          const beforeRead = await txInner.query(
+            'SELECT id_verified_at, member_number FROM profiles WHERE id = $1 FOR UPDATE',
+            [params.profileId],
           );
-        }
+          const beforeRow = beforeRead.rows[0] as
+            | { id_verified_at: string | Date | null; member_number: number | string | null }
+            | undefined;
+          if (!beforeRow) {
+            throw new Error(`approveVerification: profile not found (id=${params.profileId})`);
+          }
 
-        // Idempotent no-op branch — AC12 contract: "idempotent no-op
-        // when id_verified_at IS NOT NULL, return the existing
-        // memberNumber." We surface this by throwing a sentinel that
-        // the outer `runner.transaction` catch translates into a
-        // clean early return. Throwing inside `withAudit`'s mutate
-        // skips the audit INSERT (per withAudit's no-catch contract)
-        // and rolls back the (empty) tx. The sentinel propagates up
-        // to be unwrapped after the runner.transaction call.
-        //
-        // We use a typed sentinel rather than a control-flow return
-        // because withAudit requires a `WithAuditMutateResult` shape
-        // and there is no "skip the audit INSERT" return path in
-        // its API (by design — see lib/audit/withAudit.ts §Forbidden
-        // implementation shapes). The throw IS the documented way
-        // to bail the audit row.
-        if (beforeRow.id_verified_at !== null) {
-          assignedMemberNumber = coerceMemberNumber(beforeRow.member_number);
-          didMutate = false;
-          throw new IdempotentNoOp();
-        }
+          // Idempotent no-op branch — AC12 contract: "idempotent no-op
+          // when id_verified_at IS NOT NULL, return the existing
+          // memberNumber." We surface this by throwing a sentinel that
+          // the outer `runner.transaction` catch translates into a
+          // clean early return. Throwing inside `withAudit`'s mutate
+          // skips the audit INSERT (per withAudit's no-catch contract)
+          // and rolls back the (empty) tx. The sentinel propagates up
+          // to be unwrapped after the runner.transaction call.
+          //
+          // We use a typed sentinel rather than a control-flow return
+          // because withAudit requires a `WithAuditMutateResult` shape
+          // and there is no "skip the audit INSERT" return path in
+          // its API (by design — see lib/audit/withAudit.ts §Forbidden
+          // implementation shapes). The throw IS the documented way
+          // to bail the audit row.
+          if (beforeRow.id_verified_at !== null) {
+            assignedMemberNumber = coerceMemberNumber(beforeRow.member_number);
+            didMutate = false;
+            throw new IdempotentNoOp();
+          }
 
-        // Mutation path — UPDATE id_verified_at and consume a sequence
-        // value for member_number. The sequence is created in
-        // migration 0005 (premortem R6 mitigation); nextval is atomic
-        // in Postgres so concurrent approvals of DIFFERENT profiles
-        // never collide.
-        await txInner.query(
-          `UPDATE profiles
+          // Mutation path — UPDATE id_verified_at and consume a sequence
+          // value for member_number. The sequence is created in
+          // migration 0005 (premortem R6 mitigation); nextval is atomic
+          // in Postgres so concurrent approvals of DIFFERENT profiles
+          // never collide.
+          await txInner.query(
+            `UPDATE profiles
               SET id_verified_at = now(),
                   member_number  = nextval('member_number_seq')
             WHERE id = $1`,
-          [params.profileId],
-        );
-
-        const afterRead = await txInner.query(
-          'SELECT id_verified_at, member_number FROM profiles WHERE id = $1',
-          [params.profileId],
-        );
-        const afterRow = afterRead.rows[0] as
-          | { id_verified_at: string | Date | null; member_number: number | string | null }
-          | undefined;
-        if (!afterRow) {
-          throw new Error(
-            `approveVerification: profile vanished post-update (id=${params.profileId})`,
+            [params.profileId],
           );
-        }
 
-        // Coerce member_number to number — Postgres returns BIGINT-ish
-        // sequence values which some drivers return as strings. Audit
-        // rows must be JSON-clean numbers, and the public return shape
-        // pins `memberNumber: number`.
-        const numericAfter = coerceMemberNumber(afterRow.member_number);
-        if (numericAfter === null) {
-          throw new Error(
-            `approveVerification: member_number missing after UPDATE (id=${params.profileId})`,
+          const afterRead = await txInner.query(
+            'SELECT id_verified_at, member_number FROM profiles WHERE id = $1',
+            [params.profileId],
           );
-        }
-        assignedMemberNumber = numericAfter;
-        didMutate = true;
+          const afterRow = afterRead.rows[0] as
+            | { id_verified_at: string | Date | null; member_number: number | string | null }
+            | undefined;
+          if (!afterRow) {
+            throw new Error(
+              `approveVerification: profile vanished post-update (id=${params.profileId})`,
+            );
+          }
 
-        // Coerce timestamps to ISO strings — pglite returns `Date` for
-        // timestamptz columns; supabase / PostgREST returns ISO strings.
-        // The audit row stores JSON so consistent representation across
-        // the two paths keeps assertions stable. TS narrowing via
-        // `instanceof Date` requires the LHS to NOT be a primitive, so
-        // we round-trip through `unknown` before the check.
-        const beforeVerifiedAt: string | null = coerceTimestamp(beforeRow.id_verified_at);
-        const afterVerifiedAt: string | null = coerceTimestamp(afterRow.id_verified_at);
+          // Coerce member_number to number — Postgres returns BIGINT-ish
+          // sequence values which some drivers return as strings. Audit
+          // rows must be JSON-clean numbers, and the public return shape
+          // pins `memberNumber: number`.
+          const numericAfter = coerceMemberNumber(afterRow.member_number);
+          if (numericAfter === null) {
+            throw new Error(
+              `approveVerification: member_number missing after UPDATE (id=${params.profileId})`,
+            );
+          }
+          assignedMemberNumber = numericAfter;
+          didMutate = true;
 
-        // Audit before/after — ONLY timestamps + member_number. NO PII
-        // (AC28). The pre-image carries both nulls (we only reach this
-        // branch when id_verified_at was null); the after carries the
-        // freshly-stamped values.
-        return {
-          before: {
-            id_verified_at: beforeVerifiedAt,
-            member_number: coerceMemberNumber(beforeRow.member_number),
-          },
-          after: {
-            id_verified_at: afterVerifiedAt,
-            member_number: numericAfter,
-          },
-          result: { ok: true as const },
-        };
-      },
-    ),
-  ).catch((err: unknown) => {
-    // Unwrap the idempotent-no-op sentinel. Any other error propagates
-    // — the caller's tx wrapper rolls back and the action re-throws to
-    // the page-level error boundary (existing toast pattern).
-    if (err instanceof IdempotentNoOp) {
-      return;
-    }
-    throw err;
-  });
+          // Coerce timestamps to ISO strings — pglite returns `Date` for
+          // timestamptz columns; supabase / PostgREST returns ISO strings.
+          // The audit row stores JSON so consistent representation across
+          // the two paths keeps assertions stable. TS narrowing via
+          // `instanceof Date` requires the LHS to NOT be a primitive, so
+          // we round-trip through `unknown` before the check.
+          const beforeVerifiedAt: string | null = coerceTimestamp(beforeRow.id_verified_at);
+          const afterVerifiedAt: string | null = coerceTimestamp(afterRow.id_verified_at);
+
+          // Audit before/after — ONLY timestamps + member_number. NO PII
+          // (AC28). The pre-image carries both nulls (we only reach this
+          // branch when id_verified_at was null); the after carries the
+          // freshly-stamped values.
+          return {
+            before: {
+              id_verified_at: beforeVerifiedAt,
+              member_number: coerceMemberNumber(beforeRow.member_number),
+            },
+            after: {
+              id_verified_at: afterVerifiedAt,
+              member_number: numericAfter,
+            },
+            result: { ok: true as const },
+          };
+        },
+      ),
+    )
+    .catch((err: unknown) => {
+      // Unwrap the idempotent-no-op sentinel. Any other error propagates
+      // — the caller's tx wrapper rolls back and the action re-throws to
+      // the page-level error boundary (existing toast pattern).
+      if (err instanceof IdempotentNoOp) {
+        return;
+      }
+      throw err;
+    });
 
   if (assignedMemberNumber === null) {
     // Defensive — both branches above set assignedMemberNumber. If we
@@ -462,9 +459,7 @@ function defaultDb(): TransactionRunner {
   const asStringOrNull = (v: unknown): string | null => {
     if (v === null || v === undefined) return null;
     if (typeof v === 'string') return v;
-    throw new Error(
-      `approveVerification defaultDb: expected string|null param, got ${typeof v}`,
-    );
+    throw new Error(`approveVerification defaultDb: expected string|null param, got ${typeof v}`);
   };
   const asString = (v: unknown): string => {
     if (typeof v === 'string') return v;

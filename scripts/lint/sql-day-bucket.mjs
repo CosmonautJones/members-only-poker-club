@@ -68,7 +68,8 @@ const AT_TZ_RE = /\bat\s+time\s+zone\b/i;
  * @property {string} reason - Human-readable reason; ADR reference.
  */
 
-const REASON = 'date_trunc(day|hour|week|month, ...) without at time zone — ADR-0034 §Storage and database rules';
+const REASON =
+  'date_trunc(day|hour|week|month, ...) without at time zone — ADR-0034 §Storage and database rules';
 
 /**
  * Strips SQL comments (line `-- ...` and block `/* ... *\/`) from `sql` while
@@ -132,9 +133,10 @@ export function stripSqlComments(sql) {
  */
 function hasAtTimeZoneNearby(sql, matchEnd) {
   const semiIdx = sql.indexOf(';', matchEnd);
-  const windowEnd = semiIdx === -1
-    ? Math.min(sql.length, matchEnd + AT_TZ_WINDOW)
-    : Math.min(semiIdx, matchEnd + AT_TZ_WINDOW);
+  const windowEnd =
+    semiIdx === -1
+      ? Math.min(sql.length, matchEnd + AT_TZ_WINDOW)
+      : Math.min(semiIdx, matchEnd + AT_TZ_WINDOW);
   const slice = sql.slice(matchEnd, windowEnd);
   return AT_TZ_RE.test(slice);
 }

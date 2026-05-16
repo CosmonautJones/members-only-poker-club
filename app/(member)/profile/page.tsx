@@ -200,12 +200,10 @@ export default async function ProfilePage() {
               marginBottom: 20,
             }}
           >
-            Hi {firstName} — under ADR-0023 (GDPR/CCPA), you have full
-            control over your data. Export a copy of everything we have on
-            you, or anonymize your account permanently. Anonymization
-            removes your name, email, and phone from our records and signs
-            you out; audit-log rows are retained without personally
-            identifying values.
+            Hi {firstName} — under ADR-0023 (GDPR/CCPA), you have full control over your data.
+            Export a copy of everything we have on you, or anonymize your account permanently.
+            Anonymization removes your name, email, and phone from our records and signs you out;
+            audit-log rows are retained without personally identifying values.
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <Link href="/profile/privacy" className="btn btn-sm">

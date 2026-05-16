@@ -132,13 +132,9 @@ export async function requestReverification(
           'SELECT id_verified_at FROM profiles WHERE id = $1 FOR UPDATE',
           [params.profileId],
         );
-        const beforeRow = beforeRead.rows[0] as
-          | { id_verified_at: string | null }
-          | undefined;
+        const beforeRow = beforeRead.rows[0] as { id_verified_at: string | null } | undefined;
         if (!beforeRow) {
-          throw new Error(
-            `requestReverification: profile not found (id=${params.profileId})`,
-          );
+          throw new Error(`requestReverification: profile not found (id=${params.profileId})`);
         }
 
         await txInner.query('UPDATE profiles SET id_verified_at = NULL WHERE id = $1', [
@@ -215,9 +211,7 @@ function defaultDb(): TransactionRunner {
   const asStringOrNull = (v: unknown): string | null => {
     if (v === null || v === undefined) return null;
     if (typeof v === 'string') return v;
-    throw new Error(
-      `requestReverification defaultDb: expected string|null param, got ${typeof v}`,
-    );
+    throw new Error(`requestReverification defaultDb: expected string|null param, got ${typeof v}`);
   };
   const asString = (v: unknown): string => {
     if (typeof v === 'string') return v;

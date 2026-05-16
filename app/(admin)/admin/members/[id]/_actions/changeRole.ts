@@ -252,10 +252,9 @@ export async function changeRole(
           params.profileId,
         ]);
 
-        const afterRead = await txInner.query(
-          'SELECT role FROM profiles WHERE id = $1',
-          [params.profileId],
-        );
+        const afterRead = await txInner.query('SELECT role FROM profiles WHERE id = $1', [
+          params.profileId,
+        ]);
         const afterRow = afterRead.rows[0] as { role: Role } | undefined;
         if (!afterRow) {
           throw new Error(`changeRole: profile vanished post-update (id=${params.profileId})`);
@@ -319,10 +318,7 @@ export async function changeRole(
  * admin client (which BYPASSes RLS for the trigger's INSERT into
  * audit_log).
  */
-async function readCurrentRole(
-  runner: TransactionRunner,
-  profileId: string,
-): Promise<Role | null> {
+async function readCurrentRole(runner: TransactionRunner, profileId: string): Promise<Role | null> {
   // The TransactionRunner abstraction is the test seam; calling
   // `runner.transaction(...)` for a single read is overkill but keeps
   // the production / test injection point identical. Tests can stub
@@ -448,10 +444,7 @@ function defaultDb(): TransactionRunner {
       if (/^UPDATE\s+profiles\s+SET\s+role\s*=\s*\$1\s+WHERE\s+id\s*=\s*\$2/i.test(normalized)) {
         const newRole = asString(params?.[0]);
         const id = asString(params?.[1]);
-        const { error } = await adminClient
-          .from('profiles')
-          .update({ role: newRole })
-          .eq('id', id);
+        const { error } = await adminClient.from('profiles').update({ role: newRole }).eq('id', id);
         if (error) {
           throw new Error(`changeRole defaultDb: UPDATE role failed: ${error.message}`);
         }

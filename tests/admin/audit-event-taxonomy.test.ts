@@ -119,11 +119,7 @@ interface Occurrence {
 
 function isCommentLine(line: string): boolean {
   const trimmed = line.trim();
-  return (
-    trimmed.startsWith('//') ||
-    trimmed.startsWith('*') ||
-    trimmed.startsWith('/*')
-  );
+  return trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*');
 }
 
 function extractActionOccurrences(file: string, src: string): Occurrence[] {
@@ -153,17 +149,13 @@ function extractActionOccurrences(file: string, src: string): Occurrence[] {
   return out;
 }
 
-function extractNamedConstantOccurrences(
-  file: string,
-  src: string,
-): Occurrence[] {
+function extractNamedConstantOccurrences(file: string, src: string): Occurrence[] {
   const out: Occurrence[] = [];
   const lines = src.split(/\r?\n/);
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i]!;
     if (isCommentLine(line)) continue;
-    const constRe =
-      /\bconst\s+EVENT_[A-Z0-9_]+\s*(?::\s*[\w<>|[\] ]+\s*)?=\s*['"]([^'"]+)['"]/g;
+    const constRe = /\bconst\s+EVENT_[A-Z0-9_]+\s*(?::\s*[\w<>|[\] ]+\s*)?=\s*['"]([^'"]+)['"]/g;
     let m: RegExpExecArray | null;
     while ((m = constRe.exec(line)) !== null) {
       const a = m[1]!;
@@ -194,9 +186,7 @@ describe('AC27 — admin audit event taxonomy is exhaustive and unique', () => {
     expect(all.length).toBeGreaterThan(0);
     const offenders = all.filter((o) => !TAXONOMY.has(o.action));
     if (offenders.length > 0) {
-      const msg = offenders
-        .map((o) => `  ${o.file}:${o.line} -> "${o.action}"`)
-        .join('\n');
+      const msg = offenders.map((o) => `  ${o.file}:${o.line} -> "${o.action}"`).join('\n');
       throw new Error(
         `AC27 taxonomy violation: ${offenders.length} action string(s) outside the taxonomy:\n${msg}\n\n` +
           `Allowed verbs: ${[...TAXONOMY].sort().join(', ')}`,

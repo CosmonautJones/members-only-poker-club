@@ -51,9 +51,7 @@ import { render, screen, within } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
   requireRole: vi.fn<
-    (
-      required: string,
-    ) => Promise<{
+    (required: string) => Promise<{
       profile: { id: string; role: string; full_name: string; email: string };
     }>
   >(),
@@ -111,13 +109,7 @@ vi.mock('@/lib/auth/requireRole', () => ({
 // with a deterministic stand-in. The full dialog behavior is covered
 // by tests/admin/member-detail-dialogs.test.tsx (t14, AC18).
 vi.mock('@/app/(admin)/admin/members/[id]/_components/actions-panel.client', () => ({
-  ActionsPanel: ({
-    profileId,
-    memberEmail,
-  }: {
-    profileId: string;
-    memberEmail: string;
-  }) => (
+  ActionsPanel: ({ profileId, memberEmail }: { profileId: string; memberEmail: string }) => (
     <div data-testid="actions-panel" data-profile-id={profileId} data-member-email={memberEmail}>
       <button type="button">Change role</button>
       <button type="button">Request re-verification</button>
@@ -160,8 +152,7 @@ vi.mock('@/lib/supabase/server', () => ({
       ]) {
         chain[m] = passthrough;
       }
-      const resolveValue = () =>
-        mocks.tableResolvers.get(table) ?? { data: null, error: null };
+      const resolveValue = () => mocks.tableResolvers.get(table) ?? { data: null, error: null };
       // .maybeSingle() returns a Promise of { data, error }.
       chain['maybeSingle'] = (): Promise<unknown> => Promise.resolve(resolveValue());
       chain['single'] = (): Promise<unknown> => Promise.resolve(resolveValue());
@@ -332,9 +323,7 @@ describe('member detail — Section 2: Membership', () => {
     await renderPage();
     expect(screen.getByText('active')).toBeTruthy();
     // Period start timestamp renders UTC + Central.
-    expect(
-      screen.getAllByText(/2026-01-01\s+00:00:00\s+UTC/).length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(/2026-01-01\s+00:00:00\s+UTC/).length).toBeGreaterThan(0);
   });
 
   it('renders the Open-Q-3 placeholder when memberships table does not exist (42P01)', async () => {
@@ -421,9 +410,7 @@ describe('member detail — Section 5: Recent payments', () => {
       error: { code: '42P01', message: 'relation "payments" does not exist' },
     });
     await renderPage();
-    expect(
-      screen.getByText(/Payment integration pending — see ADR-0010 \/ 0036\./i),
-    ).toBeTruthy();
+    expect(screen.getByText(/Payment integration pending — see ADR-0010 \/ 0036\./i)).toBeTruthy();
   });
 
   it('renders "No recent payments." when the payments table exists but is empty', async () => {
@@ -457,7 +444,12 @@ describe('member detail — Actions panel (active dialogs — AC18)', () => {
     // The four button labels are stable across t7→t14 — the page asserts
     // their presence; full dialog interaction is covered by
     // tests/admin/member-detail-dialogs.test.tsx.
-    const labels = ['Change role', 'Request re-verification', 'Open refund flow', 'Initiate deletion'];
+    const labels = [
+      'Change role',
+      'Request re-verification',
+      'Open refund flow',
+      'Initiate deletion',
+    ];
     for (const label of labels) {
       const button = within(panel).getByRole('button', { name: label });
       expect(button).toBeTruthy();
@@ -503,7 +495,12 @@ describe('member detail — self-edit guard', () => {
     // The actions-panel container is replaced by the banner — neither
     // the panel nor any of the four buttons is present in the DOM.
     expect(screen.queryByTestId('actions-panel')).toBeNull();
-    const labels = ['Change role', 'Request re-verification', 'Open refund flow', 'Initiate deletion'];
+    const labels = [
+      'Change role',
+      'Request re-verification',
+      'Open refund flow',
+      'Initiate deletion',
+    ];
     for (const label of labels) {
       expect(screen.queryByRole('button', { name: label })).toBeNull();
     }
@@ -511,7 +508,7 @@ describe('member detail — self-edit guard', () => {
 });
 
 describe('member detail — source invariants (AC5 + AC10)', () => {
-  it('first body statement is `await requireRole(\'manager\')` (AC5 defense-in-depth)', () => {
+  it("first body statement is `await requireRole('manager')` (AC5 defense-in-depth)", () => {
     // Mirrors the walker in tests/auth/admin-routes-defense-in-depth.test.ts —
     // catches a refactor that splits the page into multiple statements
     // and slips a DB read before the gate.
@@ -566,7 +563,7 @@ describe('member detail — source invariants (AC5 + AC10)', () => {
     expect(src).not.toMatch(/from\s*['"]@\/lib\/supabase\/admin['"]/);
   });
 
-  it('source does NOT contain `\'use client\'` (server-component-only)', () => {
+  it("source does NOT contain `'use client'` (server-component-only)", () => {
     const src = readFileSync(PAGE_PATH, 'utf8');
     expect(src).not.toContain("'use client'");
     expect(src).not.toContain('"use client"');

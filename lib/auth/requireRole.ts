@@ -166,11 +166,7 @@ export const __auditHooks = {
       });
     }
   },
-  async onAdminRoleCheckDenied(
-    actorId: string,
-    required: Role,
-    actual: Role,
-  ): Promise<void> {
+  async onAdminRoleCheckDenied(actorId: string, required: Role, actual: Role): Promise<void> {
     try {
       // Path scope — only emit when the denial happened on an
       // /admin/** path. A lower-rank caller poking at a hypothetical
@@ -204,10 +200,9 @@ export const __auditHooks = {
         user_agent: null,
       });
       if (error) {
-        console.warn(
-          'requireRole: admin.session.role_check_denied emission failed',
-          { error: error.message },
-        );
+        console.warn('requireRole: admin.session.role_check_denied emission failed', {
+          error: error.message,
+        });
       }
     } catch (err) {
       console.warn('requireRole: admin.session.role_check_denied hook threw', {

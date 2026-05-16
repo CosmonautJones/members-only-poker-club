@@ -114,7 +114,7 @@ describe('POST /api/privacy/export', () => {
     const response = await POST(makeRequest());
 
     expect(response.status).toBe(401);
-    const body = await response.json() as Record<string, unknown>;
+    const body = (await response.json()) as Record<string, unknown>;
     expect(body.error).toBe('unauthorized');
   });
 
@@ -132,7 +132,7 @@ describe('POST /api/privacy/export', () => {
     const response = await POST(makeRequest());
 
     expect(response.status).toBe(200);
-    const body = await response.json() as Record<string, unknown>;
+    const body = (await response.json()) as Record<string, unknown>;
     const profile = body.profile as Record<string, unknown>;
     expect(profile.id).toBe(USER_ID);
   });
@@ -145,7 +145,7 @@ describe('POST /api/privacy/export', () => {
     expect(response.status).toBe(200);
     // The admin client's eq() must have been called with ('actor_id', userId).
     expect(mocks.adminEq).toHaveBeenCalledWith('actor_id', USER_ID);
-    const body = await response.json() as Record<string, unknown>;
+    const body = (await response.json()) as Record<string, unknown>;
     expect(Array.isArray(body.auditLog)).toBe(true);
   });
 
@@ -177,9 +177,17 @@ describe('POST /api/privacy/export', () => {
     const response = await POST(makeRequest());
 
     expect(response.status).toBe(200);
-    const body = await response.json() as Record<string, unknown>;
+    const body = (await response.json()) as Record<string, unknown>;
     const keys = Object.keys(body).sort();
-    expect(keys).toEqual(['auditLog', 'generatedAt', 'posthog', 'profile', 'schemaVersion', 'sentry', 'stripe']);
+    expect(keys).toEqual([
+      'auditLog',
+      'generatedAt',
+      'posthog',
+      'profile',
+      'schemaVersion',
+      'sentry',
+      'stripe',
+    ]);
   });
 
   it('stripe, sentry, posthog are null (Slice 1 placeholders)', async () => {
@@ -188,7 +196,7 @@ describe('POST /api/privacy/export', () => {
     const response = await POST(makeRequest());
 
     expect(response.status).toBe(200);
-    const body = await response.json() as Record<string, unknown>;
+    const body = (await response.json()) as Record<string, unknown>;
     expect(body.stripe).toBeNull();
     expect(body.sentry).toBeNull();
     expect(body.posthog).toBeNull();
@@ -199,7 +207,7 @@ describe('POST /api/privacy/export', () => {
 
     const response = await POST(makeRequest());
 
-    const body = await response.json() as Record<string, unknown>;
+    const body = (await response.json()) as Record<string, unknown>;
     expect(body.schemaVersion).toBe(1);
   });
 
@@ -211,7 +219,7 @@ describe('POST /api/privacy/export', () => {
     const response = await POST(makeRequest());
 
     expect(response.status).toBe(500);
-    const body = await response.json() as Record<string, unknown>;
+    const body = (await response.json()) as Record<string, unknown>;
     expect(body.error).toBe('internal');
     // Must NOT leak error internals.
     expect(JSON.stringify(body)).not.toMatch(/connection reset/);

@@ -34,6 +34,7 @@
 import { createHash } from 'node:crypto';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { nowUtc } from '@/lib/time';
 
 export async function POST(request: Request): Promise<Response> {
   let supabase: ReturnType<typeof createClient>;
@@ -66,7 +67,7 @@ export async function POST(request: Request): Promise<Response> {
   const hash = createHash('sha256').update(userId).digest('hex');
   const fullNameToken = `del:${hash}`;
   const emailToken = `del:${hash}@deleted.local`;
-  const deletedAt = new Date().toISOString();
+  const deletedAt = nowUtc().toISOString();
 
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
   const userAgent = request.headers.get('user-agent') ?? null;

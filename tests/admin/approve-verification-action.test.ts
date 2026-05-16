@@ -59,9 +59,8 @@ const requireRoleState = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth/requireRole', async () => {
-  const { InsufficientRoleError } = await vi.importActual<
-    typeof import('@/lib/auth/errors')
-  >('@/lib/auth/errors');
+  const { InsufficientRoleError } =
+    await vi.importActual<typeof import('@/lib/auth/errors')>('@/lib/auth/errors');
   return {
     requireRole: vi.fn(async (required: 'manager' | 'owner') => {
       const actor = requireRoleState.currentActor;
@@ -214,9 +213,7 @@ beforeAll(async () => {
     label: string,
     extras: Record<string, unknown> = {},
   ): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -265,26 +262,25 @@ beforeEach(async () => {
   // assigns increasing numbers" test (premortem R6 default path)
   // verifies this property explicitly.
   await asServiceRole(pg);
-  await pg.query(
-    'UPDATE profiles SET id_verified_at = NULL, member_number = NULL WHERE id = $1',
-    [target1],
-  );
-  await pg.query(
-    'UPDATE profiles SET id_verified_at = NULL, member_number = NULL WHERE id = $1',
-    [target2],
-  );
+  await pg.query('UPDATE profiles SET id_verified_at = NULL, member_number = NULL WHERE id = $1', [
+    target1,
+  ]);
+  await pg.query('UPDATE profiles SET id_verified_at = NULL, member_number = NULL WHERE id = $1', [
+    target2,
+  ]);
   // preVerifiedTarget stays verified across tests — that's its purpose.
-  await pg.query(
-    'UPDATE profiles SET id_verified_at = $1, member_number = $2 WHERE id = $3',
-    ['2026-01-10T08:00:00.000Z', 500, preVerifiedTarget],
-  );
+  await pg.query('UPDATE profiles SET id_verified_at = $1, member_number = $2 WHERE id = $3', [
+    '2026-01-10T08:00:00.000Z',
+    500,
+    preVerifiedTarget,
+  ]);
   await pg.query('TRUNCATE TABLE audit_log RESTART IDENTITY');
 });
 
 // Helper: read audit rows for a given target_id, in id order (write order).
-async function readAuditRows(targetId: string): Promise<
-  Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>
-> {
+async function readAuditRows(
+  targetId: string,
+): Promise<Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>> {
   await asServiceRole(pg);
   const result = await pg.query<{
     action: string;
@@ -308,10 +304,7 @@ async function readProfile(
   const r = await pg.query<{
     id_verified_at: string | null;
     member_number: number | null;
-  }>(
-    'SELECT id_verified_at, member_number FROM profiles WHERE id = $1',
-    [id],
-  );
+  }>('SELECT id_verified_at, member_number FROM profiles WHERE id = $1', [id]);
   return r.rows[0]!;
 }
 
@@ -324,10 +317,7 @@ describe('approveVerification — AC12 happy path', () => {
     await setTestUid(pg, manager1);
     await asAuthenticated(pg, manager1);
 
-    const result = await approveVerification(
-      { profileId: target1 },
-      pgliteRunner(pg),
-    );
+    const result = await approveVerification({ profileId: target1 }, pgliteRunner(pg));
     expect(result.ok).toBe(true);
     expect(typeof result.memberNumber).toBe('number');
     // Sequence starts at 1000 — but other tests in the suite may have
@@ -378,10 +368,7 @@ describe('approveVerification — AC12 idempotent no-op', () => {
     // preVerifiedTarget starts the test with id_verified_at='2026-01-10...'
     // and member_number=500 (set in beforeEach). The action must
     // return memberNumber=500 and NOT consume a new sequence value.
-    const result = await approveVerification(
-      { profileId: preVerifiedTarget },
-      pgliteRunner(pg),
-    );
+    const result = await approveVerification({ profileId: preVerifiedTarget }, pgliteRunner(pg));
     expect(result).toEqual({ ok: true, memberNumber: 500 });
 
     // Profile row unchanged — id_verified_at still the original
@@ -404,17 +391,11 @@ describe('approveVerification — AC12 idempotent no-op', () => {
     await asAuthenticated(pg, manager1);
 
     // First call — mutates.
-    const first = await approveVerification(
-      { profileId: target2 },
-      pgliteRunner(pg),
-    );
+    const first = await approveVerification({ profileId: target2 }, pgliteRunner(pg));
     expect(first.memberNumber).toBeGreaterThanOrEqual(1000);
 
     // Second call — idempotent no-op, returns SAME memberNumber.
-    const second = await approveVerification(
-      { profileId: target2 },
-      pgliteRunner(pg),
-    );
+    const second = await approveVerification({ profileId: target2 }, pgliteRunner(pg));
     expect(second.memberNumber).toBe(first.memberNumber);
 
     // Exactly one audit row across both calls.
@@ -467,9 +448,7 @@ describe('approveVerification — AC28 no PII in audit row', () => {
     // Source-grep defense — see AC28. The action source MUST NOT name
     // any PII column in a before/after construction.
     const src = readFileSync(ACTION_PATH, 'utf8');
-    const stripped = src
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/\/\/.*$/gm, '');
+    const stripped = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
     expect(stripped).not.toMatch(/\bemail\s*:/);
     expect(stripped).not.toMatch(/\bfull_name\s*:/);
     expect(stripped).not.toMatch(/\bphone\s*:/);
@@ -487,18 +466,12 @@ describe('approveVerification — premortem R6 sequence-is-default', () => {
     await asAuthenticated(pg, manager1);
 
     // Approve target1 first — captures sequence value N.
-    const r1 = await approveVerification(
-      { profileId: target1 },
-      pgliteRunner(pg),
-    );
+    const r1 = await approveVerification({ profileId: target1 }, pgliteRunner(pg));
 
     // Approve target2 next — captures sequence value N+1 (or higher
     // if other tests in the suite consumed values between this test's
     // calls; we only assert STRICT MONOTONICITY, not delta=1).
-    const r2 = await approveVerification(
-      { profileId: target2 },
-      pgliteRunner(pg),
-    );
+    const r2 = await approveVerification({ profileId: target2 }, pgliteRunner(pg));
 
     expect(r2.memberNumber).toBeGreaterThan(r1.memberNumber);
     // Sanity: both are >= 1000 per sequence start.
@@ -517,23 +490,23 @@ describe('approveVerification — premortem R6 sequence-is-default', () => {
 // Source-shape invariants (AC5, AC35)
 // =============================================================================
 describe('approveVerification — source-shape invariants', () => {
-  it('first line is `import \'server-only\';`', () => {
+  it("first line is `import 'server-only';`", () => {
     const src = readFileSync(ACTION_PATH, 'utf8').replace(/^﻿/, '');
     const firstLine = src.split(/\r?\n/)[0]!.trim();
     expect(firstLine).toBe("import 'server-only';");
   });
 
-  it('contains the literal `await requireRole(\'manager\')` call', () => {
+  it("contains the literal `await requireRole('manager')` call", () => {
     const src = readFileSync(ACTION_PATH, 'utf8');
     expect(src).toMatch(/await\s+requireRole\(\s*['"]manager['"]\s*\)/);
   });
 
-  it('contains the literal `revalidateTag(\'admin-dashboard-counts\')` call (AC35)', () => {
+  it("contains the literal `revalidateTag('admin-dashboard-counts')` call (AC35)", () => {
     const src = readFileSync(ACTION_PATH, 'utf8');
     expect(src).toMatch(/revalidateTag\(\s*['"]admin-dashboard-counts['"]\s*\)/);
   });
 
-  it('contains the literal `nextval(\'member_number_seq\')` call (premortem R6)', () => {
+  it("contains the literal `nextval('member_number_seq')` call (premortem R6)", () => {
     const src = readFileSync(ACTION_PATH, 'utf8');
     expect(src).toMatch(/nextval\(\s*['"]member_number_seq['"]\s*\)/);
   });

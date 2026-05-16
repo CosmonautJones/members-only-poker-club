@@ -126,10 +126,7 @@ vi.mock('@/app/(admin)/admin/privacy/_components/privacy-queue-actions.client', 
     kind: 'export' | 'delete';
     requesterEmail: string;
   }) => (
-    <div
-      data-testid={`privacy-queue-actions-${requestId}`}
-      style={{ display: 'flex', gap: 8 }}
-    >
+    <div data-testid={`privacy-queue-actions-${requestId}`} style={{ display: 'flex', gap: 8 }}>
       <button type="button" aria-label={kind === 'export' ? 'Approve export' : 'Approve deletion'}>
         {kind === 'export' ? 'Approve export' : 'Approve deletion'}
       </button>

@@ -57,9 +57,8 @@ const requireRoleState = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth/requireRole', async () => {
-  const { InsufficientRoleError } = await vi.importActual<
-    typeof import('@/lib/auth/errors')
-  >('@/lib/auth/errors');
+  const { InsufficientRoleError } =
+    await vi.importActual<typeof import('@/lib/auth/errors')>('@/lib/auth/errors');
   return {
     requireRole: vi.fn(async (required: 'manager' | 'owner') => {
       const actor = requireRoleState.currentActor;
@@ -91,7 +90,10 @@ vi.mock('next/cache', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { changeRole, type TransactionRunner } from '@/app/(admin)/admin/members/[id]/_actions/changeRole';
+import {
+  changeRole,
+  type TransactionRunner,
+} from '@/app/(admin)/admin/members/[id]/_actions/changeRole';
 // eslint-disable-next-line import/first
 import { InsufficientRoleError } from '@/lib/auth/errors';
 // eslint-disable-next-line import/first
@@ -99,7 +101,11 @@ import { setupAuthStub, resetAuthStub, setTestUid } from '../db/_fixtures/auth-s
 // eslint-disable-next-line import/first
 import { seedProfile } from '../db/_fixtures/profiles';
 // eslint-disable-next-line import/first
-import { setupAppAuthenticatedRole, asAuthenticated, asServiceRole } from '../db/_fixtures/rls-helpers';
+import {
+  setupAppAuthenticatedRole,
+  asAuthenticated,
+  asServiceRole,
+} from '../db/_fixtures/rls-helpers';
 
 // ---- Path resolution ------------------------------------------------------
 
@@ -177,9 +183,7 @@ beforeAll(async () => {
     role: 'member' | 'cashier' | 'manager' | 'owner',
     label: string,
   ): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -213,9 +217,9 @@ beforeEach(async () => {
   await pg.query('TRUNCATE TABLE audit_log RESTART IDENTITY');
 });
 
-async function readAuditRows(targetId: string): Promise<
-  Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>
-> {
+async function readAuditRows(
+  targetId: string,
+): Promise<Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>> {
   await asServiceRole(pg);
   const r = await pg.query<{
     action: string;
@@ -271,10 +275,7 @@ describe('AC29 layer 2 — server-action layer', () => {
     await asAuthenticated(pg, managerId);
 
     await expect(
-      changeRole(
-        { profileId: memberTargetId, newRole: 'cashier' },
-        pgliteRunner(pg),
-      ),
+      changeRole({ profileId: memberTargetId, newRole: 'cashier' }, pgliteRunner(pg)),
     ).rejects.toBeInstanceOf(InsufficientRoleError);
 
     const rows = await readAuditRows(memberTargetId);

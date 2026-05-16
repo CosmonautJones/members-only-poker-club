@@ -64,9 +64,7 @@ function isBarrelOnly(source: string): boolean {
   if (stripped.length === 0) return true;
   return stripped.every(
     (line) =>
-      /^export\s+(\*|\{)/.test(line) ||
-      /^import\s+/.test(line) ||
-      /^'server-only';?$/.test(line),
+      /^export\s+(\*|\{)/.test(line) || /^import\s+/.test(line) || /^'server-only';?$/.test(line),
   );
 }
 

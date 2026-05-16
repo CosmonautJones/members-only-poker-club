@@ -40,9 +40,8 @@ const requireRoleState = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth/requireRole', async () => {
-  const { InsufficientRoleError } = await vi.importActual<
-    typeof import('@/lib/auth/errors')
-  >('@/lib/auth/errors');
+  const { InsufficientRoleError } =
+    await vi.importActual<typeof import('@/lib/auth/errors')>('@/lib/auth/errors');
   return {
     requireRole: vi.fn(async (required: 'manager' | 'owner') => {
       const actor = requireRoleState.currentActor;
@@ -173,13 +172,8 @@ beforeAll(async () => {
   await runSqlBlock(readFileSync(MIG_0002, 'utf8'));
   await runSqlBlock(readFileSync(MIG_0003, 'utf8'));
 
-  const seedAs = async (
-    role: 'member' | 'cashier' | 'manager',
-    label: string,
-  ): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+  const seedAs = async (role: 'member' | 'cashier' | 'manager', label: string): Promise<string> => {
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -210,9 +204,9 @@ beforeEach(async () => {
   await pg.query('TRUNCATE TABLE audit_log RESTART IDENTITY');
 });
 
-async function readAuditRows(targetId: string): Promise<
-  Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>
-> {
+async function readAuditRows(
+  targetId: string,
+): Promise<Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>> {
   await asServiceRole(pg);
   const result = await pg.query<{
     action: string;
@@ -244,9 +238,7 @@ describe('openRefundFlow — AC17 happy path (PAYMENTS_CONSOLE_READY=false)', ()
     );
 
     // Degraded redirect target — see AC17 + lib/payments/console-availability.ts
-    expect(result.redirectTo).toBe(
-      `/admin/members/${target1}?refund=pending-adr-0036`,
-    );
+    expect(result.redirectTo).toBe(`/admin/members/${target1}?refund=pending-adr-0036`);
 
     // Exactly one audit row — admin.refund.flow_opened. NO mutation
     // means no trigger-emitted row.
@@ -263,10 +255,7 @@ describe('openRefundFlow — AC17 happy path (PAYMENTS_CONSOLE_READY=false)', ()
     await setTestUid(pg, manager1);
     await asAuthenticated(pg, manager1);
 
-    await openRefundFlow(
-      { profileId: target1, scope: 'time_bank' },
-      pgliteRunner(pg),
-    );
+    await openRefundFlow({ profileId: target1, scope: 'time_bank' }, pgliteRunner(pg));
 
     const rows = await readAuditRows(target1);
     expect(rows).toHaveLength(1);
@@ -278,10 +267,7 @@ describe('openRefundFlow — AC17 happy path (PAYMENTS_CONSOLE_READY=false)', ()
     await setTestUid(pg, manager1);
     await asAuthenticated(pg, manager1);
 
-    await openRefundFlow(
-      { profileId: target1, scope: 'tournament_entry' },
-      pgliteRunner(pg),
-    );
+    await openRefundFlow({ profileId: target1, scope: 'tournament_entry' }, pgliteRunner(pg));
 
     const rows = await readAuditRows(target1);
     expect(rows).toHaveLength(1);
@@ -305,9 +291,8 @@ describe('openRefundFlow — AC17 canonical redirect (PAYMENTS_CONSOLE_READY=tru
     // Re-mock auth + admin client + server-only after reset.
     vi.doMock('server-only', () => ({}));
     vi.doMock('@/lib/auth/requireRole', async () => {
-      const { InsufficientRoleError } = await vi.importActual<
-        typeof import('@/lib/auth/errors')
-      >('@/lib/auth/errors');
+      const { InsufficientRoleError } =
+        await vi.importActual<typeof import('@/lib/auth/errors')>('@/lib/auth/errors');
       return {
         requireRole: vi.fn(async (required: 'manager' | 'owner') => {
           const actor = requireRoleState.currentActor;
@@ -331,9 +316,7 @@ describe('openRefundFlow — AC17 canonical redirect (PAYMENTS_CONSOLE_READY=tru
       },
     }));
 
-    const reImported = await import(
-      '@/app/(admin)/admin/members/[id]/_actions/openRefundFlow'
-    );
+    const reImported = await import('@/app/(admin)/admin/members/[id]/_actions/openRefundFlow');
     requireRoleState.currentActor = { id: manager1, role: 'manager' };
     await setTestUid(pg, manager1);
     await asAuthenticated(pg, manager1);
@@ -367,10 +350,7 @@ describe('openRefundFlow — AC17 manager+ required', () => {
     await asAuthenticated(pg, cashier1);
 
     await expect(
-      openRefundFlow(
-        { profileId: target1, scope: 'membership' },
-        pgliteRunner(pg),
-      ),
+      openRefundFlow({ profileId: target1, scope: 'membership' }, pgliteRunner(pg)),
     ).rejects.toBeInstanceOf(InsufficientRoleError);
 
     const rows = await readAuditRows(target1);
@@ -389,10 +369,7 @@ describe('openRefundFlow — premortem R9 malformed UUID', () => {
     await asAuthenticated(pg, manager1);
 
     await expect(
-      openRefundFlow(
-        { profileId: 'not-a-uuid', scope: 'membership' },
-        pgliteRunner(pg),
-      ),
+      openRefundFlow({ profileId: 'not-a-uuid', scope: 'membership' }, pgliteRunner(pg)),
     ).rejects.toBeInstanceOf(BadRequest);
 
     // The audit_log table-wide check — no row was written for any
@@ -409,10 +386,7 @@ describe('openRefundFlow — premortem R9 malformed UUID', () => {
     await asAuthenticated(pg, manager1);
 
     await expect(
-      openRefundFlow(
-        { profileId: '', scope: 'membership' },
-        pgliteRunner(pg),
-      ),
+      openRefundFlow({ profileId: '', scope: 'membership' }, pgliteRunner(pg)),
     ).rejects.toBeInstanceOf(BadRequest);
   });
 
@@ -439,7 +413,7 @@ describe('openRefundFlow — premortem R9 malformed UUID', () => {
 // AC17.5 — Premortem R9: nonexistent (well-formed) UUID rejected, no audit
 // =============================================================================
 describe('openRefundFlow — premortem R9 nonexistent profile', () => {
-  it("rejects well-formed but nonexistent profileId with BadRequest, no audit", async () => {
+  it('rejects well-formed but nonexistent profileId with BadRequest, no audit', async () => {
     expect.assertions(2);
     requireRoleState.currentActor = { id: manager1, role: 'manager' };
     await setTestUid(pg, manager1);
@@ -449,10 +423,7 @@ describe('openRefundFlow — premortem R9 nonexistent profile', () => {
     const ghostId = '00000000-0000-4000-8000-000000000000';
 
     await expect(
-      openRefundFlow(
-        { profileId: ghostId, scope: 'membership' },
-        pgliteRunner(pg),
-      ),
+      openRefundFlow({ profileId: ghostId, scope: 'membership' }, pgliteRunner(pg)),
     ).rejects.toBeInstanceOf(BadRequest);
 
     // The audit_log table-wide check — no row was written for the
@@ -479,10 +450,7 @@ describe('openRefundFlow — AC17 no mutation', () => {
     }>('SELECT role, full_name, email FROM profiles WHERE id = $1', [target1]);
     expect(before.rows[0]).toBeDefined();
 
-    await openRefundFlow(
-      { profileId: target1, scope: 'membership' },
-      pgliteRunner(pg),
-    );
+    await openRefundFlow({ profileId: target1, scope: 'membership' }, pgliteRunner(pg));
 
     await asServiceRole(pg);
     const after = await pg.query<{
@@ -525,9 +493,7 @@ describe('openRefundFlow — source-shape invariants', () => {
     // The action MUST NOT mutate state (AC17). Strip comments first so
     // JSDoc mentions of "UPDATE" don't false-positive the grep.
     const src = readFileSync(ACTION_PATH, 'utf8');
-    const stripped = src
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/\/\/.*$/gm, '');
+    const stripped = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
     expect(stripped).not.toMatch(/UPDATE\s+profiles\b/i);
     expect(stripped).not.toMatch(/INSERT\s+INTO\s+(?!audit_log)\w+/i);
   });

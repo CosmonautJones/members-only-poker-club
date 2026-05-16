@@ -131,9 +131,7 @@ beforeAll(async () => {
     role: 'member' | 'cashier' | 'manager' | 'owner',
     label: string,
   ): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -560,9 +558,7 @@ describe('AC7.7 — DELETE denial on clubs (R1 — both axes silent-deny in pgli
     await withRollback(pg, async () => {
       await asAuthenticated(pg);
       await setTestUid(pg, memberA);
-      const del = (await pg.query(
-        `DELETE FROM clubs WHERE slug = 'default'`,
-      )) as Results;
+      const del = (await pg.query(`DELETE FROM clubs WHERE slug = 'default'`)) as Results;
       expect(del.affectedRows ?? 0).toBe(0);
 
       // Service-role read confirms the seed row still exists.
@@ -579,9 +575,7 @@ describe('AC7.7 — DELETE denial on clubs (R1 — both axes silent-deny in pgli
       await pg.query('REVOKE DELETE ON clubs FROM app_authenticated');
       await asAuthenticated(pg);
       await setTestUid(pg, memberA);
-      const del = (await pg.query(
-        `DELETE FROM clubs WHERE slug = 'default'`,
-      )) as Results;
+      const del = (await pg.query(`DELETE FROM clubs WHERE slug = 'default'`)) as Results;
       // Empirical: pglite returns affectedRows = 0 on missing-GRANT DELETE
       // (same shape as the USING-implicit-false path), not 42501. Both
       // denial paths converge on the silent-deny contract for DELETE.
@@ -750,10 +744,7 @@ describe('R4 — existing profiles row with display_tz IS NULL survives migratio
         display_tz: string | null;
         full_name: string;
         updated_at: string;
-      }>(
-        'SELECT display_tz, full_name, updated_at FROM profiles WHERE id = $1',
-        [id],
-      );
+      }>('SELECT display_tz, full_name, updated_at FROM profiles WHERE id = $1', [id]);
       expect(after.rows).toHaveLength(1);
       expect(after.rows[0]!.display_tz).toBeNull();
       expect(after.rows[0]!.full_name).toBe(before.rows[0]!.full_name);
@@ -892,9 +883,7 @@ describe('R10 — service-role CAN INSERT a second clubs row (multi-club path)',
       // `USING (true)` so both rows are visible.
       await asAuthenticated(pg);
       await setTestUid(pg, manager);
-      const visible = await pg.query<{ n: number }>(
-        `SELECT COUNT(*)::int AS n FROM clubs`,
-      );
+      const visible = await pg.query<{ n: number }>(`SELECT COUNT(*)::int AS n FROM clubs`);
       expect(visible.rows[0]!.n).toBe(2);
     });
   });

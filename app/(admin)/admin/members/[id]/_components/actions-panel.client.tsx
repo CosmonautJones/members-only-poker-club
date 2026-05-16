@@ -38,11 +38,7 @@
 import { useState, useTransition } from 'react';
 
 import { TypedConfirmationDialog } from '@/components/admin/typed-confirmation-dialog';
-import {
-  changeRoleAction,
-  requestReverificationAction,
-  openRefundFlowAction,
-} from '../_actions';
+import { changeRoleAction, requestReverificationAction, openRefundFlowAction } from '../_actions';
 import type { Role } from '@/lib/auth/types';
 
 export interface ActionsPanelProps {
@@ -139,9 +135,7 @@ export function ActionsPanel({ profileId, memberEmail }: ActionsPanelProps) {
         closeDialog();
         window.location.reload();
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to request re-verification',
-        );
+        setError(err instanceof Error ? err.message : 'Failed to request re-verification');
       }
     });
   }
@@ -176,9 +170,7 @@ export function ActionsPanel({ profileId, memberEmail }: ActionsPanelProps) {
     // wiring the actual server action call lands in t16's worker
     // prompt (which extends this panel with an import of
     // approveDeletionAction).
-    setError(
-      'Deletion wiring lands in slice 4D (ADR-0035 t16 / approveDeletion).',
-    );
+    setError('Deletion wiring lands in slice 4D (ADR-0035 t16 / approveDeletion).');
   }
 
   return (
@@ -236,9 +228,7 @@ export function ActionsPanel({ profileId, memberEmail }: ActionsPanelProps) {
       {/* Request re-verification dialog (typed 'approve') */}
       <TypedConfirmationDialog
         open={openDialog === 'request-reverification'}
-        onOpenChange={(next) =>
-          next ? setOpenDialog('request-reverification') : closeDialog()
-        }
+        onOpenChange={(next) => (next ? setOpenDialog('request-reverification') : closeDialog())}
         title="Request re-verification"
         description="This resets the member's id_verified_at to NULL and pushes them back into the verification queue. The reason is captured for the next-action UI (not stored in the audit log; only its length)."
         confirmPhrase="approve"
@@ -267,9 +257,7 @@ export function ActionsPanel({ profileId, memberEmail }: ActionsPanelProps) {
       {/* Open refund flow dialog — NO typed confirmation (AC18) */}
       <TypedConfirmationDialog
         open={openDialog === 'open-refund-flow'}
-        onOpenChange={(next) =>
-          next ? setOpenDialog('open-refund-flow') : closeDialog()
-        }
+        onOpenChange={(next) => (next ? setOpenDialog('open-refund-flow') : closeDialog())}
         title="Open refund flow"
         description="This records an audit breadcrumb that you intended to start a refund, then redirects you to the refund flow. No mutation occurs in this step."
         confirmPhrase=""
@@ -281,9 +269,7 @@ export function ActionsPanel({ profileId, memberEmail }: ActionsPanelProps) {
       {/* Initiate deletion dialog (typed member email) */}
       <TypedConfirmationDialog
         open={openDialog === 'initiate-deletion'}
-        onOpenChange={(next) =>
-          next ? setOpenDialog('initiate-deletion') : closeDialog()
-        }
+        onOpenChange={(next) => (next ? setOpenDialog('initiate-deletion') : closeDialog())}
         title="Initiate deletion"
         description="This anonymizes the member's profile (name, email, phone) and signs them out. Financial and audit records are retained per law. This cannot be undone."
         confirmPhrase={memberEmail}
@@ -299,10 +285,7 @@ export function ActionsPanel({ profileId, memberEmail }: ActionsPanelProps) {
           server action gets the picked role. v1 ships a minimal
           select with the four roles. */}
       {openDialog === 'change-role' ? (
-        <label
-          style={{ position: 'absolute', left: -9999 }}
-          aria-label="Target role"
-        >
+        <label style={{ position: 'absolute', left: -9999 }} aria-label="Target role">
           Target role
           <select
             data-testid="change-role-target-select"

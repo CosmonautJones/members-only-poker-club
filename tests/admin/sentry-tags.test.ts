@@ -250,9 +250,8 @@ describe('redactAdminEventKeys / beforeSend redaction', () => {
   });
 
   it('redacts all three keys when they appear together in one payload', async () => {
-    const { redactAdminEventKeys, ADMIN_REDACTED_KEYS } = await import(
-      '@/lib/observability/sentry'
-    );
+    const { redactAdminEventKeys, ADMIN_REDACTED_KEYS } =
+      await import('@/lib/observability/sentry');
     const sentinelValues: Record<string, string> = {
       reject_reason: 'rj-sentinel-aaa',
       info_request_message: 'msg-sentinel-bbb',

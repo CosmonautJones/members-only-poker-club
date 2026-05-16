@@ -34,9 +34,8 @@ const requireRoleState = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth/requireRole', async () => {
-  const { InsufficientRoleError } = await vi.importActual<
-    typeof import('@/lib/auth/errors')
-  >('@/lib/auth/errors');
+  const { InsufficientRoleError } =
+    await vi.importActual<typeof import('@/lib/auth/errors')>('@/lib/auth/errors');
   return {
     requireRole: vi.fn(async (required: 'manager' | 'owner') => {
       const actor = requireRoleState.currentActor;
@@ -103,7 +102,14 @@ const MIG_0002 = resolve(
   '0002_profiles_and_roles.sql',
 );
 const MIG_0003 = resolve(TEST_DIR, '..', '..', 'supabase', 'migrations', '0003_audit_log.sql');
-const MIG_0005 = resolve(TEST_DIR, '..', '..', 'supabase', 'migrations', '0005_privacy_requests.sql');
+const MIG_0005 = resolve(
+  TEST_DIR,
+  '..',
+  '..',
+  'supabase',
+  'migrations',
+  '0005_privacy_requests.sql',
+);
 const ACTION_PATH = resolve(
   TEST_DIR,
   '..',
@@ -172,9 +178,7 @@ beforeAll(async () => {
   await extendStatusEnumWithFailed(pg);
 
   const seedAs = async (role: 'member' | 'manager', label: string): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -240,9 +244,9 @@ beforeEach(async () => {
   alreadyCompletedId = completed.rows[0]!.id;
 });
 
-async function readAuditRows(targetId: string): Promise<
-  Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>
-> {
+async function readAuditRows(
+  targetId: string,
+): Promise<Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>> {
   await asServiceRole(pg);
   const result = await pg.query<{
     action: string;
@@ -271,17 +275,16 @@ async function readRequest(id: string): Promise<{
     export_url: string | null;
     resolved_at: string | Date | null;
     resolved_by: string | null;
-  }>(
-    'SELECT status, export_url, resolved_at, resolved_by FROM privacy_requests WHERE id = $1',
-    [id],
-  );
+  }>('SELECT status, export_url, resolved_at, resolved_by FROM privacy_requests WHERE id = $1', [
+    id,
+  ]);
   return r.rows[0]!;
 }
 
-function makeStorageStub(opts: {
-  signedUrl?: string;
-  throws?: boolean;
-}): { storage: ExportStorage; calls: Array<[string, number]> } {
+function makeStorageStub(opts: { signedUrl?: string; throws?: boolean }): {
+  storage: ExportStorage;
+  calls: Array<[string, number]>;
+} {
   const calls: Array<[string, number]> = [];
   const storage: ExportStorage = {
     async signExportUrl(path, expiresInSeconds) {
@@ -305,11 +308,7 @@ describe('approveExport — AC24 state transitions', () => {
     await asAuthenticated(pg, manager1);
 
     const { storage, calls } = makeStorageStub({});
-    const result = await approveExport(
-      { requestId: pendingExportId },
-      pgliteRunner(pg),
-      storage,
-    );
+    const result = await approveExport({ requestId: pendingExportId }, pgliteRunner(pg), storage);
     expect(result.ok).toBe(true);
     expect(typeof result.expiresAt).toBe('string');
 

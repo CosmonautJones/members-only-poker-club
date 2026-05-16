@@ -29,6 +29,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { nowUtc } from '@/lib/time';
 
 export async function POST(request: Request): Promise<Response> {
   void request; // no request body needed — identity comes from session only
@@ -90,7 +91,7 @@ export async function POST(request: Request): Promise<Response> {
       throw auditError;
     }
 
-    const generatedAt = new Date().toISOString();
+    const generatedAt = nowUtc().toISOString();
 
     const exportData = {
       generatedAt,

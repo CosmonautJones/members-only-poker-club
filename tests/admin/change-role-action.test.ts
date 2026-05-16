@@ -62,9 +62,8 @@ vi.mock('@/lib/auth/requireRole', async () => {
   // Pull in the real InsufficientRoleError so `instanceof` checks against
   // the mock match the production error class. The mock only fakes the
   // requireRole function — the error class itself is the real one.
-  const { InsufficientRoleError } = await vi.importActual<
-    typeof import('@/lib/auth/errors')
-  >('@/lib/auth/errors');
+  const { InsufficientRoleError } =
+    await vi.importActual<typeof import('@/lib/auth/errors')>('@/lib/auth/errors');
   return {
     requireRole: vi.fn(async (required: 'manager' | 'owner') => {
       const actor = requireRoleState.currentActor;
@@ -108,7 +107,10 @@ vi.mock('@/lib/supabase/admin', () => ({
 
 // Import AFTER mocks are set up so the action picks them up.
 // eslint-disable-next-line import/first
-import { changeRole, type TransactionRunner } from '@/app/(admin)/admin/members/[id]/_actions/changeRole';
+import {
+  changeRole,
+  type TransactionRunner,
+} from '@/app/(admin)/admin/members/[id]/_actions/changeRole';
 // eslint-disable-next-line import/first
 import { SelfEditViolation, RoleLadderViolation } from '@/app/(admin)/admin/_errors';
 // eslint-disable-next-line import/first
@@ -211,9 +213,7 @@ beforeAll(async () => {
     role: 'member' | 'cashier' | 'manager' | 'owner',
     label: string,
   ): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -270,9 +270,9 @@ beforeEach(async () => {
 });
 
 // Helper: read audit rows for a given target_id, in id order (write order).
-async function readAuditRows(targetId: string): Promise<
-  Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>
-> {
+async function readAuditRows(
+  targetId: string,
+): Promise<Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>> {
   await asServiceRole(pg);
   const result = await pg.query<{
     action: string;
@@ -361,10 +361,9 @@ describe('changeRole — AC15 promotion-as-owner succeeds + 2 audit rows', () =>
 
     // Profile row updated.
     await asServiceRole(pg);
-    const profile = await pg.query<{ role: string }>(
-      'SELECT role FROM profiles WHERE id = $1',
-      [memberTarget],
-    );
+    const profile = await pg.query<{ role: string }>('SELECT role FROM profiles WHERE id = $1', [
+      memberTarget,
+    ]);
     expect(profile.rows[0]!.role).toBe('cashier');
 
     // revalidateTag('admin-dashboard-counts') was called post-tx.
@@ -393,10 +392,9 @@ describe('changeRole — AC15 cashier→member as manager (one-rung demotion)', 
     expect(actions).toEqual(['admin.member.role_changed', 'profile.role_change']);
 
     await asServiceRole(pg);
-    const profile = await pg.query<{ role: string }>(
-      'SELECT role FROM profiles WHERE id = $1',
-      [cashierTarget],
-    );
+    const profile = await pg.query<{ role: string }>('SELECT role FROM profiles WHERE id = $1', [
+      cashierTarget,
+    ]);
     expect(profile.rows[0]!.role).toBe('member');
   });
 });
@@ -446,10 +444,9 @@ describe('changeRole — AC15 manager→cashier as owner succeeds', () => {
     expect(rows).toHaveLength(2);
 
     await asServiceRole(pg);
-    const profile = await pg.query<{ role: string }>(
-      'SELECT role FROM profiles WHERE id = $1',
-      [managerTarget],
-    );
+    const profile = await pg.query<{ role: string }>('SELECT role FROM profiles WHERE id = $1', [
+      managerTarget,
+    ]);
     expect(profile.rows[0]!.role).toBe('cashier');
   });
 });
@@ -523,9 +520,7 @@ describe('changeRole — AC28 no PII in audit row', () => {
     // We strip block + line comments first so JSDoc mentions like
     // "no PII (email/full_name/...)" don't false-positive the grep.
     const src = readFileSync(ACTION_PATH, 'utf8');
-    const stripped = src
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/\/\/.*$/gm, '');
+    const stripped = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
     // The action constructs before/after as { role: ... }. Any PII key
     // would appear as `email:`, `full_name:`, etc. in the object literal.
     expect(stripped).not.toMatch(/\bemail\s*:/);
@@ -540,18 +535,18 @@ describe('changeRole — AC28 no PII in audit row', () => {
 // requireRole, action contains revalidateTag literal.
 // =============================================================================
 describe('changeRole — source-shape invariants (AC5, AC35)', () => {
-  it('first line is `import \'server-only\';`', () => {
+  it("first line is `import 'server-only';`", () => {
     const src = readFileSync(ACTION_PATH, 'utf8').replace(/^﻿/, '');
     const firstLine = src.split(/\r?\n/)[0]!.trim();
     expect(firstLine).toBe("import 'server-only';");
   });
 
-  it('contains the literal `await requireRole(\'manager\')` call', () => {
+  it("contains the literal `await requireRole('manager')` call", () => {
     const src = readFileSync(ACTION_PATH, 'utf8');
     expect(src).toMatch(/await\s+requireRole\(\s*['"]manager['"]\s*\)/);
   });
 
-  it('contains the literal `revalidateTag(\'admin-dashboard-counts\')` call (AC35)', () => {
+  it("contains the literal `revalidateTag('admin-dashboard-counts')` call (AC35)", () => {
     const src = readFileSync(ACTION_PATH, 'utf8');
     expect(src).toMatch(/revalidateTag\(\s*['"]admin-dashboard-counts['"]\s*\)/);
   });

@@ -21,11 +21,11 @@ import { TOURNAMENTS } from '@/lib/tournaments/fixtures';
 export const metadata: Metadata = {
   title: 'Games',
   description:
-    "Tonight at Members Only Poker Social Club: live cash games, weekly tournament schedule, and the full board for tournaments and member events in Houston.",
+    'Tonight at Members Only Poker Social Club: live cash games, weekly tournament schedule, and the full board for tournaments and member events in Houston.',
   openGraph: {
     title: 'Games',
     description:
-      "Tonight at Members Only Poker Social Club: live cash games, weekly tournament schedule, and the full board for tournaments and member events in Houston.",
+      'Tonight at Members Only Poker Social Club: live cash games, weekly tournament schedule, and the full board for tournaments and member events in Houston.',
     images: [
       {
         url: '/og?title=Games&subtitle=Members%20Only%20Poker%20Social%20Club',
@@ -366,8 +366,8 @@ export default function GamesPage() {
           </h3>
           <p style={{ color: 'var(--ivory-300)', fontSize: 15, lineHeight: 1.7 }}>
             Add yourself to any list from your phone. We text when your seat is two away and again
-            when it&rsquo;s ready. Reply HOLD and we&rsquo;ll save it ten minutes. Reply DROP and
-            we won&rsquo;t take it personally.
+            when it&rsquo;s ready. Reply HOLD and we&rsquo;ll save it ten minutes. Reply DROP and we
+            won&rsquo;t take it personally.
           </p>
         </div>
         <div>
@@ -438,10 +438,10 @@ export default function GamesPage() {
               NLHE — No-Limit Hold&rsquo;em
             </h3>
             <p style={{ color: 'var(--ivory-300)', fontSize: 15, lineHeight: 1.8 }}>
-              Two cards down, five cards up, four rounds of betting. You can move all of your
-              chips at any time. The dominant game in the room and the easiest to learn — though
-              the easiest to lose at, too. Stakes are named for the blinds: 1/2 means the small
-              blind posts $1, the big blind posts $2, and the buy-in scales from there.
+              Two cards down, five cards up, four rounds of betting. You can move all of your chips
+              at any time. The dominant game in the room and the easiest to learn — though the
+              easiest to lose at, too. Stakes are named for the blinds: 1/2 means the small blind
+              posts $1, the big blind posts $2, and the buy-in scales from there.
             </p>
           </div>
           <div>
@@ -514,9 +514,9 @@ export default function GamesPage() {
           </p>
           <p>
             Our dealers are salaried, not stipend-and-pray. Tipping is welcome and appreciated but
-            never required, never expected, and never tracked against you. A dollar on a winning
-            pot is traditional. Zero on a losing one is fine. Dealers will treat you the same
-            either way — that&rsquo;s the deal we made with them when we hired them.
+            never required, never expected, and never tracked against you. A dollar on a winning pot
+            is traditional. Zero on a losing one is fine. Dealers will treat you the same either way
+            — that&rsquo;s the deal we made with them when we hired them.
           </p>
         </div>
       </section>

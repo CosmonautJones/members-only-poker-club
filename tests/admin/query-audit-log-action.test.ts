@@ -94,9 +94,7 @@ vi.mock('@/lib/supabase/server', () => ({
           if (r.match(chain)) return r.value;
         }
         // Default: empty success.
-        return chain.isHead
-          ? { count: 0, error: null }
-          : { data: [], error: null };
+        return chain.isHead ? { count: 0, error: null } : { data: [], error: null };
       }
 
       const handler: ProxyHandler<Record<string, unknown>> = {
@@ -151,9 +149,7 @@ vi.mock('@/lib/supabase/server', () => ({
 
 // Import AFTER mocks.
 // eslint-disable-next-line import/first
-import {
-  queryAuditLog,
-} from '@/app/(admin)/admin/audit-log/_actions/queryAuditLog';
+import { queryAuditLog } from '@/app/(admin)/admin/audit-log/_actions/queryAuditLog';
 
 // ---- Test helpers ---------------------------------------------------------
 
@@ -308,8 +304,9 @@ describe('queryAuditLog — filter shapes', () => {
   it('applies eq on target_type / target_id when those filters are set', async () => {
     setAuditRows([]);
     await queryAuditLog({ targetType: 'profile', targetId: 'uuid-a' });
-    const dataChain = mocks.fromCalls.find((c) => c.table === 'audit_log' && !c.chain.isHead)!
-      .chain;
+    const dataChain = mocks.fromCalls.find(
+      (c) => c.table === 'audit_log' && !c.chain.isHead,
+    )!.chain;
     const eqFilters = dataChain.filters.filter((f) => f.method === 'eq');
     const targetTypeFilter = eqFilters.find((f) => f.args[0] === 'target_type');
     const targetIdFilter = eqFilters.find((f) => f.args[0] === 'target_id');
@@ -323,8 +320,9 @@ describe('queryAuditLog — filter shapes', () => {
       fromUtc: '2026-05-15T08:00:00.000Z',
       toUtc: '2026-05-15T20:00:00.000Z',
     });
-    const dataChain = mocks.fromCalls.find((c) => c.table === 'audit_log' && !c.chain.isHead)!
-      .chain;
+    const dataChain = mocks.fromCalls.find(
+      (c) => c.table === 'audit_log' && !c.chain.isHead,
+    )!.chain;
     const gte = dataChain.filters.find((f) => f.method === 'gte');
     const lte = dataChain.filters.find((f) => f.method === 'lte');
     expect(gte?.args).toEqual(['created_at', '2026-05-15T08:00:00.000Z']);
@@ -334,8 +332,9 @@ describe('queryAuditLog — filter shapes', () => {
   it('sorts by created_at DESC', async () => {
     setAuditRows([]);
     await queryAuditLog({});
-    const dataChain = mocks.fromCalls.find((c) => c.table === 'audit_log' && !c.chain.isHead)!
-      .chain;
+    const dataChain = mocks.fromCalls.find(
+      (c) => c.table === 'audit_log' && !c.chain.isHead,
+    )!.chain;
     expect(dataChain.orderArgs?.[0]).toBe('created_at');
     expect((dataChain.orderArgs?.[1] as { ascending: boolean }).ascending).toBe(false);
   });
@@ -343,8 +342,9 @@ describe('queryAuditLog — filter shapes', () => {
   it('runs a parallel count(*) on the same filters', async () => {
     setAuditRows([], 42);
     const result = await queryAuditLog({ actionPrefix: 'admin.' });
-    const countChain = mocks.fromCalls.find((c) => c.table === 'audit_log' && c.chain.isHead)!
-      .chain;
+    const countChain = mocks.fromCalls.find(
+      (c) => c.table === 'audit_log' && c.chain.isHead,
+    )!.chain;
     expect(countChain.isHead).toBe(true);
     expect(countChain.selectOptions?.['count']).toBe('exact');
     expect(result.total).toBe(42);
@@ -372,8 +372,9 @@ describe('queryAuditLog — actorEmail sub-query', () => {
     const profileEq = profilesCall!.chain.filters.find((f) => f.method === 'eq');
     expect(profileEq?.args).toEqual(['email', 'someone@example.com']);
 
-    const auditDataChain = mocks.fromCalls.find((c) => c.table === 'audit_log' && !c.chain.isHead)!
-      .chain;
+    const auditDataChain = mocks.fromCalls.find(
+      (c) => c.table === 'audit_log' && !c.chain.isHead,
+    )!.chain;
     const actorEqFilter = auditDataChain.filters.find(
       (f) => f.method === 'eq' && f.args[0] === 'actor_id',
     );
@@ -403,24 +404,27 @@ describe('queryAuditLog — pagination', () => {
   it('applies range(0, 49) for page 1 default pageSize', async () => {
     setAuditRows([]);
     await queryAuditLog({});
-    const dataChain = mocks.fromCalls.find((c) => c.table === 'audit_log' && !c.chain.isHead)!
-      .chain;
+    const dataChain = mocks.fromCalls.find(
+      (c) => c.table === 'audit_log' && !c.chain.isHead,
+    )!.chain;
     expect(dataChain.rangeArgs).toEqual([0, 49]);
   });
 
   it('applies range(50, 99) for page 2 default pageSize', async () => {
     setAuditRows([]);
     await queryAuditLog({ page: 2 });
-    const dataChain = mocks.fromCalls.find((c) => c.table === 'audit_log' && !c.chain.isHead)!
-      .chain;
+    const dataChain = mocks.fromCalls.find(
+      (c) => c.table === 'audit_log' && !c.chain.isHead,
+    )!.chain;
     expect(dataChain.rangeArgs).toEqual([50, 99]);
   });
 
   it('caps pageSize at 200', async () => {
     setAuditRows([]);
     const result = await queryAuditLog({ pageSize: 9999 });
-    const dataChain = mocks.fromCalls.find((c) => c.table === 'audit_log' && !c.chain.isHead)!
-      .chain;
+    const dataChain = mocks.fromCalls.find(
+      (c) => c.table === 'audit_log' && !c.chain.isHead,
+    )!.chain;
     expect(dataChain.rangeArgs).toEqual([0, 199]);
     expect(result.pageSize).toBe(200);
   });

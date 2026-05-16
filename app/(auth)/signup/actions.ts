@@ -17,6 +17,7 @@ import { redirect } from 'next/navigation';
 // eslint-disable-next-line no-restricted-imports -- per ADR-0002 AC2: signup action does the profiles INSERT via service-role admin client; the 'server-only' import is the build-time guard against client-bundle leakage.
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { nowUtc } from '@/lib/time';
 
 export type FormError = {
   field: 'email' | 'password' | 'dob' | 'full_name' | 'form';
@@ -110,7 +111,7 @@ export async function signupAction(formData: FormData): Promise<FormError | unde
       tag: 'signup.profile_insert_failed',
       auth_user_id: authUserId,
       supabase_error_code: insertError.code ?? 'unknown',
-      timestamp: formatISO(Date.now()),
+      timestamp: formatISO(nowUtc()),
     });
     return {
       field: 'form',

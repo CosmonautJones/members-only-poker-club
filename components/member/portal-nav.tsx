@@ -55,9 +55,7 @@ export function SidebarNav() {
           fontSize: 14,
           fontWeight: 500,
           marginBottom: 2,
-          borderLeft: active
-            ? '2px solid var(--gold-400)'
-            : '2px solid transparent',
+          borderLeft: active ? '2px solid var(--gold-400)' : '2px solid transparent',
           textDecoration: 'none',
           transition: 'background 180ms var(--ease)',
         };

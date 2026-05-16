@@ -193,9 +193,7 @@ export async function queryAuditLog(params: QueryAuditLogParams): Promise<QueryA
   // `count(*)` query runs the same filters with `head: true` so
   // Postgres doesn't ship rows back twice.
   let dataQuery = supabase.from('audit_log').select(SELECT_COLUMNS);
-  let countQuery = supabase
-    .from('audit_log')
-    .select('id', { count: 'exact', head: true });
+  let countQuery = supabase.from('audit_log').select('id', { count: 'exact', head: true });
 
   if (params.actionPrefix && params.actionPrefix.trim()) {
     // PostgREST `like` operator: `%` wildcard, case-sensitive. We
@@ -264,9 +262,7 @@ export async function queryAuditLog(params: QueryAuditLogParams): Promise<QueryA
   // rows still render — only the R8 banner detection may miss.
   const targetProfileIds = Array.from(
     new Set(
-      rawRows
-        .filter((r) => r.target_type === 'profile' && r.target_id)
-        .map((r) => r.target_id),
+      rawRows.filter((r) => r.target_type === 'profile' && r.target_id).map((r) => r.target_id),
     ),
   );
 

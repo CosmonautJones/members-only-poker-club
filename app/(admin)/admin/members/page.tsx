@@ -124,9 +124,7 @@ function readStatus(
   return undefined;
 }
 
-function readRole(
-  searchParams: Record<string, string | string[] | undefined>,
-): Role | undefined {
+function readRole(searchParams: Record<string, string | string[] | undefined>): Role | undefined {
   const raw = readString(searchParams, 'role');
   const allowed: ReadonlySet<Role> = new Set(['member', 'cashier', 'manager', 'owner']);
   if (raw && allowed.has(raw as Role)) return raw as Role;
@@ -140,17 +138,11 @@ function formatUtcAndCentral(iso: string | null): { utc: string; central: string
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
 
-  const utcParts = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZone: 'UTC',
-  }).formatToParts(date);
-  const utc = `${pick(utcParts, 'year')}-${pick(utcParts, 'month')}-${pick(utcParts, 'day')} ${pick(utcParts, 'hour')}:${pick(utcParts, 'minute')}:${pick(utcParts, 'second')} UTC`;
+  // UTC: derive from toISOString() (ECMAScript-standard, locale-stable).
+  // Avoids the Intl 'en-CA' midnight-hour='24' quirk on some Node ICU
+  // builds (Linux CI) that rotated 00:00 displays to 24:00 of the prior day.
+  const isoStr = date.toISOString();
+  const utc = `${isoStr.slice(0, 10)} ${isoStr.slice(11, 19)} UTC`;
 
   const centralParts = new Intl.DateTimeFormat('en-US', {
     year: 'numeric',

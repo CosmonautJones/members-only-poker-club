@@ -37,9 +37,8 @@ const requireRoleState = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth/requireRole', async () => {
-  const { InsufficientRoleError } = await vi.importActual<
-    typeof import('@/lib/auth/errors')
-  >('@/lib/auth/errors');
+  const { InsufficientRoleError } =
+    await vi.importActual<typeof import('@/lib/auth/errors')>('@/lib/auth/errors');
   return {
     requireRole: vi.fn(async (required: 'manager' | 'owner') => {
       const actor = requireRoleState.currentActor;
@@ -77,9 +76,9 @@ vi.mock('@/lib/supabase/admin', () => ({
 // call-vs-no-call AND still get the real anonymization side-effects.
 const softDeleteSpy = vi.hoisted(() => ({ fn: vi.fn() }));
 vi.mock('@/lib/privacy/soft-delete', async () => {
-  const real = await vi.importActual<
-    typeof import('@/lib/privacy/soft-delete')
-  >('@/lib/privacy/soft-delete');
+  const real = await vi.importActual<typeof import('@/lib/privacy/soft-delete')>(
+    '@/lib/privacy/soft-delete',
+  );
   return {
     softDeleteProfile: vi.fn(async (userId: string, db: unknown) => {
       softDeleteSpy.fn(userId);
@@ -94,10 +93,7 @@ import {
   type TransactionRunner,
 } from '@/app/(admin)/admin/privacy/_actions/approveDeletion';
 // eslint-disable-next-line import/first
-import {
-  RequestNotPending,
-  ConfirmEmailMismatch,
-} from '@/app/(admin)/admin/_errors';
+import { RequestNotPending, ConfirmEmailMismatch } from '@/app/(admin)/admin/_errors';
 // eslint-disable-next-line import/first
 import { setupAuthStub, resetAuthStub, setTestUid } from '../db/_fixtures/auth-stub';
 // eslint-disable-next-line import/first
@@ -131,7 +127,14 @@ const MIG_0004 = resolve(
   'migrations',
   '0004_privacy_soft_delete.sql',
 );
-const MIG_0005 = resolve(TEST_DIR, '..', '..', 'supabase', 'migrations', '0005_privacy_requests.sql');
+const MIG_0005 = resolve(
+  TEST_DIR,
+  '..',
+  '..',
+  'supabase',
+  'migrations',
+  '0005_privacy_requests.sql',
+);
 const ACTION_PATH = resolve(
   TEST_DIR,
   '..',
@@ -199,9 +202,7 @@ beforeAll(async () => {
     label: string,
     extras: Record<string, unknown> = {},
   ): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -292,9 +293,9 @@ beforeEach(async () => {
   alreadyCompletedDeleteId = alreadyCompleted.rows[0]!.id;
 });
 
-async function readAuditRows(targetId: string): Promise<
-  Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>
-> {
+async function readAuditRows(
+  targetId: string,
+): Promise<Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>> {
   await asServiceRole(pg);
   const result = await pg.query<{
     action: string;
@@ -526,7 +527,7 @@ describe('approveDeletion — source-shape invariants', () => {
     expect(src).toMatch(/revalidateTag\(\s*['"]admin-dashboard-counts['"]\s*\)/);
   });
 
-  it("contains the literal `softDeleteProfile(` call (AC25 ADR-0023 helper)", () => {
+  it('contains the literal `softDeleteProfile(` call (AC25 ADR-0023 helper)', () => {
     const src = readFileSync(ACTION_PATH, 'utf8');
     expect(src).toMatch(/softDeleteProfile\(/);
   });

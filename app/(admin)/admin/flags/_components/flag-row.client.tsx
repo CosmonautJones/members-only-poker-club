@@ -178,9 +178,7 @@ export function FlagRow({ flag }: { flag: FlagRowData }) {
             onChange={(e) => setEnabled(e.target.checked)}
             data-testid={`flag-enabled-${flag.key}`}
           />
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            {enabled ? 'on' : 'off'}
-          </span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{enabled ? 'on' : 'off'}</span>
         </label>
       </td>
       <td style={TD_STYLE}>

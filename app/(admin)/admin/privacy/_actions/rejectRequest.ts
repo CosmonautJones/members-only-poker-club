@@ -40,11 +40,9 @@ import { requireRole } from '@/lib/auth/requireRole';
 import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { trackAdminEvent } from '@/lib/analytics/admin-events';
+import { nowUtc } from '@/lib/time';
 
-import {
-  RequestNotPending,
-  RejectReasonInvalid,
-} from '@/app/(admin)/admin/_errors';
+import { RequestNotPending, RejectReasonInvalid } from '@/app/(admin)/admin/_errors';
 
 // ---- Public types ---------------------------------------------------------
 
@@ -128,9 +126,7 @@ export async function rejectRequest(
         );
         const beforeRow = beforeRead.rows[0] as { status: string } | undefined;
         if (!beforeRow) {
-          throw new RequestNotPending(
-            `rejectRequest: request not found (id=${params.requestId})`,
-          );
+          throw new RequestNotPending(`rejectRequest: request not found (id=${params.requestId})`);
         }
         if (beforeRow.status !== 'pending') {
           throw new RequestNotPending(
@@ -200,9 +196,7 @@ function defaultDb(): TransactionRunner {
   const asStringOrNull = (v: unknown): string | null => {
     if (v === null || v === undefined) return null;
     if (typeof v === 'string') return v;
-    throw new Error(
-      `rejectRequest defaultDb: expected string|null param, got ${typeof v}`,
-    );
+    throw new Error(`rejectRequest defaultDb: expected string|null param, got ${typeof v}`);
   };
   const asString = (v: unknown): string => {
     if (typeof v === 'string') return v;
@@ -223,9 +217,7 @@ function defaultDb(): TransactionRunner {
           .eq('id', id)
           .maybeSingle();
         if (error) {
-          throw new Error(
-            `rejectRequest defaultDb: SELECT status failed: ${error.message}`,
-          );
+          throw new Error(`rejectRequest defaultDb: SELECT status failed: ${error.message}`);
         }
         return { rows: data ? [data] : [] };
       }
@@ -239,16 +231,14 @@ function defaultDb(): TransactionRunner {
           .from('privacy_requests')
           .update({
             status: 'rejected',
-            resolved_at: new Date().toISOString(),
+            resolved_at: nowUtc().toISOString(),
             resolved_by: resolvedBy,
             reject_reason: reason,
           })
           .eq('id', id)
           .eq('status', 'pending');
         if (error) {
-          throw new Error(
-            `rejectRequest defaultDb: UPDATE rejected failed: ${error.message}`,
-          );
+          throw new Error(`rejectRequest defaultDb: UPDATE rejected failed: ${error.message}`);
         }
         return { rows: [] };
       }
@@ -275,9 +265,7 @@ function defaultDb(): TransactionRunner {
         };
         const { error } = await adminClient.from('audit_log').insert(row);
         if (error) {
-          throw new Error(
-            `rejectRequest defaultDb: audit_log INSERT failed: ${error.message}`,
-          );
+          throw new Error(`rejectRequest defaultDb: audit_log INSERT failed: ${error.message}`);
         }
         return { rows: [] };
       }

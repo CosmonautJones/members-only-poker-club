@@ -39,6 +39,27 @@ const TMP_ROOT_OUTSIDE = join(REPO_ROOT, '_tmp', 'lint-no-naked-date', RUN_ID);
 const TMP_ROOT_LIB_TIME = join(REPO_ROOT, 'lib', 'time', '_tmp-fixtures', RUN_ID);
 
 /**
+ * Target paths for each sub-case fixture. Materialized once in
+ * `beforeAll` so typescript-eslint's Program (built lazily on the
+ * first lintFiles call) includes ALL fixture files. If a fixture were
+ * materialized lazily per sub-case, sub-cases that run after the first
+ * lintFiles call would emit a "file not in tsconfig project" parser
+ * error and skip rule evaluation entirely — masking the real assertion.
+ * See `tests/lint/no-naked-date.test.ts` history for the CI flake this
+ * change fixed (Linux Node ICU + caching, not reproducible on Windows).
+ */
+const FIXTURE_TARGETS: ReadonlyArray<{ source: string; target: string }> = [
+  { source: 'uses-now-utc.ts', target: join(TMP_ROOT_OUTSIDE, 'uses-now-utc.ts') },
+  { source: 'uses-naked-new-date.ts', target: join(TMP_ROOT_OUTSIDE, 'uses-naked-new-date.ts') },
+  { source: 'uses-naked-date-now.ts', target: join(TMP_ROOT_OUTSIDE, 'uses-naked-date-now.ts') },
+  { source: 'uses-date-with-arg.ts', target: join(TMP_ROOT_OUTSIDE, 'uses-date-with-arg.ts') },
+  {
+    source: 'naked-allowed-template.ts.skip',
+    target: join(TMP_ROOT_LIB_TIME, 'naked-allowed.ts'),
+  },
+];
+
+/**
  * Read a canonical fixture from `tests/lint/_fixtures/` and materialize
  * its raw text at `targetPath`. Creates intermediate directories.
  */
@@ -63,14 +84,19 @@ async function lintFile(absPath: string): Promise<ESLint.LintResult[]> {
  * `no-restricted-syntax` rule?
  */
 function hasNoRestrictedSyntaxFinding(results: ESLint.LintResult[]): boolean {
-  return results.some((r) =>
-    r.messages.some((m) => m.ruleId === 'no-restricted-syntax'),
-  );
+  return results.some((r) => r.messages.some((m) => m.ruleId === 'no-restricted-syntax'));
 }
 
 beforeAll(() => {
   mkdirSync(TMP_ROOT_OUTSIDE, { recursive: true });
   mkdirSync(TMP_ROOT_LIB_TIME, { recursive: true });
+  // Materialize ALL fixtures up front. typescript-eslint v8 caches the
+  // TypeScript Program after the first lintFiles call; files written
+  // post-cache are flagged "not in project" and skip rule evaluation,
+  // which would make sub-cases 2 and 3 falsely return no findings.
+  for (const { source, target } of FIXTURE_TARGETS) {
+    materializeFixture(source, target);
+  }
 });
 
 afterAll(() => {

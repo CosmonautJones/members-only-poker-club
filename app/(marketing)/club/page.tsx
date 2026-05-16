@@ -58,7 +58,7 @@ const ROOM_FEATURES = [
   {
     num: 'IV',
     title: 'BYOB',
-    body: "The Club operates BYOB until our TABC liquor-license application is approved. Members bring their own beverages; staff handles glassware and opening. No glass on the felt — the lounge is where the bottles live.",
+    body: 'The Club operates BYOB until our TABC liquor-license application is approved. Members bring their own beverages; staff handles glassware and opening. No glass on the felt — the lounge is where the bottles live.',
   },
   {
     num: 'V',
@@ -91,7 +91,15 @@ const DRESS_CODE = [
 
 function BrandedList({ items }: { items: ReadonlyArray<string> }) {
   return (
-    <ul style={{ paddingLeft: 0, listStyle: 'none', color: 'var(--ivory-300)', fontSize: 15, lineHeight: 1.8 }}>
+    <ul
+      style={{
+        paddingLeft: 0,
+        listStyle: 'none',
+        color: 'var(--ivory-300)',
+        fontSize: 15,
+        lineHeight: 1.8,
+      }}
+    >
       {items.map((item) => (
         <li
           key={item}
@@ -101,10 +109,7 @@ function BrandedList({ items }: { items: ReadonlyArray<string> }) {
             marginBottom: 10,
           }}
         >
-          <span
-            aria-hidden
-            style={{ position: 'absolute', left: 0, color: 'var(--gold-400)' }}
-          >
+          <span aria-hidden style={{ position: 'absolute', left: 0, color: 'var(--gold-400)' }}>
             ◆
           </span>
           {item}
@@ -245,8 +250,8 @@ export default function ClubPage() {
         </h2>
         <p style={{ color: 'var(--ivory-300)', fontSize: 16, lineHeight: 1.8, marginBottom: 24 }}>
           Tournaments and cash games run on the Tournament Directors Association rulebook, current
-          edition. Floor decisions are final on the night, written in the log, and reviewed the
-          next morning if anyone needs them to be.
+          edition. Floor decisions are final on the night, written in the log, and reviewed the next
+          morning if anyone needs them to be.
         </p>
         <BrandedList items={RULES_BRIEF} />
         <div style={{ marginTop: 32 }}>
@@ -276,8 +281,8 @@ export default function ClubPage() {
           </em>
         </h2>
         <p style={{ color: 'var(--ivory-300)', fontSize: 16, lineHeight: 1.8, marginBottom: 24 }}>
-          You don&rsquo;t need a jacket. We&rsquo;d rather you be comfortable for ten hours. But
-          the room has a tone, and the room keeps it.
+          You don&rsquo;t need a jacket. We&rsquo;d rather you be comfortable for ten hours. But the
+          room has a tone, and the room keeps it.
         </p>
         <BrandedList items={DRESS_CODE} />
       </section>
@@ -320,8 +325,8 @@ export default function ClubPage() {
               minutes from The Woodlands, twenty from Bush Intercontinental.
             </p>
             <p style={{ marginBottom: 16 }}>
-              Free self-parking in a lit, fenced, camera-covered lot. Valet on Fridays and
-              Saturdays — included, no tip required (though they&rsquo;ll appreciate one).
+              Free self-parking in a lit, fenced, camera-covered lot. Valet on Fridays and Saturdays
+              — included, no tip required (though they&rsquo;ll appreciate one).
             </p>
             <p>
               The building is unmarked from the road except for a small brass chip on the door. If
@@ -389,8 +394,8 @@ export default function ClubPage() {
             margin: '0 auto 40px',
           }}
         >
-          The kitchen is modest by design. We&rsquo;d rather do twelve things well than forty
-          things adequately. The menu changes when the chef finds something worth changing it for.
+          The kitchen is modest by design. We&rsquo;d rather do twelve things well than forty things
+          adequately. The menu changes when the chef finds something worth changing it for.
         </p>
         <div
           style={{
@@ -481,8 +486,8 @@ export default function ClubPage() {
           <p style={{ marginBottom: 20 }}>
             Most poker rooms are lit like dental offices. Ours is lit like a library that serves
             whiskey. Brass-shaded pendants over the felt. Tobacco-stained leather without the
-            tobacco. Old prints on the walls — Cardiff, Monte Carlo, a Lake Charles oil from
-            before the storm.
+            tobacco. Old prints on the walls — Cardiff, Monte Carlo, a Lake Charles oil from before
+            the storm.
           </p>
           <p>
             The conversation hums. The shuffle is louder than the music. Someone at the four-table

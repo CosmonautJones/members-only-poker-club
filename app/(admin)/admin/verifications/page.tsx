@@ -58,6 +58,7 @@ import { Suspense } from 'react';
 
 import { requireRole } from '@/lib/auth/requireRole';
 import { createClient } from '@/lib/supabase/server';
+import { nowUtc } from '@/lib/time';
 
 // Opt out of static prerender — the queue reads the Supabase session
 // via cookies, which Next.js cannot evaluate at build time. Without
@@ -112,17 +113,11 @@ function formatUtcAndCentral(iso: string): { utc: string; central: string } {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return { utc: iso, central: iso };
 
-  const utcParts = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZone: 'UTC',
-  }).formatToParts(date);
-  const utc = `${pick(utcParts, 'year')}-${pick(utcParts, 'month')}-${pick(utcParts, 'day')} ${pick(utcParts, 'hour')}:${pick(utcParts, 'minute')}:${pick(utcParts, 'second')} UTC`;
+  // UTC: derive from toISOString() (ECMAScript-standard, locale-stable).
+  // Avoids the Intl 'en-CA' midnight-hour='24' quirk on some Node ICU
+  // builds (Linux CI) that rotated 00:00 displays to 24:00 of the prior day.
+  const isoStr = date.toISOString();
+  const utc = `${isoStr.slice(0, 10)} ${isoStr.slice(11, 19)} UTC`;
 
   const centralParts = new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
@@ -162,7 +157,7 @@ function pick(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTyp
 // staff approve an under-21 — the former is recoverable, the latter
 // is regulatory exposure.)
 
-function isAgeOk(dob: string, at: Date = new Date()): boolean {
+function isAgeOk(dob: string, at: Date = nowUtc()): boolean {
   const d = new Date(`${dob}T00:00:00Z`);
   if (Number.isNaN(d.getTime())) return false;
   const cutoff = new Date(at);
@@ -224,9 +219,8 @@ export default async function VerificationsPage(): Promise<JSX.Element> {
           Verifications
         </h1>
         <p style={{ color: 'var(--ivory-300)', fontSize: 14, lineHeight: 1.65, maxWidth: 760 }}>
-          Members who have uploaded an ID document and are awaiting review.
-          Confirm the photograph matches the member, then approve, reject with
-          a reason, or request more information.
+          Members who have uploaded an ID document and are awaiting review. Confirm the photograph
+          matches the member, then approve, reject with a reason, or request more information.
         </p>
       </header>
 
@@ -267,9 +261,7 @@ function AgeBanner({ ageOk }: { ageOk: boolean }) {
   const label = ageOk ? 'AGE OK' : 'UNDER 21 — REJECT';
   const bg = ageOk ? 'rgba(46, 160, 67, 0.16)' : 'rgba(207, 34, 46, 0.18)';
   const fg = ageOk ? 'var(--green-400, #3fb950)' : 'var(--red-400, #ff7b72)';
-  const border = ageOk
-    ? '1px solid rgba(46, 160, 67, 0.45)'
-    : '1px solid rgba(207, 34, 46, 0.55)';
+  const border = ageOk ? '1px solid rgba(46, 160, 67, 0.45)' : '1px solid rgba(207, 34, 46, 0.55)';
   return (
     <span
       role="status"
@@ -366,9 +358,25 @@ function TableSkeleton() {
               background: 'rgba(255,255,255,0.04)',
             }}
           />
-          <div style={{ flex: 1, height: 12, background: 'rgba(255,255,255,0.04)', borderRadius: 4 }} />
-          <div style={{ width: 120, height: 12, background: 'rgba(255,255,255,0.04)', borderRadius: 4 }} />
-          <div style={{ width: 200, height: 12, background: 'rgba(255,255,255,0.04)', borderRadius: 4 }} />
+          <div
+            style={{ flex: 1, height: 12, background: 'rgba(255,255,255,0.04)', borderRadius: 4 }}
+          />
+          <div
+            style={{
+              width: 120,
+              height: 12,
+              background: 'rgba(255,255,255,0.04)',
+              borderRadius: 4,
+            }}
+          />
+          <div
+            style={{
+              width: 200,
+              height: 12,
+              background: 'rgba(255,255,255,0.04)',
+              borderRadius: 4,
+            }}
+          />
         </div>
       ))}
     </div>

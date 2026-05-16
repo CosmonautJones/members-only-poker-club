@@ -18,6 +18,7 @@
 import Link from 'next/link';
 
 import { getCurrentProfile } from '@/lib/auth/getCurrentProfile';
+import { nowUtc } from '@/lib/time';
 
 const TZ = 'America/Chicago';
 
@@ -54,7 +55,7 @@ export default async function DashboardPage() {
   if (!profile) return null;
 
   const firstName = profile.full_name.split(/\s+/)[0] ?? profile.full_name;
-  const now = new Date();
+  const now = nowUtc();
   const greeting = greetingFor(now);
   const dateLabel = clubDateLabel(now);
 
@@ -164,8 +165,8 @@ export default async function DashboardPage() {
             }}
           >
             <p style={{ margin: 0 }}>
-              Your first night is on the horizon. Sessions show up here once the
-              cashier console (ADR-0027) logs you in for a seat.
+              Your first night is on the horizon. Sessions show up here once the cashier console
+              (ADR-0027) logs you in for a seat.
             </p>
           </div>
         </SectionCard>
@@ -181,11 +182,7 @@ export default async function DashboardPage() {
               gap: 0,
             }}
           >
-            <AccountRow
-              label="Email"
-              value={profile.email}
-              href="/profile"
-            />
+            <AccountRow label="Email" value={profile.email} href="/profile" />
             <AccountRow
               label="Member since"
               value={new Intl.DateTimeFormat('en-US', {
@@ -194,11 +191,7 @@ export default async function DashboardPage() {
                 timeZone: TZ,
               }).format(new Date(profile.created_at))}
             />
-            <AccountRow
-              label="Role"
-              value={profile.role}
-              pill
-            />
+            <AccountRow label="Role" value={profile.role} pill />
             <AccountRow
               label="Privacy &amp; data"
               value="Export · Delete"
@@ -296,15 +289,7 @@ function PlaceholderCard({
   );
 }
 
-function StatCard({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-}) {
+function StatCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
     <div
       style={{
@@ -328,9 +313,7 @@ function StatCard({
       >
         {value}
       </div>
-      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
-        {sub}
-      </div>
+      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>{sub}</div>
     </div>
   );
 }

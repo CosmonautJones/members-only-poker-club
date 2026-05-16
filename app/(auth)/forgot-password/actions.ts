@@ -12,6 +12,7 @@
 // query params via supabase.auth.verifyOtp() server-side.
 
 import { createClient } from '@/lib/supabase/server';
+import { nowUtc } from '@/lib/time';
 
 const STATIC_MESSAGE = "If that email is on file, we've sent a reset link.";
 
@@ -34,7 +35,7 @@ export async function forgotPasswordAction(formData: FormData): Promise<{ messag
       console.error({
         tag: 'forgot_password.reset_email_failed',
         supabase_error_code: (error as { code?: string }).code ?? 'unknown',
-        timestamp: new Date().toISOString(),
+        timestamp: nowUtc().toISOString(),
       });
     }
   } catch (err) {
@@ -44,7 +45,7 @@ export async function forgotPasswordAction(formData: FormData): Promise<{ messag
     console.error({
       tag: 'forgot_password.unexpected_error',
       error: err instanceof Error ? err.message : String(err),
-      timestamp: new Date().toISOString(),
+      timestamp: nowUtc().toISOString(),
     });
   }
 

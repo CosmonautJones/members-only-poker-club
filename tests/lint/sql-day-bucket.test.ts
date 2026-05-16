@@ -41,7 +41,7 @@ describe('sql-day-bucket lint — AC8 sub-cases', () => {
   // ───────────────────────────────────────────────────────────────────────
   // Sub-case 2 — naked day: exactly one finding pointing at the line.
   // ───────────────────────────────────────────────────────────────────────
-  it('flags naked date_trunc(\'day\', x) with exactly one finding', () => {
+  it("flags naked date_trunc('day', x) with exactly one finding", () => {
     const findings: Finding[] = lintSqlDayBucket({
       cwd: REPO_ROOT,
       files: [fixture('naked-day.sql')],
@@ -62,7 +62,7 @@ describe('sql-day-bucket lint — AC8 sub-cases', () => {
   // ───────────────────────────────────────────────────────────────────────
   // Sub-case 3 — naked hour / week / month: one finding each.
   // ───────────────────────────────────────────────────────────────────────
-  it('flags naked date_trunc(\'hour\', x)', () => {
+  it("flags naked date_trunc('hour', x)", () => {
     const findings: Finding[] = lintSqlDayBucket({
       cwd: REPO_ROOT,
       files: [fixture('naked-hour.sql')],
@@ -71,7 +71,7 @@ describe('sql-day-bucket lint — AC8 sub-cases', () => {
     expect(findings[0]!.expr.toLowerCase()).toContain("date_trunc('hour'");
   });
 
-  it('flags naked date_trunc(\'week\', x)', () => {
+  it("flags naked date_trunc('week', x)", () => {
     const findings: Finding[] = lintSqlDayBucket({
       cwd: REPO_ROOT,
       files: [fixture('naked-week.sql')],
@@ -80,7 +80,7 @@ describe('sql-day-bucket lint — AC8 sub-cases', () => {
     expect(findings[0]!.expr.toLowerCase()).toContain("date_trunc('week'");
   });
 
-  it('flags naked date_trunc(\'month\', x)', () => {
+  it("flags naked date_trunc('month', x)", () => {
     const findings: Finding[] = lintSqlDayBucket({
       cwd: REPO_ROOT,
       files: [fixture('naked-month.sql')],
@@ -129,9 +129,7 @@ describe('sql-day-bucket lint — AC8 sub-cases', () => {
     // fixture (the assertion is the scope filter, not the absence of
     // unrelated findings — if a future commit lands a violating SQL under
     // `db/queries/reports/**`, that's a separate bug, not a regression here).
-    const fromOutOfScope = findings.filter((f) =>
-      f.file.includes('out-of-scope'),
-    );
+    const fromOutOfScope = findings.filter((f) => f.file.includes('out-of-scope'));
     expect(fromOutOfScope).toEqual([]);
   });
 
@@ -166,7 +164,7 @@ describe('sql-day-bucket lint — AC8 sub-cases', () => {
 
 describe('sql-day-bucket lint — internals', () => {
   it('stripSqlComments preserves offsets (replaces with same-length whitespace)', () => {
-    const input = "select x; -- comment here\nselect y;";
+    const input = 'select x; -- comment here\nselect y;';
     const stripped = stripSqlComments(input);
     expect(stripped.length).toBe(input.length);
     // The "select x;" prefix is preserved verbatim.
@@ -178,7 +176,7 @@ describe('sql-day-bucket lint — internals', () => {
   });
 
   it('stripSqlComments handles block comments with newlines (preserves newlines)', () => {
-    const input = "select x;\n/* block\n comment */\nselect y;";
+    const input = 'select x;\n/* block\n comment */\nselect y;';
     const stripped = stripSqlComments(input);
     expect(stripped.length).toBe(input.length);
     expect(stripped.split('\n')).toHaveLength(4);

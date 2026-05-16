@@ -57,9 +57,7 @@ const STATUS_OPTIONS = [
 ] as const;
 type StatusFilter = (typeof STATUS_OPTIONS)[number]['value'];
 
-const VALID_STATUSES = new Set<StatusFilter>(
-  STATUS_OPTIONS.map((o) => o.value),
-);
+const VALID_STATUSES = new Set<StatusFilter>(STATUS_OPTIONS.map((o) => o.value));
 
 // ---- Row shapes -----------------------------------------------------------
 
@@ -91,17 +89,11 @@ function formatUtcAndCentral(iso: string): { utc: string; central: string } {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return { utc: iso, central: iso };
 
-  const utcParts = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZone: 'UTC',
-  }).formatToParts(date);
-  const utc = `${pick(utcParts, 'year')}-${pick(utcParts, 'month')}-${pick(utcParts, 'day')} ${pick(utcParts, 'hour')}:${pick(utcParts, 'minute')}:${pick(utcParts, 'second')} UTC`;
+  // UTC: derive from toISOString() (ECMAScript-standard, locale-stable).
+  // Avoids the Intl 'en-CA' midnight-hour='24' quirk on some Node ICU
+  // builds (Linux CI) that rotated 00:00 displays to 24:00 of the prior day.
+  const isoStr = date.toISOString();
+  const utc = `${isoStr.slice(0, 10)} ${isoStr.slice(11, 19)} UTC`;
 
   const centralParts = new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
@@ -133,9 +125,7 @@ function pick(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTyp
 
 // ---- searchParams parsing -------------------------------------------------
 
-function readStatus(
-  searchParams: Record<string, string | string[] | undefined>,
-): StatusFilter {
+function readStatus(searchParams: Record<string, string | string[] | undefined>): StatusFilter {
   const v = searchParams['status'];
   const raw = Array.isArray(v) ? v[0] : v;
   if (raw && VALID_STATUSES.has(raw as StatusFilter)) {
@@ -210,10 +200,9 @@ export default async function PrivacyPage({
             maxWidth: 760,
           }}
         >
-          Members&apos; export and deletion requests. Each pending row can
-          be approved (data export or anonymization) or rejected with a
-          reason. Approval is irreversible — read the typed-confirmation
-          contract on each dialog.
+          Members&apos; export and deletion requests. Each pending row can be approved (data export
+          or anonymization) or rejected with a reason. Approval is irreversible — read the
+          typed-confirmation contract on each dialog.
         </p>
       </header>
 
@@ -308,13 +297,10 @@ function Th({ children }: { children: React.ReactNode }) {
 }
 
 function KindPill({ kind }: { kind: 'export' | 'delete' }) {
-  const bg =
-    kind === 'export' ? 'rgba(74, 138, 207, 0.18)' : 'rgba(207, 34, 46, 0.18)';
+  const bg = kind === 'export' ? 'rgba(74, 138, 207, 0.18)' : 'rgba(207, 34, 46, 0.18)';
   const fg = kind === 'export' ? 'var(--blue-400, #79b8ff)' : 'var(--red-400, #ff7b72)';
   const border =
-    kind === 'export'
-      ? '1px solid rgba(74, 138, 207, 0.45)'
-      : '1px solid rgba(207, 34, 46, 0.45)';
+    kind === 'export' ? '1px solid rgba(74, 138, 207, 0.45)' : '1px solid rgba(207, 34, 46, 0.45)';
   return (
     <span
       data-kind={kind}
@@ -395,11 +381,7 @@ function TableSkeleton() {
 // See the header comment above PrivacyPage for the source-order
 // rationale. JSX reference resolves via function-declaration hoisting.
 
-async function PrivacyQueueBody({
-  status,
-}: {
-  status: StatusFilter;
-}): Promise<JSX.Element> {
+async function PrivacyQueueBody({ status }: { status: StatusFilter }): Promise<JSX.Element> {
   const supabase = createClient();
 
   const { data: requestRows, error } = await supabase
@@ -426,20 +408,15 @@ async function PrivacyQueueBody({
       .select('id, full_name, email')
       .in('id', profileIds);
     if (!profileErr && profileRows) {
-      profilesById = new Map(
-        (profileRows as ProfileRow[]).map((p) => [p.id, p]),
-      );
+      profilesById = new Map((profileRows as ProfileRow[]).map((p) => [p.id, p]));
     }
   }
 
   const resolved: ResolvedRow[] = rows.map((r) => {
     const profile = profilesById.get(r.profile_id);
-    const isAnonymizedDeletion =
-      r.status === 'completed' && r.kind === 'delete';
-    const displayName =
-      profile && !isAnonymizedDeletion ? profile.full_name : '(anonymized)';
-    const displayEmail =
-      profile && !isAnonymizedDeletion ? profile.email : r.requester_email;
+    const isAnonymizedDeletion = r.status === 'completed' && r.kind === 'delete';
+    const displayName = profile && !isAnonymizedDeletion ? profile.full_name : '(anonymized)';
+    const displayEmail = profile && !isAnonymizedDeletion ? profile.email : r.requester_email;
     return { ...r, display_name: displayName, display_email: displayEmail };
   });
 
@@ -505,18 +482,14 @@ async function PrivacyQueueBody({
                   <div style={{ color: 'var(--ivory-200)', fontWeight: 500 }}>
                     {row.display_name}
                   </div>
-                  <div style={{ color: 'var(--ivory-400)', fontSize: 12 }}>
-                    {row.display_email}
-                  </div>
+                  <div style={{ color: 'var(--ivory-400)', fontSize: 12 }}>{row.display_email}</div>
                 </td>
                 <td style={{ padding: '14px 24px' }}>
                   <KindPill kind={row.kind} />
                 </td>
                 <td style={{ padding: '14px 24px' }}>
                   <div>{utc}</div>
-                  <div style={{ color: 'var(--ivory-400)', fontSize: 12 }}>
-                    {central}
-                  </div>
+                  <div style={{ color: 'var(--ivory-400)', fontSize: 12 }}>{central}</div>
                 </td>
                 <td style={{ padding: '14px 24px' }}>
                   {row.status === 'pending' ? (

@@ -67,12 +67,10 @@ import { revalidateTag } from 'next/cache';
 import { requireRole } from '@/lib/auth/requireRole';
 import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { nowUtc } from '@/lib/time';
 
 import { SelfEditViolation, RejectReasonInvalid } from '@/app/(admin)/admin/_errors';
-import {
-  trackAdminEvent,
-  readVerificationQueueDepth,
-} from '@/lib/analytics/admin-events';
+import { trackAdminEvent, readVerificationQueueDepth } from '@/lib/analytics/admin-events';
 
 // ---- Public types ---------------------------------------------------------
 
@@ -162,9 +160,7 @@ export async function rejectVerification(
           | { id_verification_rejected_at: string | Date | null }
           | undefined;
         if (!beforeRow) {
-          throw new Error(
-            `rejectVerification: profile not found (id=${params.profileId})`,
-          );
+          throw new Error(`rejectVerification: profile not found (id=${params.profileId})`);
         }
 
         await txInner.query(
@@ -281,9 +277,7 @@ function defaultDb(): TransactionRunner {
   const asStringOrNull = (v: unknown): string | null => {
     if (v === null || v === undefined) return null;
     if (typeof v === 'string') return v;
-    throw new Error(
-      `rejectVerification defaultDb: expected string|null param, got ${typeof v}`,
-    );
+    throw new Error(`rejectVerification defaultDb: expected string|null param, got ${typeof v}`);
   };
   const asString = (v: unknown): string => {
     if (typeof v === 'string') return v;
@@ -327,7 +321,7 @@ function defaultDb(): TransactionRunner {
         const { error } = await adminClient
           .from('profiles')
           .update({
-            id_verification_rejected_at: new Date().toISOString(),
+            id_verification_rejected_at: nowUtc().toISOString(),
             id_verification_rejected_reason: reason,
           })
           .eq('id', id);

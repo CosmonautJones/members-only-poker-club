@@ -22,28 +22,25 @@ export const contentType = 'image/png';
 
 export default function Icon() {
   return new ImageResponse(
-    (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background:
-            'radial-gradient(circle at 50% 40%, #2a2620 0%, #15130F 60%, #0B0B0B 100%)',
-          borderRadius: '50%',
-          border: '2px solid #C9A24A',
-          color: '#C9A24A',
-          fontFamily: 'serif',
-          fontWeight: 600,
-          fontSize: 16,
-          letterSpacing: 1,
-        }}
-      >
-        MO
-      </div>
-    ),
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'radial-gradient(circle at 50% 40%, #2a2620 0%, #15130F 60%, #0B0B0B 100%)',
+        borderRadius: '50%',
+        border: '2px solid #C9A24A',
+        color: '#C9A24A',
+        fontFamily: 'serif',
+        fontWeight: 600,
+        fontSize: 16,
+        letterSpacing: 1,
+      }}
+    >
+      MO
+    </div>,
     { ...size },
   );
 }

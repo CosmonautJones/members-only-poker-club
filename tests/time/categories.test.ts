@@ -83,7 +83,7 @@ describe('time categories', () => {
   });
 
   describe('jurisdictionalDate(d, jurisdiction)', () => {
-    it("wraps an ISO YYYY-MM-DD string — the wrapped value is a STRING, NOT a Date (calendar dates have no instant)", () => {
+    it('wraps an ISO YYYY-MM-DD string — the wrapped value is a STRING, NOT a Date (calendar dates have no instant)', () => {
       const j = jurisdictionalDate('2026-04-15', 'US-FED');
       expect(typeof j.date).toBe('string');
       expect(j.date).toBe('2026-04-15');

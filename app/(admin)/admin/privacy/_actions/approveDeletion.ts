@@ -62,11 +62,9 @@ import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { softDeleteProfile } from '@/lib/privacy/soft-delete';
 import { trackAdminEvent } from '@/lib/analytics/admin-events';
+import { nowUtc } from '@/lib/time';
 
-import {
-  RequestNotPending,
-  ConfirmEmailMismatch,
-} from '@/app/(admin)/admin/_errors';
+import { RequestNotPending, ConfirmEmailMismatch } from '@/app/(admin)/admin/_errors';
 
 // ---- Public types ---------------------------------------------------------
 
@@ -132,17 +130,14 @@ export async function approveDeletion(
   // written for a missing row (the row id might be a typo / stale
   // queue link, not an operational event worth auditing).
   const probeResult = await runner.transaction(async (tx) => {
-    const probe = await tx.query(
-      'SELECT profile_id FROM privacy_requests WHERE id = $1',
-      [params.requestId],
-    );
+    const probe = await tx.query('SELECT profile_id FROM privacy_requests WHERE id = $1', [
+      params.requestId,
+    ]);
     const row = probe.rows[0] as { profile_id: string } | undefined;
     return row ?? null;
   });
   if (!probeResult) {
-    throw new RequestNotPending(
-      `approveDeletion: request not found (id=${params.requestId})`,
-    );
+    throw new RequestNotPending(`approveDeletion: request not found (id=${params.requestId})`);
   }
   const profileId = probeResult.profile_id;
 
@@ -230,13 +225,10 @@ export async function approveDeletion(
         // The audit row's before captures null (the soft-delete helper
         // guarantees the profile was non-deleted at the SELECT FOR
         // UPDATE moment via its `WHERE deleted_at IS NULL` clause).
-        const afterRead = await txInner.query(
-          'SELECT deleted_at FROM profiles WHERE id = $1',
-          [beforeRow.profile_id],
-        );
-        const afterRow = afterRead.rows[0] as
-          | { deleted_at: string | Date | null }
-          | undefined;
+        const afterRead = await txInner.query('SELECT deleted_at FROM profiles WHERE id = $1', [
+          beforeRow.profile_id,
+        ]);
+        const afterRow = afterRead.rows[0] as { deleted_at: string | Date | null } | undefined;
         const deletedAtAfter =
           afterRow?.deleted_at instanceof Date
             ? afterRow.deleted_at.toISOString()
@@ -271,8 +263,7 @@ export async function approveDeletion(
   try {
     console.info('approveDeletion: confirmation-email-enqueue-stub', {
       requestId: params.requestId,
-      requester_email_length:
-        captured.requesterEmail !== null ? captured.requesterEmail.length : 0,
+      requester_email_length: captured.requesterEmail !== null ? captured.requesterEmail.length : 0,
     });
   } catch (err) {
     console.warn('approveDeletion: email-stub-skipped', {
@@ -311,9 +302,7 @@ function defaultDb(): TransactionRunner {
   const asStringOrNull = (v: unknown): string | null => {
     if (v === null || v === undefined) return null;
     if (typeof v === 'string') return v;
-    throw new Error(
-      `approveDeletion defaultDb: expected string|null param, got ${typeof v}`,
-    );
+    throw new Error(`approveDeletion defaultDb: expected string|null param, got ${typeof v}`);
   };
   const asString = (v: unknown): string => {
     if (typeof v === 'string') return v;
@@ -326,7 +315,9 @@ function defaultDb(): TransactionRunner {
       const normalized = sql.replace(/\s+/g, ' ').trim();
 
       // SELECT profile_id FROM privacy_requests WHERE id = $1 (pre-probe)
-      if (/^SELECT\s+profile_id\s+FROM\s+privacy_requests\s+WHERE\s+id\s*=\s*\$1/i.test(normalized)) {
+      if (
+        /^SELECT\s+profile_id\s+FROM\s+privacy_requests\s+WHERE\s+id\s*=\s*\$1/i.test(normalized)
+      ) {
         const id = asString(params?.[0]);
         const { data, error } = await adminClient
           .from('privacy_requests')
@@ -334,9 +325,7 @@ function defaultDb(): TransactionRunner {
           .eq('id', id)
           .maybeSingle();
         if (error) {
-          throw new Error(
-            `approveDeletion defaultDb: SELECT profile_id failed: ${error.message}`,
-          );
+          throw new Error(`approveDeletion defaultDb: SELECT profile_id failed: ${error.message}`);
         }
         return { rows: data ? [data] : [] };
       }
@@ -384,31 +373,25 @@ function defaultDb(): TransactionRunner {
           .eq('id', id)
           .maybeSingle();
         if (error) {
-          throw new Error(
-            `approveDeletion defaultDb: SELECT deleted_at failed: ${error.message}`,
-          );
+          throw new Error(`approveDeletion defaultDb: SELECT deleted_at failed: ${error.message}`);
         }
         return { rows: data ? [data] : [] };
       }
 
       // UPDATE privacy_requests SET status='completed', resolved_at=now(), resolved_by=$2 WHERE id=$1
-      if (
-        /^UPDATE\s+privacy_requests\s+SET\s+status\s*=\s*'completed'/i.test(normalized)
-      ) {
+      if (/^UPDATE\s+privacy_requests\s+SET\s+status\s*=\s*'completed'/i.test(normalized)) {
         const id = asString(params?.[0]);
         const resolvedBy = asStringOrNull(params?.[1]);
         const { error } = await adminClient
           .from('privacy_requests')
           .update({
             status: 'completed',
-            resolved_at: new Date().toISOString(),
+            resolved_at: nowUtc().toISOString(),
             resolved_by: resolvedBy,
           })
           .eq('id', id);
         if (error) {
-          throw new Error(
-            `approveDeletion defaultDb: UPDATE completed failed: ${error.message}`,
-          );
+          throw new Error(`approveDeletion defaultDb: UPDATE completed failed: ${error.message}`);
         }
         return { rows: [] };
       }
@@ -435,9 +418,7 @@ function defaultDb(): TransactionRunner {
         };
         const { error } = await adminClient.from('audit_log').insert(row);
         if (error) {
-          throw new Error(
-            `approveDeletion defaultDb: audit_log INSERT failed: ${error.message}`,
-          );
+          throw new Error(`approveDeletion defaultDb: audit_log INSERT failed: ${error.message}`);
         }
         return { rows: [] };
       }

@@ -105,10 +105,7 @@ function MemberShell({ profile, children }: { profile: Profile; children: React.
           <Wordmark size="sm" showSubtitle={true} />
         </Link>
 
-        <div
-          className="eyebrow"
-          style={{ fontSize: 10, padding: '0 8px', marginBottom: 8 }}
-        >
+        <div className="eyebrow" style={{ fontSize: 10, padding: '0 8px', marginBottom: 8 }}>
           Portal
         </div>
 

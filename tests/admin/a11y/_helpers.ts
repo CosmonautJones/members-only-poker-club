@@ -93,9 +93,7 @@ export async function expectNoSeriousAxeViolations(container: Element): Promise<
  * RTL `render`. Mirrors `tests/admin/verifications-page.test.tsx`'s
  * `resolveAsyncChildren` — any change here should land there too.
  */
-export async function resolveAsyncChildren(
-  node: React.ReactNode,
-): Promise<React.ReactElement> {
+export async function resolveAsyncChildren(node: React.ReactNode): Promise<React.ReactElement> {
   if (
     node &&
     typeof node === 'object' &&

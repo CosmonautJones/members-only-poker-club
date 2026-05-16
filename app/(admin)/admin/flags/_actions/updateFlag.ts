@@ -68,6 +68,7 @@ import { requireRole } from '@/lib/auth/requireRole';
 import type { Role } from '@/lib/auth/types';
 import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { nowUtc } from '@/lib/time';
 
 import { NoChange } from '@/app/(admin)/admin/_errors';
 import { trackAdminEvent, type AdminFlagField } from '@/lib/analytics/admin-events';
@@ -456,13 +457,10 @@ function defaultDb(): TransactionRunner {
         // production-fidelity approach is to set the column to a JS-side
         // ISO timestamp. The pglite tests get the SQL-side `now()` (more
         // accurate); production drifts by milliseconds.
-        update.updated_at = new Date().toISOString();
+        update.updated_at = nowUtc().toISOString();
 
         const key = asString(params?.[(params?.length ?? 1) - 1]);
-        const { error } = await adminClient
-          .from('feature_flags')
-          .update(update)
-          .eq('key', key);
+        const { error } = await adminClient.from('feature_flags').update(update).eq('key', key);
         if (error) {
           throw new Error(`updateFlag defaultDb: UPDATE failed: ${error.message}`);
         }

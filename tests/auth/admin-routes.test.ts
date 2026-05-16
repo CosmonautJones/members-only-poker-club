@@ -326,7 +326,7 @@ describe('admin layout source invariants (AC4)', () => {
   // string in the layout) or that depend on Next.js internals we'd
   // rather not stub.
 
-  it('first body statement of the default-exported async function is `await requireRole(\'manager\')`', () => {
+  it("first body statement of the default-exported async function is `await requireRole('manager')`", () => {
     // Pin AC4-26: "first body statement IS `await requireRole('manager')`".
     // The walker is robust to comments, blank lines, and parameter
     // destructuring. We scan from the `export default async function`

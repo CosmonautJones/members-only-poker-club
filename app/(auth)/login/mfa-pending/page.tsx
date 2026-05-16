@@ -132,9 +132,8 @@ export default async function MfaPendingPage() {
             lineHeight: 1.65,
           }}
         >
-          The administrative consoles require multi-factor authentication.
-          Your account is signed in but has not yet enrolled a second
-          factor, so this surface is blocked.
+          The administrative consoles require multi-factor authentication. Your account is signed in
+          but has not yet enrolled a second factor, so this surface is blocked.
         </p>
       </header>
 

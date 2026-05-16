@@ -303,10 +303,9 @@ describe('trackAdminEvent / premortem R4 PII guard', () => {
     const FORBIDDEN_KEY_RE = /email|profile_id|actor_id|target_id|user_id/i;
     for (const ev of driverMockState.events) {
       for (const k of Object.keys(ev.props)) {
-        expect(
-          FORBIDDEN_KEY_RE.test(k),
-          `event ${ev.name} retained forbidden key ${k}`,
-        ).toBe(false);
+        expect(FORBIDDEN_KEY_RE.test(k), `event ${ev.name} retained forbidden key ${k}`).toBe(
+          false,
+        );
       }
     }
   });

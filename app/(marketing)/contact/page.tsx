@@ -49,7 +49,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Contact',
-    description: 'Find Members Only Poker Social Club in Houston, Texas. Address, hours, directions.',
+    description:
+      'Find Members Only Poker Social Club in Houston, Texas. Address, hours, directions.',
     images: ['/og?title=Contact&subtitle=Members%20Only%20Poker%20Social%20Club'],
   },
 };
@@ -167,11 +168,7 @@ export default function ContactPage() {
           }}
         >
           The room runs 24/7. Tournament start times are the only thing on a schedule — see the{' '}
-          <a
-            href="/games"
-            className="gold-text"
-            style={{ textDecoration: 'underline' }}
-          >
+          <a href="/games" className="gold-text" style={{ textDecoration: 'underline' }}>
             games page
           </a>{' '}
           for those.

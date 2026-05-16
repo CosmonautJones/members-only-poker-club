@@ -41,9 +41,8 @@ const requireRoleState = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth/requireRole', async () => {
-  const { InsufficientRoleError } = await vi.importActual<
-    typeof import('@/lib/auth/errors')
-  >('@/lib/auth/errors');
+  const { InsufficientRoleError } =
+    await vi.importActual<typeof import('@/lib/auth/errors')>('@/lib/auth/errors');
   return {
     requireRole: vi.fn(async (required: 'manager' | 'owner') => {
       const actor = requireRoleState.currentActor;
@@ -172,9 +171,7 @@ beforeAll(async () => {
     label: string,
     verifiedAt: string | null = null,
   ): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -212,17 +209,17 @@ beforeEach(async () => {
   // escape hatch ADR-0006 documents for emergency repair, used here
   // for test isolation).
   await asServiceRole(pg);
-  await pg.query(
-    'UPDATE profiles SET id_verified_at = $1 WHERE id = $2',
-    ['2026-01-15T10:00:00.000Z', target1],
-  );
+  await pg.query('UPDATE profiles SET id_verified_at = $1 WHERE id = $2', [
+    '2026-01-15T10:00:00.000Z',
+    target1,
+  ]);
   await pg.query('UPDATE profiles SET id_verified_at = $1 WHERE id = $2', [null, target2]);
   await pg.query('TRUNCATE TABLE audit_log RESTART IDENTITY');
 });
 
-async function readAuditRows(targetId: string): Promise<
-  Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>
-> {
+async function readAuditRows(
+  targetId: string,
+): Promise<Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>> {
   await asServiceRole(pg);
   const result = await pg.query<{
     action: string;
@@ -314,10 +311,7 @@ describe('requestReverification — AC16 self-edit guard', () => {
     await asAuthenticated(pg, manager1);
 
     await expect(
-      requestReverification(
-        { profileId: manager1, reason: 'self-edit attempt' },
-        pgliteRunner(pg),
-      ),
+      requestReverification({ profileId: manager1, reason: 'self-edit attempt' }, pgliteRunner(pg)),
     ).rejects.toBeInstanceOf(SelfEditViolation);
 
     const rows = await readAuditRows(manager1);
@@ -350,10 +344,7 @@ describe('requestReverification — AC16 reason length validation', () => {
     await asAuthenticated(pg, manager1);
 
     await expect(
-      requestReverification(
-        { profileId: target1, reason: 'x'.repeat(1001) },
-        pgliteRunner(pg),
-      ),
+      requestReverification({ profileId: target1, reason: 'x'.repeat(1001) }, pgliteRunner(pg)),
     ).rejects.toBeInstanceOf(RangeError);
 
     const rows = await readAuditRows(target1);
@@ -365,10 +356,7 @@ describe('requestReverification — AC16 reason length validation', () => {
     await setTestUid(pg, manager1);
     await asAuthenticated(pg, manager1);
 
-    await requestReverification(
-      { profileId: target1, reason: 'x'.repeat(1000) },
-      pgliteRunner(pg),
-    );
+    await requestReverification({ profileId: target1, reason: 'x'.repeat(1000) }, pgliteRunner(pg));
 
     const rows = await readAuditRows(target1);
     expect(rows).toHaveLength(1);
@@ -407,9 +395,7 @@ describe('requestReverification — AC28 no PII in audit row', () => {
 
   it('source file does not reference PII column names in before/after object literals', () => {
     const src = readFileSync(ACTION_PATH, 'utf8');
-    const stripped = src
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/\/\/.*$/gm, '');
+    const stripped = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
     expect(stripped).not.toMatch(/\bemail\s*:/);
     expect(stripped).not.toMatch(/\bfull_name\s*:/);
     expect(stripped).not.toMatch(/\bphone\s*:/);
@@ -427,18 +413,18 @@ describe('requestReverification — AC28 no PII in audit row', () => {
 // Source-shape invariants (AC5, AC35)
 // =============================================================================
 describe('requestReverification — source-shape invariants', () => {
-  it('first line is `import \'server-only\';`', () => {
+  it("first line is `import 'server-only';`", () => {
     const src = readFileSync(ACTION_PATH, 'utf8').replace(/^﻿/, '');
     const firstLine = src.split(/\r?\n/)[0]!.trim();
     expect(firstLine).toBe("import 'server-only';");
   });
 
-  it('contains the literal `await requireRole(\'manager\')` call', () => {
+  it("contains the literal `await requireRole('manager')` call", () => {
     const src = readFileSync(ACTION_PATH, 'utf8');
     expect(src).toMatch(/await\s+requireRole\(\s*['"]manager['"]\s*\)/);
   });
 
-  it('contains the literal `revalidateTag(\'admin-dashboard-counts\')` call (AC35)', () => {
+  it("contains the literal `revalidateTag('admin-dashboard-counts')` call (AC35)", () => {
     const src = readFileSync(ACTION_PATH, 'utf8');
     expect(src).toMatch(/revalidateTag\(\s*['"]admin-dashboard-counts['"]\s*\)/);
   });

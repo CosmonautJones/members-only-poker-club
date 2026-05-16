@@ -20,11 +20,7 @@
  */
 import type { IanaZone } from './zones';
 
-export function formatInZone(
-  d: Date,
-  zone: IanaZone,
-  opts?: Intl.DateTimeFormatOptions,
-): string {
+export function formatInZone(d: Date, zone: IanaZone, opts?: Intl.DateTimeFormatOptions): string {
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: zone,
     ...opts,

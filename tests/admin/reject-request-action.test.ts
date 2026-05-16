@@ -30,9 +30,8 @@ const requireRoleState = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth/requireRole', async () => {
-  const { InsufficientRoleError } = await vi.importActual<
-    typeof import('@/lib/auth/errors')
-  >('@/lib/auth/errors');
+  const { InsufficientRoleError } =
+    await vi.importActual<typeof import('@/lib/auth/errors')>('@/lib/auth/errors');
   return {
     requireRole: vi.fn(async (required: 'manager' | 'owner') => {
       const actor = requireRoleState.currentActor;
@@ -72,10 +71,7 @@ import {
   type TransactionRunner,
 } from '@/app/(admin)/admin/privacy/_actions/rejectRequest';
 // eslint-disable-next-line import/first
-import {
-  RequestNotPending,
-  RejectReasonInvalid,
-} from '@/app/(admin)/admin/_errors';
+import { RequestNotPending, RejectReasonInvalid } from '@/app/(admin)/admin/_errors';
 // eslint-disable-next-line import/first
 import { setupAuthStub, resetAuthStub, setTestUid } from '../db/_fixtures/auth-stub';
 // eslint-disable-next-line import/first
@@ -101,7 +97,14 @@ const MIG_0002 = resolve(
   '0002_profiles_and_roles.sql',
 );
 const MIG_0003 = resolve(TEST_DIR, '..', '..', 'supabase', 'migrations', '0003_audit_log.sql');
-const MIG_0005 = resolve(TEST_DIR, '..', '..', 'supabase', 'migrations', '0005_privacy_requests.sql');
+const MIG_0005 = resolve(
+  TEST_DIR,
+  '..',
+  '..',
+  'supabase',
+  'migrations',
+  '0005_privacy_requests.sql',
+);
 const ACTION_PATH = resolve(
   TEST_DIR,
   '..',
@@ -159,9 +162,7 @@ beforeAll(async () => {
   await runSqlBlock(readFileSync(MIG_0005, 'utf8'));
 
   const seedAs = async (role: 'member' | 'manager', label: string): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -221,9 +222,9 @@ beforeEach(async () => {
   alreadyCompletedId = completed.rows[0]!.id;
 });
 
-async function readAuditRows(targetId: string): Promise<
-  Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>
-> {
+async function readAuditRows(
+  targetId: string,
+): Promise<Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>> {
   await asServiceRole(pg);
   const result = await pg.query<{
     action: string;
@@ -240,9 +241,7 @@ async function readAuditRows(targetId: string): Promise<
   return result.rows;
 }
 
-async function readRequest(
-  id: string,
-): Promise<{ status: string; reject_reason: string | null }> {
+async function readRequest(id: string): Promise<{ status: string; reject_reason: string | null }> {
   await asServiceRole(pg);
   const r = await pg.query<{ status: string; reject_reason: string | null }>(
     'SELECT status, reject_reason FROM privacy_requests WHERE id = $1',
@@ -293,10 +292,7 @@ describe('rejectRequest — AC26 happy path', () => {
     await setTestUid(pg, manager1);
     await asAuthenticated(pg, manager1);
 
-    await rejectRequest(
-      { requestId: pendingExportId, reason: 'x' },
-      pgliteRunner(pg),
-    );
+    await rejectRequest({ requestId: pendingExportId, reason: 'x' }, pgliteRunner(pg));
 
     const rows = await readAuditRows(pendingExportId);
     expect(rows).toHaveLength(1);
@@ -310,10 +306,7 @@ describe('rejectRequest — AC26 happy path', () => {
     await asAuthenticated(pg, manager1);
 
     const reasonText = 'r'.repeat(500);
-    await rejectRequest(
-      { requestId: pendingExportId, reason: reasonText },
-      pgliteRunner(pg),
-    );
+    await rejectRequest({ requestId: pendingExportId, reason: reasonText }, pgliteRunner(pg));
 
     const rows = await readAuditRows(pendingExportId);
     expect(rows).toHaveLength(1);
@@ -360,10 +353,7 @@ describe('rejectRequest — reason length validation', () => {
     await asAuthenticated(pg, manager1);
 
     await expect(
-      rejectRequest(
-        { requestId: pendingExportId, reason: 'x'.repeat(501) },
-        pgliteRunner(pg),
-      ),
+      rejectRequest({ requestId: pendingExportId, reason: 'x'.repeat(501) }, pgliteRunner(pg)),
     ).rejects.toBeInstanceOf(RejectReasonInvalid);
 
     const rows = await readAuditRows(pendingExportId);
@@ -381,10 +371,7 @@ describe('rejectRequest — status guard', () => {
     await asAuthenticated(pg, manager1);
 
     await expect(
-      rejectRequest(
-        { requestId: alreadyCompletedId, reason: 'too late' },
-        pgliteRunner(pg),
-      ),
+      rejectRequest({ requestId: alreadyCompletedId, reason: 'too late' }, pgliteRunner(pg)),
     ).rejects.toBeInstanceOf(RequestNotPending);
 
     const rows = await readAuditRows(alreadyCompletedId);

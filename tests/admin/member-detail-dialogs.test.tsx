@@ -137,9 +137,7 @@ describe('AC18 — typed-phrase gate', () => {
     const user = userEvent.setup();
     renderPanel();
     await user.click(screen.getByRole('button', { name: 'Change role' }));
-    const confirm = screen.getByTestId(
-      'typed-confirmation-confirm',
-    ) as HTMLButtonElement;
+    const confirm = screen.getByTestId('typed-confirmation-confirm') as HTMLButtonElement;
     expect(confirm.disabled).toBe(true);
 
     const input = screen.getByTestId('typed-confirmation-input');
@@ -154,9 +152,7 @@ describe('AC18 — typed-phrase gate', () => {
     const user = userEvent.setup();
     renderPanel();
     await user.click(screen.getByRole('button', { name: 'Request re-verification' }));
-    const confirm = screen.getByTestId(
-      'typed-confirmation-confirm',
-    ) as HTMLButtonElement;
+    const confirm = screen.getByTestId('typed-confirmation-confirm') as HTMLButtonElement;
     expect(confirm.disabled).toBe(true);
     await user.type(screen.getByTestId('typed-confirmation-input'), 'approve');
     expect(confirm.disabled).toBe(false);
@@ -166,9 +162,7 @@ describe('AC18 — typed-phrase gate', () => {
     const user = userEvent.setup();
     renderPanel();
     await user.click(screen.getByRole('button', { name: 'Open refund flow' }));
-    const confirm = screen.getByTestId(
-      'typed-confirmation-confirm',
-    ) as HTMLButtonElement;
+    const confirm = screen.getByTestId('typed-confirmation-confirm') as HTMLButtonElement;
     // No input rendered for the redirect-only dialog.
     expect(screen.queryByTestId('typed-confirmation-input')).toBeNull();
     expect(confirm.disabled).toBe(false);
@@ -178,9 +172,7 @@ describe('AC18 — typed-phrase gate', () => {
     const user = userEvent.setup();
     renderPanel();
     await user.click(screen.getByRole('button', { name: 'Initiate deletion' }));
-    const confirm = screen.getByTestId(
-      'typed-confirmation-confirm',
-    ) as HTMLButtonElement;
+    const confirm = screen.getByTestId('typed-confirmation-confirm') as HTMLButtonElement;
     expect(confirm.disabled).toBe(true);
 
     const input = screen.getByTestId('typed-confirmation-input');
@@ -196,9 +188,7 @@ describe('AC18 — typed-phrase gate', () => {
     renderPanel();
     await user.click(screen.getByRole('button', { name: 'Change role' }));
     await user.type(screen.getByTestId('typed-confirmation-input'), 'APPROVE');
-    const confirm = screen.getByTestId(
-      'typed-confirmation-confirm',
-    ) as HTMLButtonElement;
+    const confirm = screen.getByTestId('typed-confirmation-confirm') as HTMLButtonElement;
     expect(confirm.disabled).toBe(true);
   });
 });

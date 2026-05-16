@@ -14,15 +14,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-const SIGNUP_PAGE = path.resolve(
-  __dirname,
-  '..',
-  '..',
-  'app',
-  '(auth)',
-  'signup',
-  'page.tsx',
-);
+const SIGNUP_PAGE = path.resolve(__dirname, '..', '..', 'app', '(auth)', 'signup', 'page.tsx');
 
 describe('/signup date input readability (owner bug 2026-05-15)', () => {
   const src = readFileSync(SIGNUP_PAGE, 'utf8');

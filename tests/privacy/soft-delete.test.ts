@@ -42,9 +42,30 @@ const __filename_local =
     : `${__dirname}/__placeholder__`;
 const TEST_DIR = typeof __dirname === 'undefined' ? dirname(__filename_local) : __dirname;
 
-const MIGRATION_0002 = resolve(TEST_DIR, '..', '..', 'supabase', 'migrations', '0002_profiles_and_roles.sql');
-const MIGRATION_0003 = resolve(TEST_DIR, '..', '..', 'supabase', 'migrations', '0003_audit_log.sql');
-const MIGRATION_0004 = resolve(TEST_DIR, '..', '..', 'supabase', 'migrations', '0004_privacy_soft_delete.sql');
+const MIGRATION_0002 = resolve(
+  TEST_DIR,
+  '..',
+  '..',
+  'supabase',
+  'migrations',
+  '0002_profiles_and_roles.sql',
+);
+const MIGRATION_0003 = resolve(
+  TEST_DIR,
+  '..',
+  '..',
+  'supabase',
+  'migrations',
+  '0003_audit_log.sql',
+);
+const MIGRATION_0004 = resolve(
+  TEST_DIR,
+  '..',
+  '..',
+  'supabase',
+  'migrations',
+  '0004_privacy_soft_delete.sql',
+);
 const SOFT_DELETE_SRC = resolve(TEST_DIR, '..', '..', 'lib', 'privacy', 'soft-delete.ts');
 
 let pg: PGlite;
@@ -56,7 +77,9 @@ async function runSqlBlock(sql: string): Promise<void> {
 
 // Seed an auth.users row + matching profile. Caller must ensure uid is null
 // (service-role) before calling so RLS doesn't deny the INSERT.
-async function seedUser(overrides: Parameters<typeof seedProfile>[1] = {}): Promise<{ id: string }> {
+async function seedUser(
+  overrides: Parameters<typeof seedProfile>[1] = {},
+): Promise<{ id: string }> {
   // Insert into auth.users first (FK target), get the generated uuid.
   const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
   const id = u.rows[0]!.id;
@@ -151,7 +174,10 @@ describe('softDeleteProfile', () => {
     // Read back as superuser (service-role). The query uses RESET ROLE (superuser)
     // so it bypasses RLS to read the now-deleted row.
     await asServiceRole(pg);
-    const rows = await pg.query<{ full_name: string }>('SELECT full_name FROM profiles WHERE id = $1', [userId]);
+    const rows = await pg.query<{ full_name: string }>(
+      'SELECT full_name FROM profiles WHERE id = $1',
+      [userId],
+    );
     const fullName = rows.rows[0]?.full_name;
     expect(fullName).toMatch(/^del:[0-9a-f]{64}$/);
   });
@@ -163,7 +189,9 @@ describe('softDeleteProfile', () => {
     await softDeleteProfile(userId, db);
 
     await asServiceRole(pg);
-    const rows = await pg.query<{ email: string }>('SELECT email FROM profiles WHERE id = $1', [userId]);
+    const rows = await pg.query<{ email: string }>('SELECT email FROM profiles WHERE id = $1', [
+      userId,
+    ]);
     const email = rows.rows[0]?.email;
     expect(email).toMatch(/^del:[0-9a-f]{64}@deleted\.local$/);
   });
@@ -175,7 +203,10 @@ describe('softDeleteProfile', () => {
     await softDeleteProfile(userId, db);
 
     await asServiceRole(pg);
-    const rows = await pg.query<{ phone: string | null }>('SELECT phone FROM profiles WHERE id = $1', [userId]);
+    const rows = await pg.query<{ phone: string | null }>(
+      'SELECT phone FROM profiles WHERE id = $1',
+      [userId],
+    );
     expect(rows.rows[0]?.phone).toBeNull();
   });
 
@@ -186,7 +217,10 @@ describe('softDeleteProfile', () => {
     await softDeleteProfile(userId, db);
 
     await asServiceRole(pg);
-    const rows = await pg.query<{ deleted_at: string | null }>('SELECT deleted_at FROM profiles WHERE id = $1', [userId]);
+    const rows = await pg.query<{ deleted_at: string | null }>(
+      'SELECT deleted_at FROM profiles WHERE id = $1',
+      [userId],
+    );
     expect(rows.rows[0]?.deleted_at).not.toBeNull();
   });
 
@@ -209,8 +243,12 @@ describe('softDeleteProfile', () => {
     await softDeleteProfile(idB, db);
 
     await asServiceRole(pg);
-    const rowsA = await pg.query<{ email: string }>('SELECT email FROM profiles WHERE id = $1', [idA]);
-    const rowsB = await pg.query<{ email: string }>('SELECT email FROM profiles WHERE id = $1', [idB]);
+    const rowsA = await pg.query<{ email: string }>('SELECT email FROM profiles WHERE id = $1', [
+      idA,
+    ]);
+    const rowsB = await pg.query<{ email: string }>('SELECT email FROM profiles WHERE id = $1', [
+      idB,
+    ]);
 
     const emailA = rowsA.rows[0]?.email;
     const emailB = rowsB.rows[0]?.email;
@@ -230,7 +268,10 @@ describe('softDeleteProfile', () => {
     await softDeleteProfile(userId, db);
 
     await asServiceRole(pg);
-    const rows = await pg.query<{ id: string; dob: string }>('SELECT id, dob FROM profiles WHERE id = $1', [userId]);
+    const rows = await pg.query<{ id: string; dob: string }>(
+      'SELECT id, dob FROM profiles WHERE id = $1',
+      [userId],
+    );
     const row = rows.rows[0];
     expect(row?.id).toBe(userId);
     // pglite may return date as string in various formats; check it still contains the date.

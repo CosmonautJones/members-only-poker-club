@@ -38,9 +38,8 @@ const requireRoleState = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth/requireRole', async () => {
-  const { InsufficientRoleError } = await vi.importActual<
-    typeof import('@/lib/auth/errors')
-  >('@/lib/auth/errors');
+  const { InsufficientRoleError } =
+    await vi.importActual<typeof import('@/lib/auth/errors')>('@/lib/auth/errors');
   return {
     requireRole: vi.fn(async (required: 'manager' | 'owner') => {
       const actor = requireRoleState.currentActor;
@@ -71,10 +70,7 @@ vi.mock('@/lib/supabase/admin', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import {
-  updateFlag,
-  type TransactionRunner,
-} from '@/app/(admin)/admin/flags/_actions/updateFlag';
+import { updateFlag, type TransactionRunner } from '@/app/(admin)/admin/flags/_actions/updateFlag';
 // eslint-disable-next-line import/first
 import { NoChange } from '@/app/(admin)/admin/_errors';
 // eslint-disable-next-line import/first
@@ -158,9 +154,7 @@ beforeAll(async () => {
   await runSqlBlock(readFileSync(MIG_0003, 'utf8'));
 
   const seedAs = async (role: 'cashier' | 'manager', label: string): Promise<string> => {
-    const u = await pg.query<{ id: string }>(
-      'INSERT INTO auth.users DEFAULT VALUES RETURNING id',
-    );
+    const u = await pg.query<{ id: string }>('INSERT INTO auth.users DEFAULT VALUES RETURNING id');
     const id = u.rows[0]!.id;
     const profile = await seedProfile(pg, {
       id,
@@ -203,9 +197,9 @@ beforeEach(async () => {
   );
 });
 
-async function readAuditRows(targetKey: string): Promise<
-  Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>
-> {
+async function readAuditRows(
+  targetKey: string,
+): Promise<Array<{ action: string; actor_id: string | null; before: unknown; after: unknown }>> {
   await asServiceRole(pg);
   const result = await pg.query<{
     action: string;
@@ -252,10 +246,7 @@ describe('updateFlag — AC22 audit event selection (single-field changes)', () 
     await setTestUid(pg, manager1);
     await asAuthenticated(pg, manager1);
 
-    const result = await updateFlag(
-      { key: TEST_FLAG_KEY, enabled: true },
-      pgliteRunner(pg),
-    );
+    const result = await updateFlag({ key: TEST_FLAG_KEY, enabled: true }, pgliteRunner(pg));
     expect(result).toEqual({ ok: true });
 
     const flag = await readFlag(TEST_FLAG_KEY);
@@ -295,10 +286,7 @@ describe('updateFlag — AC22 audit event selection (single-field changes)', () 
     await setTestUid(pg, manager1);
     await asAuthenticated(pg, manager1);
 
-    await updateFlag(
-      { key: TEST_FLAG_KEY, allowlist: [manager1] },
-      pgliteRunner(pg),
-    );
+    await updateFlag({ key: TEST_FLAG_KEY, allowlist: [manager1] }, pgliteRunner(pg));
 
     const rows = await readAuditRows(TEST_FLAG_KEY);
     expect(rows).toHaveLength(1);
@@ -313,10 +301,7 @@ describe('updateFlag — AC22 audit event selection (single-field changes)', () 
     await setTestUid(pg, manager1);
     await asAuthenticated(pg, manager1);
 
-    await updateFlag(
-      { key: TEST_FLAG_KEY, roleGate: 'manager' },
-      pgliteRunner(pg),
-    );
+    await updateFlag({ key: TEST_FLAG_KEY, roleGate: 'manager' }, pgliteRunner(pg));
 
     const rows = await readAuditRows(TEST_FLAG_KEY);
     expect(rows).toHaveLength(1);
@@ -336,10 +321,7 @@ describe('updateFlag — AC22 most-specific-first audit selection', () => {
     await setTestUid(pg, manager1);
     await asAuthenticated(pg, manager1);
 
-    await updateFlag(
-      { key: TEST_FLAG_KEY, enabled: true, percent: 75 },
-      pgliteRunner(pg),
-    );
+    await updateFlag({ key: TEST_FLAG_KEY, enabled: true, percent: 75 }, pgliteRunner(pg));
 
     const rows = await readAuditRows(TEST_FLAG_KEY);
     expect(rows).toHaveLength(1);
@@ -357,10 +339,7 @@ describe('updateFlag — AC22 most-specific-first audit selection', () => {
     await setTestUid(pg, manager1);
     await asAuthenticated(pg, manager1);
 
-    await updateFlag(
-      { key: TEST_FLAG_KEY, percent: 25, allowlist: [manager1] },
-      pgliteRunner(pg),
-    );
+    await updateFlag({ key: TEST_FLAG_KEY, percent: 25, allowlist: [manager1] }, pgliteRunner(pg));
 
     const rows = await readAuditRows(TEST_FLAG_KEY);
     expect(rows).toHaveLength(1);
@@ -393,9 +372,9 @@ describe('updateFlag — NoChange guard', () => {
     await setTestUid(pg, manager1);
     await asAuthenticated(pg, manager1);
 
-    await expect(
-      updateFlag({ key: TEST_FLAG_KEY }, pgliteRunner(pg)),
-    ).rejects.toBeInstanceOf(NoChange);
+    await expect(updateFlag({ key: TEST_FLAG_KEY }, pgliteRunner(pg))).rejects.toBeInstanceOf(
+      NoChange,
+    );
 
     const rows = await readAuditRows(TEST_FLAG_KEY);
     expect(rows).toHaveLength(0);
@@ -464,7 +443,13 @@ describe('updateFlag — AC28 no PII in audit row', () => {
     await asAuthenticated(pg, manager1);
 
     await updateFlag(
-      { key: TEST_FLAG_KEY, enabled: true, percent: 50, allowlist: [manager1], roleGate: 'manager' },
+      {
+        key: TEST_FLAG_KEY,
+        enabled: true,
+        percent: 50,
+        allowlist: [manager1],
+        roleGate: 'manager',
+      },
       pgliteRunner(pg),
     );
 
@@ -478,9 +463,7 @@ describe('updateFlag — AC28 no PII in audit row', () => {
 
   it('source file does not reference PII column names in before/after object literals', () => {
     const src = readFileSync(ACTION_PATH, 'utf8');
-    const stripped = src
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/\/\/.*$/gm, '');
+    const stripped = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
     expect(stripped).not.toMatch(/\bemail\s*:/);
     expect(stripped).not.toMatch(/\bfull_name\s*:/);
     expect(stripped).not.toMatch(/\bphone\s*:/);

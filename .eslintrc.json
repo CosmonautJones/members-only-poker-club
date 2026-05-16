@@ -45,17 +45,19 @@
   },
   "overrides": [
     {
-      "files": [
-        "app/(auth)/**/actions.ts",
-        "app/api/**/*.ts",
-        "app/(admin)/**/_actions/**/*.ts"
-      ],
+      "files": ["app/(auth)/**/actions.ts", "app/api/**/*.ts", "app/(admin)/**/_actions/**/*.ts"],
       "rules": {
         "no-restricted-imports": "off"
       }
     },
     {
-      "files": ["lib/time/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts", "scripts/**/*.mjs", "scripts/**/*.js"],
+      "files": [
+        "lib/time/**/*.ts",
+        "tests/**/*.ts",
+        "scripts/**/*.ts",
+        "scripts/**/*.mjs",
+        "scripts/**/*.js"
+      ],
       "rules": {
         "no-restricted-syntax": "off"
       }

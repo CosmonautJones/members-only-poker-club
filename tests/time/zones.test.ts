@@ -51,15 +51,12 @@ describe('isValidIanaZone()', () => {
   });
 
   describe('returns true for well-known IANA zones', () => {
-    it.each([
-      ['America/Chicago'],
-      ['America/New_York'],
-      ['UTC'],
-      ['Etc/UTC'],
-      ['Europe/London'],
-    ])('accepts %s', (zone) => {
-      expect(isValidIanaZone(zone)).toBe(true);
-    });
+    it.each([['America/Chicago'], ['America/New_York'], ['UTC'], ['Etc/UTC'], ['Europe/London']])(
+      'accepts %s',
+      (zone) => {
+        expect(isValidIanaZone(zone)).toBe(true);
+      },
+    );
   });
 
   describe('returns false for non-IANA / malformed input', () => {

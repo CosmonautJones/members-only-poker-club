@@ -44,7 +44,7 @@ const BENEFITS = [
   {
     num: 'I',
     title: 'Priority Seating',
-    body: "Members are seated in the order their text-alert pinged in. The list is the list. No floor favorites.",
+    body: 'Members are seated in the order their text-alert pinged in. The list is the list. No floor favorites.',
   },
   {
     num: 'II',
@@ -289,7 +289,15 @@ export default function MembershipPage() {
                 </span>{' '}
                 <span style={{ color: 'var(--text-muted)', fontSize: 16 }}>{card.unit}</span>
               </p>
-              <ul style={{ color: 'var(--ivory-300)', fontSize: 14, lineHeight: 1.7, paddingLeft: 0, listStyle: 'none' }}>
+              <ul
+                style={{
+                  color: 'var(--ivory-300)',
+                  fontSize: 14,
+                  lineHeight: 1.7,
+                  paddingLeft: 0,
+                  listStyle: 'none',
+                }}
+              >
                 {card.items.map((item) => (
                   <li
                     key={item}

@@ -119,10 +119,7 @@ function BrandedList({ items }: { items: ReadonlyArray<React.ReactNode> }) {
             marginBottom: 12,
           }}
         >
-          <span
-            aria-hidden
-            style={{ position: 'absolute', left: 0, color: 'var(--gold-400)' }}
-          >
+          <span aria-hidden style={{ position: 'absolute', left: 0, color: 'var(--gold-400)' }}>
             ◆
           </span>
           {item}
@@ -176,10 +173,10 @@ export default function TermsPage() {
       <Article num="I" title="Membership">
         <SubHead>I.1 — Who can join</SubHead>
         <p>
-          You must be at least 21 years old, present a valid government-issued photo ID, and not
-          be currently barred from any licensed or unlicensed card room for cause. Membership is
-          at the sole discretion of the Club. We may decline any application without explanation;
-          we may also revoke membership for the grounds listed in Article IV.
+          You must be at least 21 years old, present a valid government-issued photo ID, and not be
+          currently barred from any licensed or unlicensed card room for cause. Membership is at the
+          sole discretion of the Club. We may decline any application without explanation; we may
+          also revoke membership for the grounds listed in Article IV.
         </p>
 
         <SubHead>I.2 — Dues and auto-renewal</SubHead>
@@ -193,34 +190,34 @@ export default function TermsPage() {
         <SubHead>I.3 — Cancellation</SubHead>
         <p>
           Cancel any time from your member profile or by writing to
-          membership@membersonlypokersocial.com. Cancellation takes effect at the end of the
-          current paid month. We do not pro-rate. We do not charge cancellation fees. We do not
-          retain you against your will.
+          membership@membersonlypokersocial.com. Cancellation takes effect at the end of the current
+          paid month. We do not pro-rate. We do not charge cancellation fees. We do not retain you
+          against your will.
         </p>
 
         <SubHead>I.4 — Non-transferable</SubHead>
         <p>
-          Your membership is yours. You cannot sell it, lend it, gift it, or let your cousin use
-          it. ID is checked at the door, and a card swiped by someone other than the member named
-          on it is grounds for immediate termination of both accounts and forfeiture of any
-          seat-time credit remaining.
+          Your membership is yours. You cannot sell it, lend it, gift it, or let your cousin use it.
+          ID is checked at the door, and a card swiped by someone other than the member named on it
+          is grounds for immediate termination of both accounts and forfeiture of any seat-time
+          credit remaining.
         </p>
 
         <SubHead>I.5 — Seat-time credit</SubHead>
         <p>
           Seat-time is billed at twelve dollars ($12.00) per hour, accrued by the minute against
-          your seat-time wallet. Deposits of two hundred dollars ($200.00) credit your wallet
-          with three hundred dollars ($300.00). Credit does not expire while membership is
-          active. On termination, unused dollar-for-dollar deposits — but not bonus credit — are
-          refundable on written request within thirty days.
+          your seat-time wallet. Deposits of two hundred dollars ($200.00) credit your wallet with
+          three hundred dollars ($300.00). Credit does not expire while membership is active. On
+          termination, unused dollar-for-dollar deposits — but not bonus credit — are refundable on
+          written request within thirty days.
         </p>
 
         <SubHead>I.6 — Guests</SubHead>
         <p>
-          Members in good standing may sponsor one guest per visit, up to four visits per guest
-          per calendar year, after which the guest must apply for their own membership.
-          Sponsoring members are responsible for their guest&rsquo;s conduct and any unpaid
-          seat-time the guest incurs.
+          Members in good standing may sponsor one guest per visit, up to four visits per guest per
+          calendar year, after which the guest must apply for their own membership. Sponsoring
+          members are responsible for their guest&rsquo;s conduct and any unpaid seat-time the guest
+          incurs.
         </p>
       </Article>
 
@@ -262,52 +259,52 @@ export default function TermsPage() {
         <p>
           All tournaments and cash games at the Club operate under the most recent published rules
           of the Poker Tournament Directors Association (TDA), supplemented by these House Rules
-          where the TDA is silent or where local practice requires. Where this agreement and the
-          TDA conflict, this agreement controls within the Club.
+          where the TDA is silent or where local practice requires. Where this agreement and the TDA
+          conflict, this agreement controls within the Club.
         </p>
 
         <SubHead>III.2 — Floor authority</SubHead>
         <p>
-          A floor decision is final for the night. The decision will be entered into the night
-          log and is reviewable by the General Manager the next business day if a member writes
-          within forty-eight hours. Review may correct a ruling for future hands but does not
-          retroactively rebuild pots or refund losses.
+          A floor decision is final for the night. The decision will be entered into the night log
+          and is reviewable by the General Manager the next business day if a member writes within
+          forty-eight hours. Review may correct a ruling for future hands but does not retroactively
+          rebuild pots or refund losses.
         </p>
 
         <SubHead>III.3 — Verbal in turn is binding</SubHead>
         <p>
           A declared action on your turn — call, raise, fold, all-in — is binding and stands. So
-          does a clean push across the line. We do not honor angle-shoot &ldquo;I was just
-          thinking out loud&rdquo; retractions.
+          does a clean push across the line. We do not honor angle-shoot &ldquo;I was just thinking
+          out loud&rdquo; retractions.
         </p>
 
         <SubHead>III.4 — Show one, show all</SubHead>
         <p>
-          If you choose to show your hand to one player at the table, the dealer will show it to
-          the table. There are no private peeks.
+          If you choose to show your hand to one player at the table, the dealer will show it to the
+          table. There are no private peeks.
         </p>
 
         <SubHead>III.5 — The clock</SubHead>
         <p>
-          Any player may call the clock once a hand has run a reasonable length. The floor will
-          give the player on the decision one minute plus a ten-second countdown. Failing to act
-          forfeits the hand.
+          Any player may call the clock once a hand has run a reasonable length. The floor will give
+          the player on the decision one minute plus a ten-second countdown. Failing to act forfeits
+          the hand.
         </p>
       </Article>
 
       {/* IV. EXPULSION */}
       <Article num="IV" title="Grounds For Expulsion">
         <p style={{ marginBottom: 16 }}>
-          Membership may be suspended or permanently terminated, with or without refund, for any
-          of the following. This list is not exhaustive — but it covers the conduct that has
+          Membership may be suspended or permanently terminated, with or without refund, for any of
+          the following. This list is not exhaustive — but it covers the conduct that has
           historically forced clubs like ours to act.
         </p>
         <BrandedList
           items={[
             <>
               <strong>Cheating in any form.</strong> Marked cards, hole-card peeking,
-              sleight-of-hand, palming, capping, signaling — proven cheating is permanent
-              expulsion and may be reported to other Texas card rooms and, where warranted, to law
+              sleight-of-hand, palming, capping, signaling — proven cheating is permanent expulsion
+              and may be reported to other Texas card rooms and, where warranted, to law
               enforcement.
             </>,
             <>
@@ -330,8 +327,8 @@ export default function TermsPage() {
               <strong>Theft, vandalism, or fraud</strong> against the Club, a member, or a guest.
             </>,
             <>
-              <strong>Chargebacks without first contacting management.</strong> A good-faith
-              dispute is welcome; a back-channel reversal is not.
+              <strong>Chargebacks without first contacting management.</strong> A good-faith dispute
+              is welcome; a back-channel reversal is not.
             </>,
             <>
               <strong>Repeated violation</strong> of the Code of Conduct after written warning.
@@ -348,39 +345,39 @@ export default function TermsPage() {
       <Article num="V" title="Dispute Resolution">
         <SubHead>V.1 — Floor first</SubHead>
         <p>
-          Disputes at the table are resolved by the floor on the night. The decision stands for
-          that hand. The night log captures it.
+          Disputes at the table are resolved by the floor on the night. The decision stands for that
+          hand. The night log captures it.
         </p>
 
         <SubHead>V.2 — Management review</SubHead>
         <p>
-          Disputes about a floor ruling, a charge, a membership decision, or any other matter
-          under this agreement may be submitted in writing to disputes@membersonlypokersocial.com
-          within thirty days of the event. The General Manager will respond in writing within
-          fourteen days.
+          Disputes about a floor ruling, a charge, a membership decision, or any other matter under
+          this agreement may be submitted in writing to disputes@membersonlypokersocial.com within
+          thirty days of the event. The General Manager will respond in writing within fourteen
+          days.
         </p>
 
         <SubHead>V.3 — Binding arbitration</SubHead>
         <p>
           Any dispute that cannot be resolved through V.1 and V.2, and that is not subject to
           small-claims jurisdiction, will be resolved by binding arbitration administered by the
-          American Arbitration Association under its Commercial Arbitration Rules, before a
-          single arbitrator, in Harris County, Texas. The arbitrator&rsquo;s decision is final
-          and enforceable in any court of competent jurisdiction. Each party bears its own fees
-          except where the arbitrator awards otherwise.
+          American Arbitration Association under its Commercial Arbitration Rules, before a single
+          arbitrator, in Harris County, Texas. The arbitrator&rsquo;s decision is final and
+          enforceable in any court of competent jurisdiction. Each party bears its own fees except
+          where the arbitrator awards otherwise.
         </p>
 
         <SubHead>V.4 — Venue and governing law</SubHead>
         <p>
           This agreement is governed by the laws of the State of Texas, without regard to its
-          conflicts-of-law provisions. Exclusive venue for any matter not subject to V.3 lies in
-          the state and federal courts seated in Harris County, Texas.
+          conflicts-of-law provisions. Exclusive venue for any matter not subject to V.3 lies in the
+          state and federal courts seated in Harris County, Texas.
         </p>
 
         <SubHead>V.5 — No class actions</SubHead>
         <p>
-          You and the Club agree to resolve disputes individually. Neither party will bring a
-          class, collective, or representative action arising out of this agreement.
+          You and the Club agree to resolve disputes individually. Neither party will bring a class,
+          collective, or representative action arising out of this agreement.
         </p>
       </Article>
 
@@ -388,18 +385,18 @@ export default function TermsPage() {
       <Article num="VI" title="Assumption Of Risk & Liability">
         <SubHead>VI.1 — The nature of the game</SubHead>
         <p>
-          Poker is a game of skill played with money. Variance is real. Losing sessions are part
-          of it. By participating, you acknowledge that the outcome of any hand, session, or
-          tournament is not guaranteed and that losses are your responsibility alone. The Club,
-          its dealers, and other members are not liable for the financial outcome of your play.
+          Poker is a game of skill played with money. Variance is real. Losing sessions are part of
+          it. By participating, you acknowledge that the outcome of any hand, session, or tournament
+          is not guaranteed and that losses are your responsibility alone. The Club, its dealers,
+          and other members are not liable for the financial outcome of your play.
         </p>
 
         <SubHead>VI.2 — Premises liability</SubHead>
         <p>
           The Club maintains its premises in reasonably safe condition consistent with Texas law.
-          Members and guests are responsible for their own belongings. Lost or stolen items
-          should be reported to the floor immediately and to the general manager in writing
-          within forty-eight hours.
+          Members and guests are responsible for their own belongings. Lost or stolen items should
+          be reported to the floor immediately and to the general manager in writing within
+          forty-eight hours.
         </p>
 
         <SubHead>VI.3 — Alcohol &amp; BYOB</SubHead>
@@ -408,27 +405,27 @@ export default function TermsPage() {
           own beverages onto the private-club premises; staff will not sell or serve alcohol while
           BYOB is in effect. Members are adults and are responsible for the consequences of their
           own consumption, including their ability to drive home. Ask the floor for a cab or
-          rideshare any time. We will not let you leave the building behind the wheel of a car if
-          we believe you&rsquo;re not fit to.
+          rideshare any time. We will not let you leave the building behind the wheel of a car if we
+          believe you&rsquo;re not fit to.
         </p>
 
         <SubHead>VI.4 — Cap on damages</SubHead>
         <p>
-          To the maximum extent permitted by Texas law, the Club&rsquo;s aggregate liability to
-          any member for any claim under this agreement is limited to the dues and seat-time
-          deposits paid by that member to the Club in the six months preceding the claim.
+          To the maximum extent permitted by Texas law, the Club&rsquo;s aggregate liability to any
+          member for any claim under this agreement is limited to the dues and seat-time deposits
+          paid by that member to the Club in the six months preceding the claim.
         </p>
       </Article>
 
       {/* VII. PRIVACY */}
       <Article num="VII" title="Privacy">
         <p style={{ marginBottom: 16 }}>
-          The Club collects identity, contact, payment, and play-history data for the operation
-          of membership, compliance with Texas law, and the administration of the room. We do not
-          sell member data. We do not share member identities with outside parties except as
-          required by law or to investigate suspected cheating or collusion across affiliated
-          Texas rooms. The full Privacy Policy — including data retention, deletion rights, and
-          security disclosures — is incorporated into this agreement by reference.
+          The Club collects identity, contact, payment, and play-history data for the operation of
+          membership, compliance with Texas law, and the administration of the room. We do not sell
+          member data. We do not share member identities with outside parties except as required by
+          law or to investigate suspected cheating or collusion across affiliated Texas rooms. The
+          full Privacy Policy — including data retention, deletion rights, and security disclosures
+          — is incorporated into this agreement by reference.
         </p>
         <Link href="/privacy" className="btn">
           The Full Privacy Policy <Icon name="arrowRight" size={12} />
@@ -446,16 +443,15 @@ export default function TermsPage() {
 
         <SubHead>VIII.2 — Severability</SubHead>
         <p>
-          If any provision of this agreement is found unenforceable, the remainder stays in
-          effect. The unenforceable provision will be enforced to the greatest extent the law
-          allows.
+          If any provision of this agreement is found unenforceable, the remainder stays in effect.
+          The unenforceable provision will be enforced to the greatest extent the law allows.
         </p>
 
         <SubHead>VIII.3 — Entire agreement</SubHead>
         <p>
-          This document, together with the House Rules and Privacy Policy referenced within, is
-          the entire agreement between you and the Club regarding your membership and supersedes
-          any prior understanding.
+          This document, together with the House Rules and Privacy Policy referenced within, is the
+          entire agreement between you and the Club regarding your membership and supersedes any
+          prior understanding.
         </p>
 
         <SubHead>VIII.4 — Contact</SubHead>
@@ -487,8 +483,8 @@ export default function TermsPage() {
           }}
         >
           By completing your membership application, by swiping your member card, or by taking a
-          seat at any table in the Club, you acknowledge that you have read, understood, and
-          agreed to this Member Agreement.
+          seat at any table in the Club, you acknowledge that you have read, understood, and agreed
+          to this Member Agreement.
         </p>
       </section>
     </div>

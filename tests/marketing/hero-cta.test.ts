@@ -21,9 +21,7 @@ describe('home hero CTA target (audit P0 #1)', () => {
   it('hero "Apply for Membership" link targets /signup', () => {
     const src = readFileSync(HOME_PAGE, 'utf8');
     // Find every Apply for Membership Link/href pair and assert it points at /signup.
-    const matches = src.matchAll(
-      /href=["']([^"']+)["'][^>]*>\s*Apply for Membership/gi,
-    );
+    const matches = src.matchAll(/href=["']([^"']+)["'][^>]*>\s*Apply for Membership/gi);
     const hrefs = Array.from(matches, (m) => m[1]);
     expect(hrefs.length).toBeGreaterThan(0);
     for (const href of hrefs) {

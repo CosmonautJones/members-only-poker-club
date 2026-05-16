@@ -26,10 +26,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import PgQueryModule from 'pg-query-emscripten';
 
-const MIGRATION_PATH = resolve(
-  __dirname,
-  '../../supabase/migrations/0005_privacy_requests.sql',
-);
+const MIGRATION_PATH = resolve(__dirname, '../../supabase/migrations/0005_privacy_requests.sql');
 const SQL = readFileSync(MIGRATION_PATH, 'utf8');
 
 // Helper: strip both line (--) and C-style block (/* */) SQL comments. Used
@@ -330,9 +327,7 @@ describe('privacy_requests migration — AST tier (AC1 parser-fidelity assertion
     const table = findCreateTable('privacy_requests');
     expect(table).toBeDefined();
     const columns = listColumns(table!);
-    const names = columns
-      .map((c) => c.colname)
-      .filter((n): n is string => typeof n === 'string');
+    const names = columns.map((c) => c.colname).filter((n): n is string => typeof n === 'string');
     expect(names).toEqual([
       'id',
       'profile_id',
@@ -354,9 +349,7 @@ describe('privacy_requests migration — AST tier (AC1 parser-fidelity assertion
     expect(profileIdCol).toBeDefined();
     const constraints = collectNodes<Record<string, unknown>>(profileIdCol, 'Constraint');
 
-    const fkConstraint = constraints.find(
-      (c) => c.contype === 'CONSTR_FOREIGN' || c.contype === 8,
-    );
+    const fkConstraint = constraints.find((c) => c.contype === 'CONSTR_FOREIGN' || c.contype === 8);
     expect(fkConstraint).toBeDefined();
     const pktable = fkConstraint!.pktable as Record<string, unknown> | undefined;
     expect(pktable?.relname).toBe('profiles');
@@ -372,9 +365,7 @@ describe('privacy_requests migration — AST tier (AC1 parser-fidelity assertion
     expect(acceptableDefaults).toContain(delAction as string | undefined);
 
     // profile_id is NOT NULL.
-    const hasNotNull = constraints.some(
-      (c) => c.contype === 'CONSTR_NOTNULL' || c.contype === 1,
-    );
+    const hasNotNull = constraints.some((c) => c.contype === 'CONSTR_NOTNULL' || c.contype === 1);
     expect(hasNotNull).toBe(true);
   });
 
@@ -385,9 +376,7 @@ describe('privacy_requests migration — AST tier (AC1 parser-fidelity assertion
     expect(resolvedByCol).toBeDefined();
     const constraints = collectNodes<Record<string, unknown>>(resolvedByCol, 'Constraint');
 
-    const fkConstraint = constraints.find(
-      (c) => c.contype === 'CONSTR_FOREIGN' || c.contype === 8,
-    );
+    const fkConstraint = constraints.find((c) => c.contype === 'CONSTR_FOREIGN' || c.contype === 8);
     expect(fkConstraint).toBeDefined();
     const pktable = fkConstraint!.pktable as Record<string, unknown> | undefined;
     expect(pktable?.relname).toBe('users');
@@ -400,9 +389,7 @@ describe('privacy_requests migration — AST tier (AC1 parser-fidelity assertion
     expect(acceptableDefaults).toContain(delAction as string | undefined);
 
     // resolved_by is nullable (no CONSTR_NOTNULL).
-    const hasNotNull = constraints.some(
-      (c) => c.contype === 'CONSTR_NOTNULL' || c.contype === 1,
-    );
+    const hasNotNull = constraints.some((c) => c.contype === 'CONSTR_NOTNULL' || c.contype === 1);
     expect(hasNotNull).toBe(false);
   });
 

@@ -82,11 +82,7 @@ import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { trackAdminEvent } from '@/lib/analytics/admin-events';
 
-import {
-  SelfEditViolation,
-  RejectReasonInvalid,
-  BadRequest,
-} from '@/app/(admin)/admin/_errors';
+import { SelfEditViolation, RejectReasonInvalid, BadRequest } from '@/app/(admin)/admin/_errors';
 
 // ---- Public types ---------------------------------------------------------
 
@@ -179,9 +175,7 @@ export async function initiateMemberDeletion(
           'SELECT id, email FROM profiles WHERE id = $1 FOR UPDATE',
           [params.profileId],
         );
-        const beforeRow = beforeRead.rows[0] as
-          | { id: string; email: string }
-          | undefined;
+        const beforeRow = beforeRead.rows[0] as { id: string; email: string } | undefined;
         if (!beforeRow) {
           throw new BadRequest(
             `initiateMemberDeletion: profile not found (id=${params.profileId})`,
@@ -308,9 +302,7 @@ function defaultDb(): TransactionRunner {
   };
   const asString = (v: unknown): string => {
     if (typeof v === 'string') return v;
-    throw new Error(
-      `initiateMemberDeletion defaultDb: expected string param, got ${typeof v}`,
-    );
+    throw new Error(`initiateMemberDeletion defaultDb: expected string param, got ${typeof v}`);
   };
 
   const txClient: TransactionClient = {
@@ -319,11 +311,7 @@ function defaultDb(): TransactionRunner {
       const normalized = sql.replace(/\s+/g, ' ').trim();
 
       // Shape (1): SELECT id, email FROM profiles WHERE id = $1 [FOR UPDATE]
-      if (
-        /^SELECT\s+id,\s*email\s+FROM\s+profiles\s+WHERE\s+id\s*=\s*\$1/i.test(
-          normalized,
-        )
-      ) {
+      if (/^SELECT\s+id,\s*email\s+FROM\s+profiles\s+WHERE\s+id\s*=\s*\$1/i.test(normalized)) {
         const id = asString(params?.[0]);
         const { data, error } = await adminClient
           .from('profiles')

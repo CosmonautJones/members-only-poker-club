@@ -353,9 +353,7 @@ describe('admin.session.role_check_denied — fires on /admin/** denial', () => 
 
   it('cashier required=manager + x-pathname=/admin/members/abc → emits role_check_denied', async () => {
     expect.assertions(3);
-    mocks.getCurrentProfile.mockResolvedValueOnce(
-      makeProfile('cashier', { id: 'uuid-cashier-1' }),
-    );
+    mocks.getCurrentProfile.mockResolvedValueOnce(makeProfile('cashier', { id: 'uuid-cashier-1' }));
     setHeaders({ 'x-pathname': '/admin/members/abc' });
 
     let caught: unknown;

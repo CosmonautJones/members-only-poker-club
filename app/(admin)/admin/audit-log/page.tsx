@@ -115,17 +115,11 @@ function formatUtcAndCentral(iso: string): { utc: string; central: string } {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return { utc: iso, central: iso };
 
-  const utcParts = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZone: 'UTC',
-  }).formatToParts(date);
-  const utc = `${pick(utcParts, 'year')}-${pick(utcParts, 'month')}-${pick(utcParts, 'day')} ${pick(utcParts, 'hour')}:${pick(utcParts, 'minute')}:${pick(utcParts, 'second')} UTC`;
+  // UTC: derive from toISOString() (ECMAScript-standard, locale-stable).
+  // Avoids the Intl 'en-CA' midnight-hour='24' quirk on some Node ICU
+  // builds (Linux CI) that rotated 00:00 displays to 24:00 of the prior day.
+  const isoStr = date.toISOString();
+  const utc = `${isoStr.slice(0, 10)} ${isoStr.slice(11, 19)} UTC`;
 
   const centralParts = new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
@@ -312,12 +306,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams?: Se
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12 }}>
           <span style={{ color: 'var(--text-muted)', marginBottom: 4 }}>Target id</span>
-          <input
-            type="text"
-            name="targetId"
-            defaultValue={sp.targetId ?? ''}
-            style={inputStyle}
-          />
+          <input type="text" name="targetId" defaultValue={sp.targetId ?? ''} style={inputStyle} />
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12 }}>
           <span style={{ color: 'var(--text-muted)', marginBottom: 4 }}>From (Central)</span>
@@ -495,9 +484,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams?: Se
                     <td style={tdStyle}>
                       <span style={{ color: 'var(--ivory-400)' }}>{row.target_type}</span>
                       <span style={{ color: 'var(--text-muted)' }}> / </span>
-                      <span style={{ fontFamily: 'monospace', fontSize: 11 }}>
-                        {row.target_id}
-                      </span>
+                      <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{row.target_id}</span>
                     </td>
                     <td style={tdStyle}>
                       <details>

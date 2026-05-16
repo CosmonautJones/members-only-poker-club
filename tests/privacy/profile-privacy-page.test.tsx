@@ -136,10 +136,11 @@ describe('ProfilePrivacyPage', () => {
     // There are two "Delete my account" buttons: the trigger (outside) and
     // the action button inside the dialog. Use getByRole within dialog.
     const dialog = screen.getByRole('alertdialog');
-    const actionButton = dialog.querySelector('button[class*="red"]') as HTMLElement
-      ?? screen.getAllByRole('button', { name: /delete my account/i }).find(
-           (b) => b.closest('[role="alertdialog"]'),
-         )!;
+    const actionButton =
+      (dialog.querySelector('button[class*="red"]') as HTMLElement) ??
+      screen
+        .getAllByRole('button', { name: /delete my account/i })
+        .find((b) => b.closest('[role="alertdialog"]'))!;
 
     await userEvent.click(actionButton);
 

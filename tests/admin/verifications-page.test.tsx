@@ -61,9 +61,7 @@ type MockShape = {
   signedUrls: Map<string, SignedUrlEntry>;
   createSignedUrl: ReturnType<typeof vi.fn<(path: string, ttl: number) => Promise<unknown>>>;
   storageFrom: ReturnType<
-    typeof vi.fn<
-      (bucket: string) => { createSignedUrl: MockShape['createSignedUrl'] }
-    >
+    typeof vi.fn<(bucket: string) => { createSignedUrl: MockShape['createSignedUrl'] }>
   >;
 };
 
@@ -122,10 +120,7 @@ vi.mock('@/lib/supabase/server', () => ({
         chain[m] = passthrough;
       }
       chain['then'] = (
-        onFulfilled: (v: {
-          data?: unknown;
-          error?: { message: string } | null;
-        }) => unknown,
+        onFulfilled: (v: { data?: unknown; error?: { message: string } | null }) => unknown,
       ) => Promise.resolve(mocks.profilesResult).then(onFulfilled);
       return chain;
     }
@@ -333,7 +328,9 @@ describe('verifications page — populated queue (over-21 row)', () => {
     expect(screen.getByText('alice@example.com')).toBeTruthy();
 
     // Thumbnail: signed URL + alt + referrerPolicy.
-    const img = screen.getByAltText('ID document thumbnail for alice@example.com') as HTMLImageElement;
+    const img = screen.getByAltText(
+      'ID document thumbnail for alice@example.com',
+    ) as HTMLImageElement;
     expect(img).toBeTruthy();
     expect(img.getAttribute('src')).toBe('https://signed.test/alice.jpg');
     expect(img.getAttribute('referrerpolicy')).toBe('no-referrer');
@@ -349,10 +346,7 @@ describe('verifications page — populated queue (over-21 row)', () => {
   it('uses the id-documents bucket and a 3600-second TTL for the signed URL', async () => {
     await renderPage();
     expect(mocks.storageFrom).toHaveBeenCalledWith('id-documents');
-    expect(mocks.createSignedUrl).toHaveBeenCalledWith(
-      'profiles/uuid-over-21/front.jpg',
-      3600,
-    );
+    expect(mocks.createSignedUrl).toHaveBeenCalledWith('profiles/uuid-over-21/front.jpg', 3600);
   });
 
   it('renders three action buttons (Approve / Reject / Request more info)', async () => {
@@ -513,7 +507,7 @@ describe('verifications page — source invariants (AC5 + AC11)', () => {
     expect(src).not.toContain('"use client"');
   });
 
-  it('first body statement is `await requireRole(\'manager\')` (AC5 defense-in-depth)', async () => {
+  it("first body statement is `await requireRole('manager')` (AC5 defense-in-depth)", async () => {
     const { readFileSync } = await import('node:fs');
     const path = await import('node:path');
     const PAGE_PATH = path.resolve(

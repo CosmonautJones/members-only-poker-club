@@ -115,8 +115,7 @@ export interface TransactionRunner {
  * "invalid input syntax for type uuid" error (which would surface as a
  * confusing 500 rather than a clean BadRequest).
  */
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const VALID_SCOPES: ReadonlySet<RefundScope> = new Set<RefundScope>([
   'membership',
@@ -175,9 +174,7 @@ export async function openRefundFlow(
       params.profileId,
     ]);
     if (probe.rows.length === 0) {
-      throw new BadRequest(
-        `openRefundFlow: profileId ${params.profileId} does not exist`,
-      );
+      throw new BadRequest(`openRefundFlow: profileId ${params.profileId} does not exist`);
     }
     return undefined;
   });
@@ -281,9 +278,7 @@ function defaultDb(): TransactionRunner {
   const asStringOrNull = (v: unknown): string | null => {
     if (v === null || v === undefined) return null;
     if (typeof v === 'string') return v;
-    throw new Error(
-      `openRefundFlow defaultDb: expected string|null param, got ${typeof v}`,
-    );
+    throw new Error(`openRefundFlow defaultDb: expected string|null param, got ${typeof v}`);
   };
   const asString = (v: unknown): string => {
     if (typeof v === 'string') return v;
@@ -304,9 +299,7 @@ function defaultDb(): TransactionRunner {
           .eq('id', id)
           .maybeSingle();
         if (error) {
-          throw new Error(
-            `openRefundFlow defaultDb: SELECT 1 profiles failed: ${error.message}`,
-          );
+          throw new Error(`openRefundFlow defaultDb: SELECT 1 profiles failed: ${error.message}`);
         }
         return { rows: data ? [{ exists: 1 }] : [] };
       }
@@ -333,9 +326,7 @@ function defaultDb(): TransactionRunner {
         };
         const { error } = await adminClient.from('audit_log').insert(row);
         if (error) {
-          throw new Error(
-            `openRefundFlow defaultDb: audit_log INSERT failed: ${error.message}`,
-          );
+          throw new Error(`openRefundFlow defaultDb: audit_log INSERT failed: ${error.message}`);
         }
         return { rows: [] };
       }

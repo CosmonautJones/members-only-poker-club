@@ -60,10 +60,7 @@ import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 import { SelfEditViolation, MessageInvalid } from '@/app/(admin)/admin/_errors';
-import {
-  trackAdminEvent,
-  readVerificationQueueDepth,
-} from '@/lib/analytics/admin-events';
+import { trackAdminEvent, readVerificationQueueDepth } from '@/lib/analytics/admin-events';
 
 // ---- Public types ---------------------------------------------------------
 
@@ -244,9 +241,7 @@ function defaultDb(): TransactionRunner {
   };
   const asString = (v: unknown): string => {
     if (typeof v === 'string') return v;
-    throw new Error(
-      `requestVerificationInfo defaultDb: expected string param, got ${typeof v}`,
-    );
+    throw new Error(`requestVerificationInfo defaultDb: expected string param, got ${typeof v}`);
   };
 
   const txClient: TransactionClient = {

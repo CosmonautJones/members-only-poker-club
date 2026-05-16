@@ -16,7 +16,7 @@ const SOURCE = readFileSync(ROUTE_PATH, 'utf8');
 // Helper: find all before:/after: { ... } literal objects and return contents.
 function extractSnapshotContents(src: string, prefix: string): string[] {
   const results: string[] = [];
-  let idx = src.indexOf(prefix + ": {");
+  let idx = src.indexOf(prefix + ': {');
   while (idx >= 0) {
     const start = idx + prefix.length + 3; // skip ": {"
     let depth = 1;
@@ -27,7 +27,7 @@ function extractSnapshotContents(src: string, prefix: string): string[] {
       i++;
     }
     results.push(src.slice(start, i - 1));
-    idx = src.indexOf(prefix + ": {", idx + 1);
+    idx = src.indexOf(prefix + ': {', idx + 1);
   }
   return results;
 }

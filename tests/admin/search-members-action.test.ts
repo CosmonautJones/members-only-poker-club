@@ -476,7 +476,8 @@ describe('searchMembers — parallel count + rows + no audit', () => {
     const orderCalls = mocks.builderCalls.filter((c) => c.method === 'order');
     expect(orderCalls.length).toBeGreaterThan(0);
     const desc = orderCalls.find(
-      (c) => c.args[0] === 'created_at' && (c.args[1] as { ascending?: boolean })?.ascending === false,
+      (c) =>
+        c.args[0] === 'created_at' && (c.args[1] as { ascending?: boolean })?.ascending === false,
     );
     expect(desc).toBeTruthy();
   });
@@ -489,7 +490,7 @@ describe('searchMembers — parallel count + rows + no audit', () => {
 });
 
 describe('searchMembers — source invariants (AC9, R1, R11)', () => {
-  it('contains `import \'server-only\'` at the top of the file', () => {
+  it("contains `import 'server-only'` at the top of the file", () => {
     const src = readFileSync(ACTION_PATH, 'utf8');
     // The first non-trivial statement-level token must be the
     // server-only import. We strip leading comments + whitespace.
@@ -497,18 +498,18 @@ describe('searchMembers — source invariants (AC9, R1, R11)', () => {
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/\/\/[^\n]*/g, '')
       .trimStart();
-    expect(stripped.startsWith("import 'server-only'") || stripped.startsWith('import "server-only"')).toBe(true);
+    expect(
+      stripped.startsWith("import 'server-only'") || stripped.startsWith('import "server-only"'),
+    ).toBe(true);
   });
 
-  it('first body await is `await requireRole(\'manager\')` (AC5 defense-in-depth)', () => {
+  it("first body await is `await requireRole('manager')` (AC5 defense-in-depth)", () => {
     const src = readFileSync(ACTION_PATH, 'utf8');
     // Find the exported `searchMembers` function body and assert its
     // first await is `requireRole('manager')`. Coarse but
     // independently-implemented (the AST walker lives in the
     // admin-routes-defense-in-depth suite).
-    const fnMatch = src.match(
-      /export\s+async\s+function\s+searchMembers\s*\([^)]*\)\s*:[^{]*\{/,
-    );
+    const fnMatch = src.match(/export\s+async\s+function\s+searchMembers\s*\([^)]*\)\s*:[^{]*\{/);
     expect(fnMatch).toBeTruthy();
     const bodyStart = fnMatch!.index! + fnMatch![0].length;
     const stripped = src

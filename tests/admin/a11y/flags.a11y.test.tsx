@@ -75,10 +75,7 @@ vi.mock('@/lib/supabase/server', () => ({
         chain[m] = passthrough;
       }
       chain['then'] = (
-        onFulfilled: (v: {
-          data?: unknown;
-          error?: { message: string } | null;
-        }) => unknown,
+        onFulfilled: (v: { data?: unknown; error?: { message: string } | null }) => unknown,
       ) => {
         const result = table === 'feature_flags' ? mocks.flagsResult : mocks.profilesResult;
         return Promise.resolve(result).then(onFulfilled);

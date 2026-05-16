@@ -80,6 +80,7 @@ import { requireRole } from '@/lib/auth/requireRole';
 import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { trackAdminEvent } from '@/lib/analytics/admin-events';
+import { nowUtc } from '@/lib/time';
 
 import { RequestNotPending } from '@/app/(admin)/admin/_errors';
 
@@ -112,10 +113,7 @@ export interface TransactionRunner {
  * inject a stub that controls the success / failure path.
  */
 export interface ExportStorage {
-  signExportUrl(
-    path: string,
-    expiresInSeconds: number,
-  ): Promise<{ signedUrl: string }>;
+  signExportUrl(path: string, expiresInSeconds: number): Promise<{ signedUrl: string }>;
 }
 
 // ---- Constants ------------------------------------------------------------
@@ -174,9 +172,7 @@ export async function approveExport(
           | { profile_id: string; kind: string; status: string }
           | undefined;
         if (!beforeRow) {
-          throw new RequestNotPending(
-            `approveExport: request not found (id=${params.requestId})`,
-          );
+          throw new RequestNotPending(`approveExport: request not found (id=${params.requestId})`);
         }
         if (beforeRow.kind !== 'export') {
           throw new RequestNotPending(
@@ -216,7 +212,7 @@ export async function approveExport(
   const exportPath = phase1.profileId
     ? `${phase1.profileId}/${params.requestId}.json`
     : `${params.requestId}.json`;
-  const expiresAt = new Date(Date.now() + EXPORT_URL_TTL_SECONDS * 1000).toISOString();
+  const expiresAt = new Date(nowUtc().getTime() + EXPORT_URL_TTL_SECONDS * 1000).toISOString();
 
   let signedUrl: string | null = null;
   let signFailure: string | null = null;
@@ -349,9 +345,7 @@ function defaultDb(): TransactionRunner {
   const asStringOrNull = (v: unknown): string | null => {
     if (v === null || v === undefined) return null;
     if (typeof v === 'string') return v;
-    throw new Error(
-      `approveExport defaultDb: expected string|null param, got ${typeof v}`,
-    );
+    throw new Error(`approveExport defaultDb: expected string|null param, got ${typeof v}`);
   };
   const asString = (v: unknown): string => {
     if (typeof v === 'string') return v;
@@ -384,9 +378,7 @@ function defaultDb(): TransactionRunner {
       }
 
       // UPDATE privacy_requests SET status = 'in_progress', resolved_by = $2 WHERE id = $1
-      if (
-        /^UPDATE\s+privacy_requests\s+SET\s+status\s*=\s*'in_progress'/i.test(normalized)
-      ) {
+      if (/^UPDATE\s+privacy_requests\s+SET\s+status\s*=\s*'in_progress'/i.test(normalized)) {
         const id = asString(params?.[0]);
         const resolvedBy = asStringOrNull(params?.[1]);
         const { error } = await adminClient
@@ -394,31 +386,25 @@ function defaultDb(): TransactionRunner {
           .update({ status: 'in_progress', resolved_by: resolvedBy })
           .eq('id', id);
         if (error) {
-          throw new Error(
-            `approveExport defaultDb: UPDATE in_progress failed: ${error.message}`,
-          );
+          throw new Error(`approveExport defaultDb: UPDATE in_progress failed: ${error.message}`);
         }
         return { rows: [] };
       }
 
       // UPDATE privacy_requests SET status='completed', resolved_at=now(), export_url=$2 WHERE id = $1
-      if (
-        /^UPDATE\s+privacy_requests\s+SET\s+status\s*=\s*'completed'/i.test(normalized)
-      ) {
+      if (/^UPDATE\s+privacy_requests\s+SET\s+status\s*=\s*'completed'/i.test(normalized)) {
         const id = asString(params?.[0]);
         const url = asString(params?.[1]);
         const { error } = await adminClient
           .from('privacy_requests')
           .update({
             status: 'completed',
-            resolved_at: new Date().toISOString(),
+            resolved_at: nowUtc().toISOString(),
             export_url: url,
           })
           .eq('id', id);
         if (error) {
-          throw new Error(
-            `approveExport defaultDb: UPDATE completed failed: ${error.message}`,
-          );
+          throw new Error(`approveExport defaultDb: UPDATE completed failed: ${error.message}`);
         }
         return { rows: [] };
       }
@@ -432,9 +418,7 @@ function defaultDb(): TransactionRunner {
           .update({ status: 'failed', reject_reason: reason })
           .eq('id', id);
         if (error) {
-          throw new Error(
-            `approveExport defaultDb: UPDATE failed failed: ${error.message}`,
-          );
+          throw new Error(`approveExport defaultDb: UPDATE failed failed: ${error.message}`);
         }
         return { rows: [] };
       }
@@ -461,9 +445,7 @@ function defaultDb(): TransactionRunner {
         };
         const { error } = await adminClient.from('audit_log').insert(row);
         if (error) {
-          throw new Error(
-            `approveExport defaultDb: audit_log INSERT failed: ${error.message}`,
-          );
+          throw new Error(`approveExport defaultDb: audit_log INSERT failed: ${error.message}`);
         }
         return { rows: [] };
       }

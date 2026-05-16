@@ -244,8 +244,8 @@ function ComingSoonPanel() {
           marginBottom: 24,
         }}
       >
-        We&rsquo;re putting the finishing touches on the application portal. The room is ready;
-        the membership system is coming online in the next few days.
+        We&rsquo;re putting the finishing touches on the application portal. The room is ready; the
+        membership system is coming online in the next few days.
       </p>
       <p
         style={{

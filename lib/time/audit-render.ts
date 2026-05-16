@@ -111,10 +111,7 @@ function formatUtcSecondPrecision(date: Date): string {
   return `${iso.slice(0, 19)}Z`;
 }
 
-export function formatAuditRowDualZone(
-  utc: Date,
-  clubZone: IanaZone,
-): AuditRowDualZone {
+export function formatAuditRowDualZone(utc: Date, clubZone: IanaZone): AuditRowDualZone {
   const utcStr = formatUtcSecondPrecision(utc);
   const clubStr = formatClubLocal(utc, clubZone);
   const offset = shortZoneAbbrev(utc, clubZone);
@@ -160,11 +157,7 @@ export function formatAuditRowDualZone(
     } else {
       dstSeam = 'fall-back';
     }
-  } else if (
-    abbrevAtUtc.length > 0 &&
-    abbrevAtUtc !== abbrevPlusOne &&
-    abbrevPlusOne.length > 0
-  ) {
+  } else if (abbrevAtUtc.length > 0 && abbrevAtUtc !== abbrevPlusOne && abbrevPlusOne.length > 0) {
     // The transition instant lies at or just after `utc` — `utc+1h`
     // will be on the other side of the seam.
     if (looksStandard(abbrevAtUtc) && looksDaylight(abbrevPlusOne)) {

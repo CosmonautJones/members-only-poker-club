@@ -83,8 +83,7 @@ const SQLSTATE_UNDEFINED_TABLE = '42P01';
 // `ActionsPanel` client component now (t14) — they are no longer
 // declared at the page level because the dialogs encode their own
 // label state.
-const SELF_EDIT_BANNER =
-  'You cannot perform admin actions against your own profile';
+const SELF_EDIT_BANNER = 'You cannot perform admin actions against your own profile';
 
 // ---- Row shapes (only the columns we render) -------------------------------
 
@@ -146,23 +145,11 @@ function formatUtcAndCentral(iso: string | null): { utc: string; central: string
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return { utc: iso, central: iso };
 
-  const utcParts = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZone: 'UTC',
-  }).formatToParts(date);
-  const utc = `${pick(utcParts, 'year')}-${pick(utcParts, 'month')}-${pick(
-    utcParts,
-    'day',
-  )} ${pick(utcParts, 'hour')}:${pick(utcParts, 'minute')}:${pick(
-    utcParts,
-    'second',
-  )} UTC`;
+  // UTC: derive from toISOString() (ECMAScript-standard, locale-stable).
+  // Avoids the Intl 'en-CA' midnight-hour='24' quirk on some Node ICU
+  // builds (Linux CI) that rotated 00:00 displays to 24:00 of the prior day.
+  const isoStr = date.toISOString();
+  const utc = `${isoStr.slice(0, 10)} ${isoStr.slice(11, 19)} UTC`;
 
   const centralParts = new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
@@ -284,10 +271,7 @@ export default async function MemberDetailPage(props: { params: { id: string } }
             marginBottom: 12,
           }}
         >
-          <Link
-            href="/admin/members"
-            style={{ color: 'var(--ivory-400)', textDecoration: 'none' }}
-          >
+          <Link href="/admin/members" style={{ color: 'var(--ivory-400)', textDecoration: 'none' }}>
             ← Members
           </Link>
         </div>
@@ -364,10 +348,7 @@ export default async function MemberDetailPage(props: { params: { id: string } }
               label="Period start"
               value={formatPeriodCell(membership.data.current_period_start)}
             />
-            <DRow
-              label="Period end"
-              value={formatPeriodCell(membership.data.current_period_end)}
-            />
+            <DRow label="Period end" value={formatPeriodCell(membership.data.current_period_end)} />
           </dl>
         )}
       </Section>
@@ -426,9 +407,7 @@ export default async function MemberDetailPage(props: { params: { id: string } }
                 const { utc, central } = formatUtcAndCentral(row.created_at);
                 return (
                   <tr key={row.id} style={{ borderTop: '1px solid var(--border-faint)' }}>
-                    <td style={{ padding: '12px 16px', fontFamily: 'monospace' }}>
-                      {row.action}
-                    </td>
+                    <td style={{ padding: '12px 16px', fontFamily: 'monospace' }}>{row.action}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <div>{utc}</div>
                       <div style={{ color: 'var(--ivory-400)', fontSize: 12 }}>{central}</div>
@@ -649,13 +628,7 @@ async function fetchRecentPayments(
 
 // ---- Section + DRow primitives ---------------------------------------------
 
-function Section({
-  heading,
-  children,
-}: {
-  heading: string;
-  children: React.ReactNode;
-}) {
+function Section({ heading, children }: { heading: string; children: React.ReactNode }) {
   return (
     <section
       aria-label={heading}

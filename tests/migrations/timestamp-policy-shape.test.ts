@@ -43,7 +43,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import PgQueryModule from 'pg-query-emscripten';
 
-const MIGRATION_PATH = resolve(__dirname, '../../supabase/migrations/0007_clubs_and_display_tz.sql');
+const MIGRATION_PATH = resolve(
+  __dirname,
+  '../../supabase/migrations/0007_clubs_and_display_tz.sql',
+);
 const SQL = readFileSync(MIGRATION_PATH, 'utf8');
 
 // Helper: strip both line (--) and C-style block (/* */) SQL comments. Used
@@ -336,8 +339,7 @@ describe('0007_clubs_and_display_tz migration — AST tier (AC6 parser-fidelity 
     // Mixed-mode acceptance: string form, common numeric forms, or subtree
     // substring fallback.
     const hasUnique = constraints.some(
-      (c) =>
-        c.contype === 'CONSTR_UNIQUE' || c.contype === 4 || c.contype === 7 || c.contype === 8,
+      (c) => c.contype === 'CONSTR_UNIQUE' || c.contype === 4 || c.contype === 7 || c.contype === 8,
     );
     if (!hasUnique) {
       expect(subtreeContains(slugCol, 'CONSTR_UNIQUE')).toBe(true);

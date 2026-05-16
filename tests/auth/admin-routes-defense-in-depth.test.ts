@@ -326,7 +326,10 @@ function isRequireRoleAwait(
 ): { ok: true; role: 'manager' | 'owner' } | { ok: false; reason: string } {
   const expr = await_.expression;
   if (!ts.isCallExpression(expr)) {
-    return { ok: false, reason: `await target is ${ts.SyntaxKind[expr.kind]}, not a CallExpression` };
+    return {
+      ok: false,
+      reason: `await target is ${ts.SyntaxKind[expr.kind]}, not a CallExpression`,
+    };
   }
   // Accept bare `requireRole(...)` (identifier callee) — the canonical
   // shape. Reject member-access calls like `auth.requireRole(...)` as
@@ -338,7 +341,10 @@ function isRequireRoleAwait(
     };
   }
   if (expr.expression.text !== 'requireRole') {
-    return { ok: false, reason: `callee identifier is "${expr.expression.text}", not "requireRole"` };
+    return {
+      ok: false,
+      reason: `callee identifier is "${expr.expression.text}", not "requireRole"`,
+    };
   }
   const firstArg = expr.arguments[0];
   if (!firstArg) {
@@ -422,14 +428,14 @@ describe('admin routes — defense-in-depth (AC5)', () => {
       if (!/await\s+requireRole\(\s*['"](manager|owner)['"]\s*\)/.test(src)) {
         failures.push({
           file: path.relative(REPO_ROOT, abs),
-          reason: 'no `await requireRole(\'manager\'|\'owner\')` match found in source',
+          reason: "no `await requireRole('manager'|'owner')` match found in source",
         });
       }
     }
     expect(failures, JSON.stringify(failures, null, 2)).toEqual([]);
   });
 
-  it('admin gated files: AST walker — every exported async fn\'s first await is `requireRole(\'manager\'|\'owner\')`', () => {
+  it("admin gated files: AST walker — every exported async fn's first await is `requireRole('manager'|'owner')`", () => {
     const failures: Array<{ file: string; fn: string; reason: string }> = [];
     for (const abs of files) {
       const src = readFileSync(abs, 'utf8');
@@ -459,7 +465,8 @@ describe('admin routes — defense-in-depth (AC5)', () => {
           failures.push({
             file: path.relative(REPO_ROOT, abs),
             fn: fn.name,
-            reason: 'function body contains no `await` — at minimum, `await requireRole(...)` is required',
+            reason:
+              'function body contains no `await` — at minimum, `await requireRole(...)` is required',
           });
           continue;
         }

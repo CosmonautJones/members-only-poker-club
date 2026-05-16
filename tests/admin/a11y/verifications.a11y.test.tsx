@@ -41,9 +41,7 @@ type MockShape = {
   signedUrls: Map<string, SignedUrlEntry>;
   createSignedUrl: ReturnType<typeof vi.fn<(path: string, ttl: number) => Promise<unknown>>>;
   storageFrom: ReturnType<
-    typeof vi.fn<
-      (bucket: string) => { createSignedUrl: MockShape['createSignedUrl'] }
-    >
+    typeof vi.fn<(bucket: string) => { createSignedUrl: MockShape['createSignedUrl'] }>
   >;
 };
 
@@ -99,10 +97,7 @@ vi.mock('@/lib/supabase/server', () => ({
         chain[m] = passthrough;
       }
       chain['then'] = (
-        onFulfilled: (v: {
-          data?: unknown;
-          error?: { message: string } | null;
-        }) => unknown,
+        onFulfilled: (v: { data?: unknown; error?: { message: string } | null }) => unknown,
       ) => Promise.resolve(mocks.profilesResult).then(onFulfilled);
       return chain;
     }
