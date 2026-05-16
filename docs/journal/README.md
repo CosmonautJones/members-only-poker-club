@@ -69,3 +69,4 @@ Anything surprising, any gotchas, anything that would have saved time today.
 | 2026-05-09 | [03 — ADR-0003 roles + RLS conductor run](2026-05-09-03-conductor-run-adr-0003-rls.md) | 0003 | implementation |
 | 2026-05-10 | [01 — ADR-0006 audit log conductor run](2026-05-10-01-conductor-run-adr-0006-audit-log.md) | 0006 | implementation |
 | 2026-05-10 | [02 — ADR-0002 auth signup/login + gated member layout conductor run](2026-05-10-02-conductor-run-adr-0002-auth.md) | 0002 | implementation |
+| 2026-05-15 | [01 — ADR-0035 admin operations console conductor run](2026-05-15-01-conductor-run-adr-0035-admin-operations-console.md) | 0035 | feature |

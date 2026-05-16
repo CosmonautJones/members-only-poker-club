@@ -12,7 +12,7 @@ A private, members-funded social poker club in Texas. This repo holds the public
 - `docs/spec.md` — the canonical product + architecture spec. Read this first.
 - `docs/design-system.md` — brand tokens (colors, typography, spacing) extracted from `_design/brand.css`. Source of truth for the Tailwind config.
 - `docs/route-map.md` — mapping of prototype routes → Next.js paths → primary ADRs → screen files.
-- `docs/adr/` — 32 Architecture Decision Records. Foundation 8 (ADR-001 through ADR-008) are written; the rest are stubs that flesh out as their slice is built.
+- `docs/adr/` — 36 Architecture Decision Records (ADR-0001 through ADR-0036). Foundation set (ADR-0001 through ADR-0008) plus Slice-2/3/4 cycles are ratified; remaining stubs flesh out as their slice is built.
 
 ## Stack
 
@@ -34,7 +34,7 @@ Five vertical slices, each shipped to production:
 | 1 | Marketing site + tournament listings (read-only) + cookie banner + analytics + Sentry | wk 1–2 |
 | 2 | Auth + member signup + Stripe Subscription ($30 invoice / $25 autopay) + dashboard | wk 3–6 |
 | 3 | Time-bank top-up + cashier console + tournament registration with Stripe entry fees | wk 7–10 |
-| 4 | Ops hardening — audit log UI, feature flags, rate limiting, DR drill, GDPR/CCPA, runbooks, A/B framework | wk 11–13 |
+| 4 | Ops hardening — **admin operations console** (ADR-0035: members/verifications/audit-log/flags/privacy queues), feature flags, rate limiting, DR drill, GDPR/CCPA, runbooks, A/B framework | wk 11–13 |
 | 5 | PokerAtlas integration probe (or formalize the manual cashier workflow) | wk 14+ |
 
 See [`docs/spec.md`](docs/spec.md) for full detail.

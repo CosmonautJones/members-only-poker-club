@@ -4,6 +4,7 @@
 - **Date:** 2026-05-15
 - **Ratified:** 2026-05-15
 - **Slice:** 4
+- **content_signature:** ec78a33ef3fa
 
 > A single `/admin` console for `manager+` users that fronts every staff workflow that exists today but has no UI — verification queue, role assignment, audit log, feature flags, deletion requests — and provides the entry points for surfaces that other ADRs own (refunds via ADR-0036, dashboards via ADR-0014, tournament admin via ADR-0012).
 

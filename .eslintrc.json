@@ -34,7 +34,11 @@
   },
   "overrides": [
     {
-      "files": ["app/(auth)/**/actions.ts", "app/api/**/*.ts"],
+      "files": [
+        "app/(auth)/**/actions.ts",
+        "app/api/**/*.ts",
+        "app/(admin)/**/_actions/**/*.ts"
+      ],
       "rules": {
         "no-restricted-imports": "off"
       }
