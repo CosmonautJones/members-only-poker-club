@@ -463,6 +463,108 @@ describe('openRefundFlow — AC17 no mutation', () => {
 });
 
 // =============================================================================
+// AC30 — Default constant flipped post-ADR-0036 (no per-test override needed)
+// =============================================================================
+//
+// AC17.1 above pins `PAYMENTS_CONSOLE_READY=false` via a file-level
+// `vi.mock(...)` to test the legacy degraded-redirect branch. That
+// override is the ONLY thing keeping AC17.1 green now that the source
+// constant has been flipped to `true` (ADR-0036 v1, t12, AC29).
+//
+// This block proves the flip: with the file-level mock removed (via
+// `vi.doUnmock` — NOT `vi.unmock`, see comment below) and a clean
+// module-cache (`vi.resetModules`), the dynamically-imported action
+// observes `PAYMENTS_CONSOLE_READY=true` and returns the canonical
+// `/admin/payments/[id]/refund` target.
+//
+// The other module mocks (`server-only`, `requireRole`, `admin`,
+// `next/cache`) must be re-installed via `vi.doMock` after the reset
+// — the file-level `vi.mock` hoisted calls do NOT re-apply across
+// `vi.resetModules()`.
+describe('openRefundFlow — AC30 default constant flipped post-ADR-0036', () => {
+  it('default (no vi.mock override on console-availability) returns canonical redirect target', async () => {
+    // `vi.doUnmock` (NOT `vi.unmock` — that one is hoisted by vitest's
+    // transformer to the top of the file, which would cancel the
+    // file-level `vi.mock('@/lib/payments/console-availability', ...)`
+    // for ALL tests in the file, including AC17.1). `vi.doUnmock`
+    // executes at the call site, so the unmock only affects modules
+    // imported AFTER this line — the top-level `openRefundFlow` import
+    // used by AC17.1 is unaffected.
+    vi.resetModules();
+    vi.doUnmock('@/lib/payments/console-availability');
+    // Re-install the other ambient mocks after the reset (the
+    // file-level `vi.mock` calls do not re-apply post-reset).
+    vi.doMock('server-only', () => ({}));
+    vi.doMock('@/lib/auth/requireRole', async () => {
+      const { InsufficientRoleError } =
+        await vi.importActual<typeof import('@/lib/auth/errors')>('@/lib/auth/errors');
+      return {
+        requireRole: vi.fn(async (required: 'manager' | 'owner') => {
+          const actor = requireRoleState.currentActor;
+          if (!actor) throw new Error('test bug: no actor');
+          const rank: Record<string, number> = {
+            member: 0,
+            cashier: 1,
+            manager: 2,
+            owner: 3,
+          };
+          if (rank[actor.role]! < rank[required]!) {
+            throw new InsufficientRoleError(required, actor.role);
+          }
+          return { profile: { id: actor.id, role: actor.role } };
+        }),
+      };
+    });
+    vi.doMock('@/lib/supabase/admin', () => ({
+      createAdminClient: () => {
+        throw new Error('test bug: defaultDb() reached');
+      },
+    }));
+    vi.doMock('next/cache', () => ({
+      revalidateTag: vi.fn(),
+    }));
+
+    // Dynamic import — picks up the real (un-mocked) console-availability
+    // module + its post-flip `PAYMENTS_CONSOLE_READY=true` export.
+    const reImported = await import('@/app/(admin)/admin/members/[id]/_actions/openRefundFlow');
+    const availability = await import('@/lib/payments/console-availability');
+
+    // Sanity check: the dynamically-imported constant must reflect the
+    // post-flip source value. If this assertion fails, the test below
+    // would still pass only by accident.
+    expect(availability.PAYMENTS_CONSOLE_READY).toBe(true);
+
+    requireRoleState.currentActor = { id: manager1, role: 'manager' };
+    await setTestUid(pg, manager1);
+    await asAuthenticated(pg, manager1);
+
+    const result = await reImported.openRefundFlow(
+      { profileId: target1, scope: 'membership' },
+      pgliteRunner(pg),
+    );
+
+    // The whole point of AC30: with the source constant flipped to
+    // `true` and the file-level override removed, the action returns
+    // the canonical payments-console refund target.
+    expect(result.redirectTo).toBe(`/admin/payments/${target1}/refund`);
+
+    // Audit row still fires in the canonical branch (AC17: the audit
+    // row fires in BOTH cases).
+    const rows = await readAuditRows(target1);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.action).toBe('admin.refund.flow_opened');
+
+    // Restore the file-level `false` mock for any subsequent tests in
+    // this file. (Source-shape invariants below do not touch the
+    // action runtime so this is belt-and-braces.)
+    vi.doMock('@/lib/payments/console-availability', () => ({
+      PAYMENTS_CONSOLE_READY: false,
+    }));
+    vi.resetModules();
+  });
+});
+
+// =============================================================================
 // Source-shape invariants (AC5, AC17)
 // =============================================================================
 describe('openRefundFlow — source-shape invariants', () => {

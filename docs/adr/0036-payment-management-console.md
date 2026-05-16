@@ -4,6 +4,7 @@
 - **Date:** 2026-05-15
 - **Ratified:** 2026-05-15
 - **Slice:** 4 (refund tooling + reconciliation viewer + kill-switch panel); Slice 2/3 prerequisites land webhook handler and schema
+- **content_signature:** a53419ddf6ee
 
 > One-sentence summary: A `/admin/payments/**` console gives manager+ staff a single surface to issue refunds within an authority-matrix-enforced workflow, view per-member time-bank ledgers, reconcile local state against Stripe, inspect webhook health, and toggle payment kill-switches — with zero card-data on our side, every money move idempotency-keyed, and every action audit-logged.
 

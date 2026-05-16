@@ -11,10 +11,13 @@ import 'server-only';
  * renders as a "refund flow not yet available" toast.
  *
  * Q4 default — see `docs/adr/0035-admin-operations-console.md`
- * §Open Questions Q4: this slice (ADR-0035 v1) ships
- * `PAYMENTS_CONSOLE_READY=false`. Audit breadcrumbs still fire in both
- * cases (the breadcrumb is the whole point of `openRefundFlow` even
- * before ADR-0036 lands); only the `redirectTo` target switches.
+ * §Open Questions Q4: this slice (ADR-0036 v1) ships
+ * `PAYMENTS_CONSOLE_READY=true`. The `openRefundFlow` action now
+ * redirects to `/admin/payments/[id]/refund` instead of the degraded
+ * `/admin/members/[id]?refund=pending-adr-0036` target. Audit
+ * breadcrumbs still fire in both cases (the breadcrumb is the whole
+ * point of `openRefundFlow` even before ADR-0036 lands); only the
+ * `redirectTo` target switches.
  *
  * ADR-0036 coordination note — see ADR-0035 spec S8 + the planner
  * coordination concern surfaced in
@@ -31,4 +34,4 @@ import 'server-only';
  * has no business knowing whether the payments console is ready —
  * that's the action's decision.
  */
-export const PAYMENTS_CONSOLE_READY: boolean = false;
+export const PAYMENTS_CONSOLE_READY: boolean = true;

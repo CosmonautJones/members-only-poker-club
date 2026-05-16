@@ -33,6 +33,13 @@ const PII_KEY_PATTERNS: ReadonlyArray<RegExp> = [
   /^api_key$/i,
   /^cookie$/i,
   /^session_id$/i,
+  // ADR-0036 Slice 1 (fail-loud premortem risk 3): defense-in-depth for
+  // `StripeNotConfiguredError.missingEnvVar`. The field is already
+  // non-enumerable on the error instance (so JSON.stringify + Sentry's
+  // own-key walker skip it), but if any code path manually serializes
+  // the property by name, this pattern ensures the env-var name is
+  // still redacted at the observability boundary.
+  /^missingEnvVar$/i,
 ];
 
 const REDACTED = '[redacted]' as const;
