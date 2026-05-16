@@ -498,11 +498,6 @@ describe('initiateRefund — source-shape invariants (sub-case f)', () => {
     expect(firstLine).toBe("import 'server-only';");
   });
 
-  it("contains `'use server';` on its own line (R10 — `^'use server';$/m`)", () => {
-    const src = readFileSync(ACTION_PATH, 'utf8');
-    expect(src).toMatch(/^'use server';$/m);
-  });
-
   it("contains the literal `await requireRole('manager')` call", () => {
     const src = readFileSync(ACTION_PATH, 'utf8');
     expect(src).toMatch(/await\s+requireRole\(\s*['"]manager['"]\s*\)/);

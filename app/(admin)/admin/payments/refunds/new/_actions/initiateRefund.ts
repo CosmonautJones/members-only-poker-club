@@ -1,7 +1,4 @@
 import 'server-only';
-// prettier-ignore
-// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- Next.js `'use server'` directive must appear as a top-level string statement; ESLint's unused-expression rule mis-flags it.
-'use server';
 
 /**
  * `initiateRefund` — Slice 1 fail-loud server action for the new-refund
