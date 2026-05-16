@@ -47,12 +47,22 @@ import type { PGlite } from '@electric-sql/pglite';
  *     → ADR-0009 (cycle 4)
  *   - sms_opt_in_at → ADR-0025 (Slice 3)
  *   - deleted_at → ADR-0023 (cycle 6)
+ *   - display_tz → ADR-0034 (slice 1) — additive type widening; the v1
+ *     defaults below leave it unspecified (`undefined`) so cycle 1 / cycle 2
+ *     sub-cases continue passing unchanged. ADR-0034's spec AC14 + the cycle
+ *     1 spec t7 "column-permissive constraint" both rely on this property:
+ *     the field is declared optional here, and the `buildInsert` helper
+ *     below skips `undefined` keys so the INSERT does not reference the
+ *     `display_tz` column unless the caller passes it explicitly.
  *
  * The `[extra: string]: unknown` index signature accepts additional columns
  * so future cycles can extend the seed without rewriting this fixture. DO
  * NOT add specific future-column fields here — that steals scope from the
  * owning ADR and forces this fixture to evolve in lockstep with every
- * downstream cycle.
+ * downstream cycle. `display_tz` is the load-bearing exception because the
+ * ADR-0034 cycle authors a test (`tests/db/clubs-and-display-tz.test.ts`)
+ * that needs `seedProfile`'s read-back return type to surface the column
+ * to callers without an explicit `as unknown as` cast.
  */
 export interface ProfileRow {
   id: string; // uuid; defaults to crypto.randomUUID()
@@ -61,6 +71,13 @@ export interface ProfileRow {
   phone: string | null; // defaults to null (column is nullable)
   email: string; // defaults to a randomized address
   role: 'member' | 'cashier' | 'manager' | 'owner'; // defaults to 'member'
+  /**
+   * ADR-0034 per-member display timezone override. Nullable at the DB
+   * layer; the v1 default is `undefined` so the column is NOT referenced
+   * in the INSERT unless the caller passes an explicit value (preserves
+   * the cycle 1 / cycle 2 regression contract — see header).
+   */
+  display_tz?: string | null;
   // Future ADR-owned columns (e.g. deleted_at, id_verified_at) are forwarded
   // verbatim to the INSERT via this index signature. Do not promote them to
   // first-class fields here.

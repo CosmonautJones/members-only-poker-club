@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { nowUtc } from '@/lib/time';
 
 /**
  * Liveness probe for uptime monitor.
@@ -10,6 +11,6 @@ export function GET() {
   return NextResponse.json({
     status: 'ok',
     env: process.env['NEXT_PUBLIC_APP_ENV'] ?? 'unknown',
-    timestamp: new Date().toISOString(),
+    timestamp: nowUtc().toISOString(),
   });
 }

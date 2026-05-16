@@ -1,12 +1,13 @@
 import type { MetadataRoute } from 'next';
 import { TOURNAMENTS } from '@/lib/tournaments/fixtures';
+import { nowUtc } from '@/lib/time';
 
 // Canonical production domain. Aligned with `app/robots.ts` and `app/layout.tsx`
 // so all three SEO surfaces reference the same env var + fallback (ADR-0033 §Decision).
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://membersonlypokersocial.com';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
+  const now = nowUtc();
 
   const staticRoutes: MetadataRoute.Sitemap = [
     '/',

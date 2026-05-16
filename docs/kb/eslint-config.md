@@ -1,0 +1,14 @@
+## ESLint configuration patterns
+
+Linked ADR(s): 0034 (single-source-of-truth `nowUtc()` enforcement).
+
+`.eslintrc.json` is the single source of truth for the repo's lint rules; the Next.js config extends `next/core-web-vitals` and layers on project-specific rules (notably ADR-0034's `no-restricted-syntax` for naked `new Date()` / `Date.now()`).
+
+## Lessons
+
+- **2026-05-11** — Scope a rule's disable via per-glob `overrides` with `"<rule>": "off"`, NOT via `ignorePatterns`. *Context:* ADR-0034 cycle 3 — the `no-restricted-syntax` rule needed to fire repo-wide EXCEPT inside `lib/time/**/*.ts` (the helper module that implements `nowUtc()` itself), `tests/**/*.ts` (test code may construct literal-instant Dates via `new Date('2026-...')` and use `vi.setSystemTime`), and `scripts/**/*.{ts,mjs,js}` (build/migration/conductor scripts run outside the application runtime). The simpler-looking `ignorePatterns` would have ALSO disabled `next/core-web-vitals` for those paths, silently weakening the lint surface across the entire `lib/time/`, `tests/`, and `scripts/` trees. The correct shape is an `overrides` entry that names exactly `"no-restricted-syntax": "off"` and leaves every other rule intact. *Why it matters:* `ignorePatterns` is path-level (file is never linted); `overrides[*].rules` is rule-level (file is linted, but selected rules are off). For any rule that needs path-conditional scoping, default to `overrides` — `ignorePatterns` is for never-lint-this-file cases like generated code, `node_modules`, or build output. The rule lives under top-level `rules` so it applies repo-wide by default; the scope-out goes under `overrides` keyed by the file globs that should NOT enforce it.
+- **2026-05-11** — `no-restricted-syntax` AST selectors are tied to the espree node shape; pin regression tests that fire only when expected. *Context:* ADR-0034 cycle 3 — the rule uses two AST selectors, `NewExpression[callee.name='Date'][arguments.length=0]` (zero-arg only — `new Date('2026-01-15Z')` and `new Date(123456789)` are permitted) and `CallExpression[callee.object.name='Date'][callee.property.name='now']`. A future ESLint major that changes node names (e.g. `Identifier` → `JSXIdentifier` for the callee in some contexts) would silently stop the rule from firing. *Why it matters:* The fixture-driven test at `tests/lint/no-naked-date.test.ts` materializes naked-`new Date()` and `Date.now()` fixtures to per-run tmp paths OUTSIDE the override glob and asserts `result[0].messages[0].ruleId === 'no-restricted-syntax'` fires. If those sub-cases stop firing after an ESLint upgrade, that's a load-bearing signal, not a flaky test — investigate before bumping. The test also writes a fixture INSIDE the override glob to prove the disable is effective; both axes (rule fires, override disables) are regression-guarded.
+
+## Related ADRs
+
+- ADR-0034 — the `no-restricted-syntax` rule for naked-Date enforcement.

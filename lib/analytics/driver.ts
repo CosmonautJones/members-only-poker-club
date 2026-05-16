@@ -7,6 +7,7 @@
  * `NEXT_PUBLIC_POSTHOG_KEY` secret is configured.
  */
 import type { Events } from './events';
+import { nowUtc } from '../time';
 
 export interface Driver {
   capture(event: Events): void;
@@ -36,11 +37,11 @@ class NoopDriver implements Driver {
   private identifies: IdentifyCall[] = [];
 
   capture(event: Events): void {
-    this.events.push({ event, ts: Date.now() });
+    this.events.push({ event, ts: nowUtc().getTime() });
   }
 
   identify(profileId: string, traits?: Record<string, unknown>): void {
-    this.identifies.push({ profileId, traits, ts: Date.now() });
+    this.identifies.push({ profileId, traits, ts: nowUtc().getTime() });
   }
 
   /** Test helper. Returns a copy so callers can't mutate the buffer. */
