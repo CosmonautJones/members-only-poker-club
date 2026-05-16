@@ -66,6 +66,7 @@ import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 import { BadRequest } from '@/app/(admin)/admin/_errors';
+import { ADMIN_REFUND_FLOW_OPENED } from '@/lib/audit/actions';
 import { PAYMENTS_CONSOLE_READY } from '@/lib/payments/console-availability';
 import { trackAdminEvent } from '@/lib/analytics/admin-events';
 
@@ -186,7 +187,7 @@ export async function openRefundFlow(
     withAudit(
       tx,
       {
-        action: 'admin.refund.flow_opened',
+        action: ADMIN_REFUND_FLOW_OPENED,
         targetType: 'profile',
         targetId: params.profileId,
         actorId: actor.id,

@@ -48,6 +48,30 @@ const READ_ONLY_ALLOWLIST: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Path-prefixed exclusions for fail-loud server actions that emit an
+ * audit breadcrumb but DO NOT mutate domain state. These actions write
+ * to `audit_log` (a write the walker correctly flags as INSERT/UPDATE/
+ * DELETE-class) but the dashboard counts they would otherwise need to
+ * bust are not yet affected — Slice 1 of ADR-0036 ships the fail-loud
+ * `initiateRefund` posture before any `refund_requests` row exists, so
+ * the dashboard's refund-pending count is structurally unchanged.
+ *
+ * When Slice 2 of ADR-0036 inverts the env-probe ordering and the
+ * action begins inserting a `refund_requests` row, this exclusion MUST
+ * be lifted (the action will then emit `revalidateTag(
+ * 'admin-dashboard-counts')` per AC35).
+ *
+ * Match is by `startsWith` on the path returned by `relpath()`, i.e.
+ * paths are relative to `app/(admin)/admin/`.
+ */
+const FAIL_LOUD_PATH_EXCLUSIONS: ReadonlyArray<string> = [
+  // ADR-0036 Slice 1 — fail-loud refund initiator. No `refund_requests`
+  // INSERT happens; the only DB write is the audit breadcrumb itself.
+  // Lift this exclusion in Slice 2 when the action mutates state.
+  'payments/refunds/new/_actions/',
+];
+
+/**
  * Barrel re-export files — `index.ts` modules that only contain
  * `export { ... } from './...'` lines. These have no executable body
  * and are exempt.
@@ -131,6 +155,10 @@ describe('dashboard cache invalidation / source-grep', () => {
       const filename = rel.split('/').pop()!;
       if (filename === 'index.ts') continue; // barrel re-exports
       if (READ_ONLY_ALLOWLIST.has(rel)) continue;
+      // ADR-0036 Slice 1: skip fail-loud audit-only actions that emit a
+      // breadcrumb but don't mutate domain state. See
+      // `FAIL_LOUD_PATH_EXCLUSIONS` JSDoc for the lift-condition.
+      if (FAIL_LOUD_PATH_EXCLUSIONS.some((prefix) => rel.startsWith(prefix))) continue;
 
       const source = readFileSync(abs, 'utf-8');
       if (isBarrelOnly(source)) continue;
