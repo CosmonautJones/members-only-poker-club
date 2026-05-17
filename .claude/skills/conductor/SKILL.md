@@ -3,7 +3,7 @@ name: conductor
 description: Pure-orchestrator skill for ADR-driven implementation. Use when invoked via `/conductor <adr-number>`. Claude becomes a delegator — all implementation work goes to subagents. Drives one ADR end-to-end through 5 phases (bootstrap, plan, build, integration, ship, retrospective). Maximizes session lifespan by keeping the orchestrator's context clean.
 ---
 
-# Conductor — Pure Orchestrator (v0.4)
+# Conductor — Pure Orchestrator (v0.5)
 
 You are the orchestrator. **You do not implement.** You dispatch agents, route their structured returns, persist state, and escalate only on the trigger conditions below.
 
@@ -27,7 +27,7 @@ You may NOT directly read or write source code, tests, migrations, configs, or a
 | 0 Bootstrap     | Read ADR; init `.conductor/<N>/`. If `Status: Stub` (or `Proposed`): dispatch `triage` → record `triage_depth` in status.json. If `triage_depth=full`, dispatch `falsifier` ║ `premortem`(mode=direction) **in parallel** before ratification. Then dispatch `ratifier` (passing falsifier + direction-premortem outputs when full) → when `triage_depth=full`, dispatch `critic`(mode=proposal) against the proposal with the falsifier and direction-premortem summary paths attached; if `verdict=revise`, loop back to ratifier (existing 3-iter ratifier max applies; once exceeded, escalate as a stuck condition) → user approves the proposal at `.conductor/<N>/ratification-proposal.md` → orchestrator computes canonical signature, replaces the `PENDING` sentinel in the proposal with `<sha256[:12]>`, writes the approved text back to `docs/adr/NNNN-*.md`, and stores the full sha256 in `status.input_hashes[adr_path]`. Then ensure paired spec exists (dispatch `spec-writer` if not), hash the spec into `status.input_hashes[spec_path]`, snapshot canonical texts to `.conductor/<N>/snapshots/` for later delta comparison, and freeze `acceptance_commands_required` from spec frontmatter. |
 | 1 Plan          | `critic`(spec) → `planner`(mode=initial) → `premortem`(mode=task) on high-risk tasks (parallel).                                                                                                                                                                                                                                                                             |
 | 2 Build         | Per task: `test-writer` ║ `worker` → `validator`(scope=task). On fail: append to `attempts/<task>.md`, increment `task_iters[id]`, re-spawn worker. Max 5 iters → dispatch `planner`(mode=split). If split lineage already has `splits >= 2`, escalate instead of re-splitting.                                                                                              |
-| 3 Integration   | `validator`(scope=slice, runs full gauntlet + every command in `acceptance_commands_required`) → `critic`(mode=diff) → `scope-judge`. Critic `revise` re-opens flagged tasks back into Phase 2. `scope-judge` cannot return `ship_ready: true` if any acceptance command did not run-and-pass — schema-enforced.                                                             |
+| 3 Integration   | `validator`(scope=slice, runs full gauntlet + every command in `acceptance_commands_required`) → `critic`(mode=diff) → `scope-judge`. Critic `revise` re-opens flagged tasks back into Phase 2. `scope-judge` cannot return `ship_ready: true` if any acceptance command did not run-and-pass — schema-enforced. **Finisher fold-in (v0.5):** when ≥3 tasks at wave-tail have small completion gaps (missing test file, single action wiring, source-grep gap) AND no behavioral changes are needed, the orchestrator MAY dispatch a single `worker`(role="finisher") that completes the gaps AND runs the slice validator gauntlet in the same dispatch. The finisher's summary MUST enumerate sub-tasks (`Sub-task 1: tN — …`) and report the full acceptance-command table. Schema-wise still a `worker` return with `files_touched[]` covering every touched path. |
 | 4 Ship          | `journalist` (writes journal entry AND KB topic deltas in one pass) ║ `shipper`(commit + push + PR). Both run in parallel; journalist completes before PR body is finalized so the PR description references the journal entry path.                                                                                                                                       |
 | 5 Retrospective | `retrospective` writes `skill-diff-proposal.md` from dispatch + attempts evidence. **NEVER auto-merge.** After: mark status `completed`, archive `.conductor/<N>/`, emit Done notification including any skill-diff-proposal path.                                                                                                                                            |
 
@@ -72,11 +72,26 @@ The spec's frontmatter MUST list `acceptance_commands:` — runnable shell comma
 
 If the spec has no `acceptance_commands:` frontmatter or the array is empty, the orchestrator surfaces this as a Phase-1 critic concern and refuses to advance to Phase 2 until the spec is amended.
 
-## Loop bounds
+## Loop bounds (turn-boundary form, v0.5)
 
-- Validator loop: max 5 iters per task (`task_iters[id]`); then `planner`(mode=split). If split lineage `splits[id] >= 2`, escalate.
-- Critic loop: max 3 iters; then escalate.
-- Ratifier-revision loop: max 3 iters; then escalate.
+Each retry iteration is **its own turn**. The orchestrator dispatches in background, emits a sentinel (`GOAL-C:` for in-flight, `PING:` for stuck), calls `ScheduleWakeup`, and ends the turn. The next turn checks `TaskList` for completion and routes results. The orchestrator NEVER sits in a `while` loop inside a single turn — that pattern is invisible to `/goal`'s per-turn Haiku evaluator and balloons orchestrator context with worker output.
+
+- **Validator loop** — max 5 iters per task (`task_iters[id]`); each iter is one turn. Pattern per iter: dispatch `validator`(run_in_background=true) → emit `GOAL-C: phase=2 task=t<id> iter=<n> awaiting=validator` → `ScheduleWakeup(60, "validator t<id> iter <n>")`. On resume: `TaskList` → if complete, route result; if fail, dispatch `worker` (background) → emit `GOAL-C` again. After 5 iters → dispatch `planner`(mode=split). If split lineage `splits[id] >= 2`, emit `PING: stuck — task=<id> exceeded 2 splits`.
+- **Critic loop** — max 3 iters, same turn-per-iter pattern. After 3 iters → emit `PING: stuck — critic exceeded 3 revisions`.
+- **Ratifier-revision loop** — max 3 iters, same pattern. After 3 iters → emit `PING: stuck — ratifier exceeded 3 revisions`.
+- **Ratification approval wait** — when `ratifier` produces a proposal, emit `PING: ratification — review .conductor/<N>/ratification-proposal.md` and end the turn. `ScheduleWakeup(1200)` as a heartbeat; resume primarily on user re-engage.
+
+**Cache-TTL guidance:** the 60s ScheduleWakeup delay for validator/critic loops keeps the prompt cache warm; the 1200s ratification heartbeat accepts the cache miss since the user-action gap is intrinsic and not worth burning cache 12× per hour for.
+
+## Mid-flight worker failure recovery
+
+A worker dispatch that ends WITHOUT a structured return (network socket killed, runner crash, context exhausted before final JSON) leaves files partially written and no `files_touched[]` manifest. On detection (dispatch timeout OR missing summary file at expected path), the orchestrator:
+
+1. Increments `task_iters[id]` (counts as one attempt).
+2. Re-dispatches the worker with `prior_state: "partial"` and an explicit "state on disk" briefing: list the paths the prior attempt was contracted to touch (from spec task scope), and instruct the worker to **Read each one first and reuse if compliant** (mark as `EXISTED / KEPT` in summary) instead of re-creating from scratch.
+3. If the second attempt also fails without a structured return, escalate as `stuck` (emit `PING: stuck — worker mid-flight failure on task=<id>`); the cause is infrastructural, not work-quality.
+
+Applied from ADR-0035 retrospective Diff 2 — the t17 socket-recovery pattern this codifies was previously manual.
 
 ## Token-efficiency rules (MANDATORY)
 
@@ -91,11 +106,44 @@ If the spec has no `acceptance_commands:` frontmatter or the array is empty, the
 9. Avoid status polling. Read `status.json` at phase boundaries.
 10. Use ScheduleWakeup over wait-loops.
 
+## Goal Integration (v0.5)
+
+Every turn-ending response from the orchestrator MUST terminate with exactly ONE sentinel as the LAST LINE of the transcript. The `/goal` Haiku evaluator running between turns parses this line to decide success / block / continue. User-facing prose ABOVE the sentinel is unaffected — the sentinel is the parseable terminator, not the message.
+
+| Sentinel                                                                                | Meaning                  | When                                                       |
+| --------------------------------------------------------------------------------------- | ------------------------ | ---------------------------------------------------------- |
+| `GOAL-A: ADR-NNNN <slug> shipped — PR <url> — retrospective <path>`                     | Success                  | End of Phase 5 (escalation trigger 4)                      |
+| `PING: <category> — <detail>`                                                           | Blocked on human action  | Escalation triggers 1, 2, 3, 5, 6, guardrail               |
+| `GOAL-C: phase=<P> task=<id> background=<N> resume=/conductor resume`                   | Turn yield (work in flight) | Between waves; whenever `ScheduleWakeup` is set            |
+
+`PING` categories (one-word tag immediately after `PING:`):
+
+- `secrets` — env var / API key needed
+- `auth` — OAuth / MFA / browser login
+- `money` — paid tier / billing decision
+- `ratification` — user approves stub→accepted proposal
+- `stuck` — loop overrun (validator / critic / ratifier max-iters or splits>=2)
+- `destructive` — confirm op on shared/production target
+- `learn` — proposal-merge confirmation (see `/conductor learn` below)
+
+Canonical mapping reference: `docs/kb/conductor-goal-integration.md` (project KB).
+
 ## Self-improvement loops
 
 - Per-iteration: every validator failure appends to `attempts/<task>.md`. Next worker dispatch reads it.
 - Per-shift: `journalist` writes both the journal entry AND topic-keyed KB deltas (one role, two output paths). Future workers/spec-writers/test-writers read the KB slice for their topic on every dispatch.
-- Per-run: `retrospective` proposes a diff against this SKILL.md, written to `.conductor/<N>/skill-diff-proposal.md`. User-gated; never auto-merged.
+- Per-run: `retrospective` proposes a diff against this SKILL.md, written to `.conductor/<N>/skill-diff-proposal.md`. The proposal MUST populate a structured `proposed_diffs[]` field (per `RetrospectiveResultSchema`); an empty array is the valid "no improvements identified" output.
+- **Per-merge (v0.5):** `/conductor learn [<adr>]` walks completed `.conductor/<N>/skill-diff-proposal.md` files, presents diffs against the live `SKILL.md` (or named KB topics) as a single review batch, and on user confirm (`PING: learn — apply <N> proposals?`) applies the diffs to both:
+  - In-project: `.claude/skills/conductor/SKILL.md` (this file) and any named templates
+  - Staging: `Downloads/conductor-harness/.claude/skills/conductor/SKILL.md` and matching templates
+
+  Each applied diff is logged to the `Skill changelog (auto-learn)` section below with `(source: .conductor/<N>/skill-diff-proposal.md)`. **NEVER auto-merge; always user-gated.**
+
+### Skill changelog (auto-learn)
+
+(populated by `/conductor learn` runs — entries follow `<date> | <source-adr> | <one-line-summary>`)
+
+- 2026-05-17 | manual-bootstrap | v0.5 bundles ADR-0035 retrospective Diffs 1, 2, 4 (finisher fold-in, mid-flight recovery, RLS contract notes) — first application of the learning loop, done manually since `/conductor learn` was not yet implemented.
 
 ## Roster (14 roles)
 
@@ -145,7 +193,17 @@ Design spec: `docs/superpowers/specs/2026-05-05-conductor-design.md`. If this sk
 
 ## Changelog
 
-- **v0.4 (this version)**
+- **v0.5 (this version)**
+  - **Goal Integration** — every turn-ending response terminates with exactly one of three sentinels (`GOAL-A:` success, `PING:` blocked-on-human, `GOAL-C:` turn-yield) so the Claude Code `/goal` Haiku evaluator composes cleanly with `/conductor`. Sentinel mapping table in §Goal Integration; canonical reference at `docs/kb/conductor-goal-integration.md`.
+  - **Turn-boundary discipline** — §Loop bounds rewritten so each retry iteration is its own turn (background dispatch + `ScheduleWakeup` + `GOAL-C`), not a sync `while` inside a single turn. Cache-TTL-aware delays (60s tight loops, 1200s ratification heartbeat).
+  - **`/conductor learn` sub-command** — applies the previously-unconsumed `skill-diff-proposal.md` files from completed cycles. `RetrospectiveResultSchema` gains required `proposed_diffs[]` field; new `Skill changelog (auto-learn)` section logs applied proposals.
+  - **Finisher fold-in** — Phase 3 may dispatch a single `worker`(role="finisher") instead of N separate workers + a slice validator when ≥3 wave-tail tasks have small completion gaps. Applied from ADR-0035 retrospective Diff 1.
+  - **Mid-flight failure recovery** — new section codifying the socket/timeout/context-exhaust recovery pattern. Applied from ADR-0035 retrospective Diff 2.
+  - **Worker template** — adds optional `prior_state` field (`clean` | `partial`) and a "pre-existing failure disclaimer discipline" note (sibling contamination check). Applied from ADR-0035 retrospective Diffs 2 + 3.
+  - **Spec-writer template** — adds "RLS contract authoring — known fidelity gaps" note distinguishing INSERT WITH CHECK (42501 throw) from UPDATE/DELETE/SELECT USING (silent rowCount=0). Applied from ADR-0035 retrospective Diff 4.
+  - Roster size unchanged at 14. No new roles. No new modes. The `learn` sub-command is an orchestrator surface, not an agent role.
+
+- **v0.4 (superseded)**
   - Critic gains `mode: "proposal"` for ratification review (Phase 0, only when `triage_depth: full`). Runs after ratifier produces a proposal, before user approval. Returns structured `falsifier_coverage[]` and `direction_risk_coverage[]` arrays so v0.3 obligations are mechanically verified, not prompt-stretched onto `mode: spec`.
   - `CriticProposalSchema.superRefine` rejects `verdict: ship` when any coverage entry has `addressed: false`. Orchestrator additionally enforces array-length equality with upstream falsifier and direction-mode premortem outputs.
   - Roster size unchanged (14). Roles added: zero. Modes added: one. SKILL.md flow change is the Phase-0 "Pre-ratification debate" section (a new step 4).

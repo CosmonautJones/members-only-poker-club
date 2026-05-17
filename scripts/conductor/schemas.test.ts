@@ -559,7 +559,7 @@ describe('ShipperResultSchema', () => {
 });
 
 describe('RetrospectiveResultSchema', () => {
-  it('parses an ok retrospective result', () => {
+  it('parses an ok retrospective result with proposed_diffs populated', () => {
     expect(() =>
       RetrospectiveResultSchema.parse({
         status: 'ok',
@@ -567,8 +567,51 @@ describe('RetrospectiveResultSchema', () => {
         patterns_found: 2,
         diffs_proposed: 1,
         summary_path: '.conductor/0011/dispatches/0070-retrospective.md',
+        proposed_diffs: [
+          {
+            target_file: '.claude/skills/conductor/SKILL.md',
+            patch_or_diff: '--- a/SKILL.md\n+++ b/SKILL.md\n@@ -1 +1 @@\n-old\n+new',
+            rationale: 'cycle evidence — see events.jsonl line 42',
+            source_evidence: '.conductor/0011/events.jsonl:42',
+            strength: 'strong',
+          },
+        ],
       }),
     ).not.toThrow();
+  });
+
+  it('parses the empty "no improvements" output (proposed_diffs: [])', () => {
+    expect(() =>
+      RetrospectiveResultSchema.parse({
+        status: 'ok',
+        proposal_path: '.conductor/0011/skill-diff-proposal.md',
+        patterns_found: 0,
+        diffs_proposed: 0,
+        summary_path: '.conductor/0011/dispatches/0070-retrospective.md',
+        proposed_diffs: [],
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects diffs_proposed mismatched with proposed_diffs.length (v0.5 superRefine)', () => {
+    expect(() =>
+      RetrospectiveResultSchema.parse({
+        status: 'ok',
+        proposal_path: '.conductor/0011/skill-diff-proposal.md',
+        patterns_found: 2,
+        diffs_proposed: 2,
+        summary_path: '.conductor/0011/dispatches/0070-retrospective.md',
+        proposed_diffs: [
+          {
+            target_file: '.claude/skills/conductor/SKILL.md',
+            patch_or_diff: 'diff body',
+            rationale: 'rationale',
+            source_evidence: 'evidence',
+            strength: 'strong',
+          },
+        ],
+      }),
+    ).toThrow(/must equal proposed_diffs\.length/);
   });
 });
 

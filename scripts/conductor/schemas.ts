@@ -460,13 +460,49 @@ export type ShipperResult = z.infer<typeof ShipperResultSchema>;
 // Retrospective
 // ============================================================
 
-export const RetrospectiveResultSchema = z.object({
-  status: z.enum(['ok', 'failed']),
-  proposal_path: z.string(),
-  patterns_found: z.number().int().nonnegative(),
-  diffs_proposed: z.number().int().nonnegative(),
-  summary_path: z.string(),
+// v0.5: a single proposed diff produced by the retrospective agent. The
+// orchestrator's `/conductor learn` sub-command walks completed cycles'
+// proposed_diffs[] arrays and applies user-approved entries to SKILL.md or
+// the named template / KB file. Strength maps to the recommendation ladder
+// established in `.conductor/0035/skill-diff-proposal.md` (the exemplar):
+//   strong     — apply now; clear leverage, real evidence, low risk
+//   medium     — cheap fix, single-cycle evidence; defer if next cycle disagrees
+//   discipline — informational nudge; user can drop entirely
+// The patch_or_diff field is a unified-diff hunk OR a relative path to a
+// .patch file under `.conductor/<N>/` (large diffs go on disk).
+export const ProposedDiffSchema = z.object({
+  target_file: z.string().min(1),
+  patch_or_diff: z.string().min(1),
+  rationale: z.string().min(1),
+  source_evidence: z.string().min(1),
+  strength: z.enum(['strong', 'medium', 'discipline']),
 });
+
+export type ProposedDiff = z.infer<typeof ProposedDiffSchema>;
+
+export const RetrospectiveResultSchema = z
+  .object({
+    status: z.enum(['ok', 'failed']),
+    proposal_path: z.string(),
+    patterns_found: z.number().int().nonnegative(),
+    diffs_proposed: z.number().int().nonnegative(),
+    summary_path: z.string(),
+    // v0.5: structured per-diff records the `/conductor learn` sub-command
+    // consumes. REQUIRED field — empty array is the valid "no improvements
+    // identified" output, but the field must be present so the merger can
+    // iterate uniformly. `diffs_proposed` MUST equal `proposed_diffs.length`
+    // (enforced below).
+    proposed_diffs: z.array(ProposedDiffSchema).default([]),
+  })
+  .superRefine((result, ctx) => {
+    if (result.proposed_diffs.length !== result.diffs_proposed) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `diffs_proposed (${result.diffs_proposed}) must equal proposed_diffs.length (${result.proposed_diffs.length})`,
+        path: ['proposed_diffs'],
+      });
+    }
+  });
 
 export type RetrospectiveResult = z.infer<typeof RetrospectiveResultSchema>;
 
