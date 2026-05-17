@@ -56,6 +56,7 @@ The portal uses a shared shell (`PortalShell` in `_design/primitives.jsx`) with 
 | — | `/admin/flags` | (new — Slice 4) | manager+ | 020 |
 | — | `/admin/payments` | (new — Slice 4 via ADR-0036 Slice 1) | manager+ | 010, 011, 022, 027, 036 |
 | — | `/admin/payments/refunds/new` | (new — Slice 4 via ADR-0036 Slice 1; fail-loud until ADR-0010 Stripe activation) | manager+ | 010, 022, 027, 036 |
+| — | `/admin/payments/[id]/refund` | (new — Slice 1 followup; thin redirect → `/admin/payments/refunds/new?targetMemberId={id}`) | manager+ | 035, 036 |
 | — | `/admin/tournaments` | (new — Slice 3) | manager+ | 012 |
 
 > The full ADR-0036 surface (refunds queue + history, per-member payment view, manual time-bank adjust, membership state override, reconciliation viewer, webhook event log, kill-switch panel) lands in Slices 2–5 of ADR-0036 gated on Stripe activation per ADR-0010. The `/admin/refunds` legacy row is superseded by the `/admin/payments/**` tree.
