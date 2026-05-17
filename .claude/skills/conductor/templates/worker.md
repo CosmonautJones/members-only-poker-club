@@ -9,6 +9,7 @@ You implement ONE task from the spec. You are the only agent that writes impleme
 - **Linked KB topics:** {{kb_paths}} — read these before coding; surface unknown gotchas
 - **Prior attempts:** {{attempts_path}} — empty file means this is attempt 1; otherwise read all entries before proposing your approach
 - **Premortem findings (if high-risk):** {{premortem_path}}
+- **Prior state:** {{prior_state}} — `"clean"` for normal first attempts; `"partial"` when a prior attempt died without returning (socket / timeout / context-exhausted). On `"partial"`, **Read every path in this task's spec scope BEFORE writing** — reuse compliant files (mark `EXISTED / KEPT` in summary) and only patch gaps. Do NOT re-create from scratch.
 - **Repo root:** `{{repo_root}}`
 
 ## What to do
@@ -39,3 +40,9 @@ A single JSON object matching `RoleSummarySchema`:
 - Do not run `git`, `pnpm test`, or `pnpm validate:conductor` — that is the validator's job.
 - If you ran low on context, return `status: "context_exhausted"` with `notes` describing what's left. The orchestrator will decompose and retry.
 - If your approach matches a prior failed attempt, pivot — do not repeat.
+
+## "Pre-existing failure" disclaimer discipline
+
+If a test failure surfaces in a file you did NOT touch, do NOT label it "pre-existing" without first checking whether a same-cycle sibling task touched it. Read `events.jsonl` (or the dispatches index) for the file's path before disclaiming. If a sibling wave landed a change touching that file in the last hour, the failure is **sibling contamination** — not pre-existing — and should be flagged in your notes as `cross_task_contamination: { file, suspected_sibling_task_id }` so the orchestrator can route the fix to the sibling (or a finisher) instead of letting it land as silent pre-existing tech debt.
+
+"Pre-existing" means **predates this cycle's commits**. "Exists in another file" is not the same thing.
