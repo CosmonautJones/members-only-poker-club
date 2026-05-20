@@ -36,8 +36,10 @@ Write the full analysis to `{{summary_path}}`.
 ```json
 {
   "mode": "task",
+  "risk_count": 1,
   "risks": [
     {
+      "id": "R1",
       "trigger": "concurrent deposit on the same time-bank",
       "blast_radius": "money",
       "mitigation": "wrap the row read in SELECT FOR UPDATE inside the deposit transaction"
@@ -47,4 +49,8 @@ Write the full analysis to `{{summary_path}}`.
 }
 ```
 
-`mode` is one of `"task" | "direction"` (defaults to `"task"` if omitted, for backward compat with v0.2 dispatches). `blast_radius` is one of `"money" | "pii" | "auth" | "audit" | "availability"`. Return ONLY the JSON.
+`mode` is one of `"task" | "direction"` (defaults to `"task"` if omitted, for backward compat with v0.2 dispatches). `blast_radius` is one of `"money" | "pii" | "auth" | "audit" | "availability"`. `id` is a stable identifier (`R1`, `R2`, …) the worker references in `mitigations_landed[]` when reporting which mitigations landed. `risk_count` is `risks.length` and is enforced by the orchestrator at dispatch time — a mismatch means the premortem output was truncated. Return ONLY the JSON.
+
+## Mitigation-contract obligation (task mode, v0.5 from ADR-0034 P2)
+
+When the orchestrator dispatches a worker on a task that has a paired premortem, the worker MUST land EVERY risk's `mitigation` as test code or production code (per the mitigation prose), and MUST report empirical deviations (cases where the predicted failure mode was wrong) in its summary. This is enforced by an optional `mitigations_landed: Array<{id, status: 'landed' | 'inverted' | 'deferred', evidence_path}>` field on the worker's return, populated when a premortem path is in the dispatch envelope. The retrospective audits coverage: every `risks[].id` should appear in the worker's `mitigations_landed[]` for the corresponding task.

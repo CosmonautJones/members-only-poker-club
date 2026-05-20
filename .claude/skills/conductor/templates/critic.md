@@ -26,6 +26,10 @@ In v0.4, critic runs in four modes:
 
 **spec mode:** ask "is this spec implementable as written? Are acceptance criteria testable? Is anything ambiguous, contradictory, or under-specified?"
 
+**Structural binding check (v0.5 from ADR-0002 D1):** for each `Create: <path>` line in the spec's touched-files inventory, verify that the spec's task decomposition hints (or, if `{{plan_path}}` is provided, the plan's task scopes) explicitly names that path. A `Create:` line whose path appears nowhere in any task's scope is a structural gap — future cycles importing the path will fail because no task will ever produce the file. Surface each such gap as a `concerns[]` entry with the literal `Create: <path>` text quoted, and return `verdict: "revise"`. Inlining the contents of a `Create:` file into another module satisfies the per-AC behavior but breaks the import-by-path contract; the diff-mode critic (Phase 3) cannot catch this without first paying a full Phase 2 build cost. The spec-mode check stops the gap one phase earlier.
+
+The exception is when the spec explicitly justifies an inline ("note: this is inlined into module X for cycle N; lift to a standalone file in cycle M"). In that case the inventory line itself should NOT be `Create:` — it should read `Inline-into: <module>` or be omitted. If `Create:` appears with no explicit lift-justification AND no task names the path, that is the gap to flag.
+
 **diff mode:** ask "did this code actually solve what the spec asked for, beyond compiling and passing tests? Are there shortcuts, missed edge cases, or work that addresses the letter but not the intent?"
 
 **delta mode:** classify every difference between old and new into one of three buckets:

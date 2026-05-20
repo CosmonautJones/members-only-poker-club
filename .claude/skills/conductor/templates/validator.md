@@ -19,6 +19,14 @@ Run, in order, stopping at the first failure:
 
 Capture full output of the failing step (or all if all pass) to `{{summary_path}}`.
 
+**On failure, the summary MUST include a `## Diagnosis` section (v0.5 from ADR-0003 Diff 3) with:**
+
+- **Root-cause hypothesis** — what the failure indicates about the code or substrate (one paragraph). Distinguish "the code is wrong" from "the substrate is misconfigured" from "the test asserts something the system can't satisfy."
+- **Fault attribution** — which task's output is at fault (`t4 worker`, `t1 migration`, etc.) OR `infrastructure` (host/substrate gap, no task at fault) OR `unknown` (genuinely cannot tell from the failure surface alone). Echoed into the `fault_attribution` JSON field on return.
+- **Recommended pivot** — the specific change a retry should make. If the recommendation is "fix file X line Y to do Z," say that. If the recommendation is "this is a substrate gap, escalate," say that. Never leave the orchestrator to derive the pivot from the log.
+
+The diagnosis is informative, not authoritative — the orchestrator may still re-route — but the validator HAS read the failure surface in detail and is closer to the evidence than the orchestrator. Producing the diagnosis is part of the validator's job, not optional commentary.
+
 Track which acceptance commands you ran successfully (`acceptance_commands_run`) and which you did not (`acceptance_commands_unrun` — empty if you ran them all to completion before any failure, populated otherwise).
 
 ## Return
@@ -43,11 +51,14 @@ JSON conforming to `ValidatorResultSchema`:
   "pass": false,
   "failed_step": "test",
   "first_error_loc": "tests/auth/login.test.ts:42",
+  "fault_attribution": "t4 worker",
   "summary_path": "{{summary_path}}",
   "acceptance_commands_run": [],
   "acceptance_commands_unrun": ["pnpm test:e2e:auth", "pnpm test:e2e:signup"]
 }
 ```
+
+`fault_attribution` is `"<task_id>" | "infrastructure" | "unknown"` (v0.5 from ADR-0003 Diff 3). Always present on `pass: false`. Omit on `pass: true`.
 
 Return ONLY the JSON.
 

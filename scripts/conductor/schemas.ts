@@ -49,6 +49,14 @@ export const StatusSchema = z.object({
   // `full` (fan out to falsifier + direction-mode premortem before ratifier).
   // Recorded so resume re-enters the same depth without re-triaging.
   triage_depth: z.enum(['light', 'full']).optional(),
+  // v0.5 from ADR-0024 P5: the feature branch captured at Phase 0 (either the
+  // branch the user invoked from if it was already a feature branch, or one
+  // the orchestrator created/asked-an-agent-to-create when invoked from main
+  // or another protected branch). Phase 5 shipper verifies the current branch
+  // matches this snapshot before pushing; mismatch is escalation trigger #8.
+  // Optional for back-compat with v0.4 status.json files that pre-date the
+  // branch-hygiene rail.
+  branch_snapshot: z.string().optional(),
   escalation_reason: z.string().optional(),
 });
 
@@ -60,6 +68,13 @@ export const TaskSchema = z.object({
   blockedBy: z.array(z.string()).default([]),
   risk: z.enum(['low', 'medium', 'high']),
   linked_adrs: z.array(z.string().regex(/^\d{4}$/)).default([]),
+  // v0.5 from ADR-0006 Diff 1: when true, the orchestrator dispatches both
+  // `worker` and `test-writer` for this task in the same Phase 2 wave —
+  // enforcing the design-spec §6.1 `test-writer ║ worker → validator` pattern
+  // for high-risk contract source files. Defaults false (the orchestrator
+  // dispatches per the normal per-task rhythm). See planner template
+  // "Co-locate helper-contract validation" for the three-gate test.
+  co_located_test: z.boolean().default(false),
 });
 
 export type Task = z.infer<typeof TaskSchema>;
@@ -127,6 +142,12 @@ const ValidatorFailSchema = z.object({
   pass: z.literal(false),
   failed_step: z.string(),
   first_error_loc: z.string(),
+  // v0.5 from ADR-0003 Diff 3: optional fault attribution. Expected values:
+  // a task id ("t4 worker"), the literal "infrastructure" (host/substrate
+  // gap with no task at fault), or "unknown" (validator could not tell from
+  // the failure surface alone). Optional for back-compat with v0.3/v0.4
+  // validator archives; new dispatches always populate it.
+  fault_attribution: z.string().optional(),
   summary_path: z.string(),
   acceptance_commands_run: z.array(z.string()).default([]),
   acceptance_commands_unrun: z.array(z.string()).default([]),
@@ -143,11 +164,40 @@ export type ValidatorResult = z.infer<typeof ValidatorResultSchema>;
 // Generic role summary (worker, test-writer, spec-writer)
 // ============================================================
 
+// v0.5 from ADR-0034 P1: optional gate_blocked_by[] entry. Populated by
+// a worker that installed a whole-repo gate (lint rule, type guard,
+// migration check) and detected violations in same-cycle siblings' code.
+// Orchestrator routes findings to the named sibling task as iter-2 input.
+const GateBlockedByEntrySchema = z.object({
+  task_id: z.string(),
+  file: z.string(),
+  rule_id: z.string(),
+  message: z.string(),
+});
+
+// v0.5 from ADR-0034 P2: optional mitigations_landed[] entry. Populated by
+// a worker dispatched on a task that had a paired task-mode premortem.
+// Each entry references a `risks[].id` from the premortem and reports
+// outcome. Empirical inversions (predicted-vs-actual mismatch) carry
+// status: 'inverted' with evidence_path pointing at the test that
+// documents actual behavior.
+const MitigationsLandedEntrySchema = z.object({
+  id: z.string(),
+  status: z.enum(['landed', 'inverted', 'deferred']),
+  evidence_path: z.string(),
+});
+
 export const RoleSummarySchema = z.object({
   status: z.enum(['ok', 'blocked', 'context_exhausted', 'failed']),
   summary_path: z.string(),
   notes: z.string().optional(),
   files_touched: z.array(z.string()).default([]),
+  // Optional — only populated by workers that install whole-repo gates AND
+  // detect cross-cycle-sibling violations. See template comment for routing.
+  gate_blocked_by: z.array(GateBlockedByEntrySchema).optional(),
+  // Optional — only populated by workers dispatched with a {{premortem_path}}
+  // in the dispatch envelope. See template comment for the contract.
+  mitigations_landed: z.array(MitigationsLandedEntrySchema).optional(),
 });
 
 export type RoleSummary = z.infer<typeof RoleSummarySchema>;
@@ -344,16 +394,36 @@ export type ScopeJudgeResult = z.infer<typeof ScopeJudgeResultSchema>;
 // ============================================================
 
 const RiskSchema = z.object({
+  // v0.5 from ADR-0034 P2: optional stable identifier (R1, R2, …) the
+  // worker references in `mitigations_landed[]`. Optional for back-compat
+  // with v0.3/v0.4 premortem outputs that predate the mitigation-contract
+  // obligation. New premortem dispatches should always populate it.
+  id: z.string().optional(),
   trigger: z.string(),
   blast_radius: z.enum(['money', 'pii', 'auth', 'audit', 'availability']),
   mitigation: z.string(),
 });
 
-export const PremortemResultSchema = z.object({
-  mode: z.enum(['task', 'direction']).default('task'),
-  risks: z.array(RiskSchema),
-  summary_path: z.string(),
-});
+export const PremortemResultSchema = z
+  .object({
+    mode: z.enum(['task', 'direction']).default('task'),
+    // v0.5 from ADR-0034 P2: optional risks.length echo enforced by the
+    // orchestrator at dispatch time — a mismatch means the premortem output
+    // was truncated. Optional for back-compat; superRefine below enforces
+    // equality when present.
+    risk_count: z.number().int().nonnegative().optional(),
+    risks: z.array(RiskSchema),
+    summary_path: z.string(),
+  })
+  .superRefine((result, ctx) => {
+    if (result.risk_count !== undefined && result.risk_count !== result.risks.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `risk_count (${result.risk_count}) must equal risks.length (${result.risks.length}) — output was likely truncated`,
+        path: ['risk_count'],
+      });
+    }
+  });
 
 export type PremortemResult = z.infer<typeof PremortemResultSchema>;
 
@@ -392,6 +462,13 @@ export const TriageResultSchema = z.object({
   // money_keyword_present, no_alternatives_listed). Stored so the user can
   // sanity-check the triage decision.
   signals: z.array(z.string()).default([]),
+  // v0.5 from ADR-0003 Diff 1: optional host-capability probe results.
+  // Triage always probes the host; the orchestrator forwards this to
+  // spec-writer so spec acceptance commands never depend on absent
+  // capabilities. Optional for back-compat with v0.3/v0.4 triage archives.
+  host_capabilities: z
+    .record(z.string(), z.enum(['present', 'absent', 'unknown']))
+    .optional(),
   summary_path: z.string(),
 });
 
