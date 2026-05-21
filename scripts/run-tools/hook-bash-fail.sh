@@ -9,6 +9,10 @@
 # The exact fields depend on Claude Code version; the script is lenient.
 #
 # Exit 0 always — a hook must never break the orchestrator's flow.
+#
+# Parser: uses node (guaranteed available in this Node project) instead of jq
+# (which is missing by default on Windows/msys2). Fallback to silent no-op if
+# parsing fails — better to lose one entry than to break the orchestrator.
 
 set -uo pipefail
 
@@ -17,27 +21,30 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Read stdin (the hook payload).
 payload="$(cat 2>/dev/null || echo '{}')"
 
-# Best-effort extract — use jq if available, otherwise grep.
-extract() {
-  local key="$1"
-  if command -v jq >/dev/null 2>&1; then
-    printf '%s' "$payload" | jq -r "$key // empty" 2>/dev/null || true
-  else
-    # naive fallback — works for top-level string fields, exit codes
-    printf '%s' "$payload" | grep -oE "\"$(printf '%s' "$key" | sed 's|^\.||' | tr -d ' \"')\"[[:space:]]*:[[:space:]]*[^,}]*" | head -1 | sed "s/.*: *//" | tr -d '"' || true
-  fi
-}
+# Extract via node (JSON-aware, nested-safe). If node is missing or JSON is
+# malformed, parsed-fields will be empty and the hook exits silently.
+parsed="$(printf '%s' "$payload" | node -e '
+  let s = "";
+  process.stdin.on("data", c => s += c);
+  process.stdin.on("end", () => {
+    try {
+      const p = JSON.parse(s || "{}");
+      const cmd = (p.tool_input && p.tool_input.command) || "";
+      const tr = p.tool_response || {};
+      const exit_code = tr.exit_code ?? tr.exitCode ?? "";
+      const stderr_tail = String(tr.stderr || tr.stdout || "").split("\n").slice(-20).join("\n");
+      // Newline-delimited for easy bash parsing.
+      // Field 1: exit_code, Field 2: cmd (one line), Field 3-N: stderr tail.
+      process.stdout.write(`${exit_code}\n${cmd.replace(/\n/g, " ")}\n${stderr_tail}\n`);
+    } catch (e) {
+      process.stdout.write("\n\n\n");
+    }
+  });
+' 2>/dev/null)"
 
-# If jq available we get a richer extraction.
-if command -v jq >/dev/null 2>&1; then
-  cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")"
-  exit_code="$(printf '%s' "$payload" | jq -r '.tool_response.exit_code // .tool_response.exitCode // empty' 2>/dev/null || echo "")"
-  stderr_tail="$(printf '%s' "$payload" | jq -r '.tool_response.stderr // .tool_response.stdout // empty' 2>/dev/null | tail -20 || echo "")"
-else
-  cmd="$(extract '.tool_input.command')"
-  exit_code="$(extract '.tool_response.exit_code')"
-  stderr_tail=""
-fi
+exit_code="$(printf '%s' "$parsed" | sed -n '1p')"
+cmd="$(printf '%s' "$parsed" | sed -n '2p')"
+stderr_tail="$(printf '%s' "$parsed" | tail -n +3)"
 
 # Filter: only log if exit code is non-zero AND looks like a gauntlet/build command.
 if [[ -z "$exit_code" || "$exit_code" == "0" ]]; then exit 0; fi
