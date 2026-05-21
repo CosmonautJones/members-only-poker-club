@@ -466,9 +466,7 @@ export const TriageResultSchema = z.object({
   // Triage always probes the host; the orchestrator forwards this to
   // spec-writer so spec acceptance commands never depend on absent
   // capabilities. Optional for back-compat with v0.3/v0.4 triage archives.
-  host_capabilities: z
-    .record(z.string(), z.enum(['present', 'absent', 'unknown']))
-    .optional(),
+  host_capabilities: z.record(z.string(), z.enum(['present', 'absent', 'unknown'])).optional(),
   summary_path: z.string(),
 });
 
