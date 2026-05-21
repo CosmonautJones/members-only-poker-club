@@ -62,6 +62,12 @@ temp/
 # Conductor orchestrator working memory (never committed)
 .conductor/
 
+# Claude Code agent worktrees (subagent isolation copies)
+.claude/worktrees/
+
+# /run system learnings inbox + gauntlet logs (hook-populated, local only)
+learnings/
+
 # Playwright MCP artifacts (console logs, snapshots, ad-hoc screenshots)
 .playwright-mcp/
 

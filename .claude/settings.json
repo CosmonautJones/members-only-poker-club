@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "_comment": "Hooks fill learnings/inbox/ mechanically. /digest processes it weekly or on demand. NEVER write to the inbox from inside the orchestrator's main flow — that's hook territory.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/run-tools/hook-bash-fail.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/run-tools/hook-user-correction.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/run-tools/hook-precompact.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(bash scripts/run-tools/branch-guard.sh:*)",
+      "Bash(bash scripts/run-tools/gauntlet.sh:*)",
+      "Bash(bash scripts/run-tools/ship.sh stage:*)",
+      "Bash(bash scripts/run-tools/ship.sh commit:*)",
+      "Bash(bash scripts/run-tools/inbox-write.sh:*)",
+      "Bash(corepack pnpm typecheck)",
+      "Bash(corepack pnpm lint)",
+      "Bash(corepack pnpm test:*)",
+      "Bash(corepack pnpm format:*)",
+      "Bash(corepack pnpm migrate:check)",
+      "Bash(corepack pnpm validate:conductor)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git branch:*)",
+      "Bash(gh api user:*)",
+      "Bash(gh api user/orgs:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)"
+    ]
+  }
+}
