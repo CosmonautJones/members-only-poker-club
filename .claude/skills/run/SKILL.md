@@ -35,6 +35,7 @@ Work through these in order. Use TodoWrite to track. Check each off as it comple
 ### 3. Plan (≤ 5 min)
 
 - Write a TodoWrite plan covering the acceptance criteria. One task per AC or per logical bundle (don't over-decompose).
+- **Free-form mode requires explicit acceptance criteria (v0.2 from digest 2026-05-21 entry 2):** When invoked as `/run <free-form goal>` with NO `docs/specs/<NNNN>-*.md` spec, the gauntlet falls back to `--quick` (typecheck + lint + test) which has no contract for "what does done mean for this slice." YOU (the orchestrator) MUST author 2–5 explicit acceptance criteria in TodoWrite descriptions BEFORE starting step 4, AND verify each one BEFORE invoking gauntlet at step 5. Doc-only slices may have lighter criteria ("the doc renders + parses + cross-links resolve"); code-changing slices MUST have testable criteria ("function X returns Y for inputs Z" or "test file T passes"). If you cannot articulate at least 2 testable criteria, STOP and surface as `PING: spec-shape — free-form goal too vague for ship-readiness gate`.
 - For each task, judge: **serial or parallel?**
   - Default: serial. Most tasks share invariants, files, or context.
   - Parallel ONLY when ALL: (a) 3+ truly independent tasks, (b) disjoint touched-files, (c) each task is non-trivial (≥ 5 file edits or ≥ 100 LOC), (d) no shared schema/contract changes between them. Otherwise serialize — the dispatch tax is not worth it.
