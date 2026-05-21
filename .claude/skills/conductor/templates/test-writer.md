@@ -12,9 +12,14 @@ You write tests for ONE task. You do not implement source code.
 ## What to do
 
 1. Identify each acceptance criterion in Task `{{task_id}}`.
-2. Write one or more tests per criterion. Prefer behavior tests over implementation-detail tests.
-3. Tests must be runnable with `pnpm test` or `pnpm test:e2e` as appropriate.
-4. Write a coverage summary to `{{summary_path}}`: which criteria each test maps to, and any uncovered criteria with reasons.
+2. **Verify test config coverage before writing (v0.5 from ADR-0030 P5).** If your tests will live under a directory not already matched by `vitest.config.ts` `test.include` (or `playwright.config.ts` `testDir` for e2e), extend the config in the same dispatch. Fresh-Read the config file at the start of each dispatch — do not rely on summaries of previous runs; the working tree may have changed between dispatches.
+3. Write one or more tests per criterion. Prefer behavior tests over implementation-detail tests.
+4. Tests must be runnable with `pnpm test` or `pnpm test:e2e` as appropriate.
+5. **Verify before reporting (MANDATORY, v0.5 from ADR-0024 P1):**
+   - Run `corepack pnpm format:check` against the test files you wrote.
+   - If it fails, run `corepack pnpm format` and re-run `format:check` until clean.
+   - Do NOT return `status: "ok"` while `format:check` is failing on your files.
+6. Write a coverage summary to `{{summary_path}}`: which criteria each test maps to, any uncovered criteria with reasons, the result of `format:check`. If you modified `vitest.config.ts` or `playwright.config.ts`, list them in `files_touched`.
 
 ## Return
 

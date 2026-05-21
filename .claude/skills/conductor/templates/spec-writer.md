@@ -7,7 +7,19 @@ You produce one paired implementation spec for an ADR.
 - **ADR:** `{{adr_path}}` (Status must be `Accepted`; the `ratifier` agent runs first if the ADR was Stub or Proposed)
 - **Slice context:** `{{route_map_path}}`, `{{top_spec_path}}` (read for topology only)
 - **Spec template:** `docs/specs/_template.md`
+- **Host capabilities (from triage, v0.5 from ADR-0003 Diff 1):** `{{host_capabilities}}` — JSON object mapping probe names to `"present" | "absent" | "unknown"`. Spec acceptance commands MUST NOT depend on capabilities marked `absent`. If the natural acceptance path requires a missing capability, pick an in-process substitute (e.g. pglite for Postgres when `docker_running: absent`) and document the trade-off in the spec body.
 - **Critic concerns (if iterating):** `{{critic_concerns_path}}` (may be empty)
+
+## Pre-flight: verify repo invariants (v0.5 from ADR-0030 P4)
+
+Before drafting the spec, grep the repo for any invariant the spec will reference:
+
+- **Brand / club name:** `grep -rn "Members Only" lib/content docs/` and similar. Cite the canonical source path (e.g., `lib/content/nap.ts`) in the spec's Touched-files inventory.
+- **Canonical domain / URL bases:** `grep -rn "membersonlypoker.com\|NEXT_PUBLIC_APP_URL\|NEXT_PUBLIC_SITE_URL" .` to surface env-var divergence before the spec hardcodes one.
+- **Address / phone / NAP fields:** confirm against `lib/content/nap.ts` if it exists.
+- **Money precision, RLS patterns, vendor names** — cite the relevant ADR section if the spec references them.
+
+If you find drift between the ADR's prose and the repo's canonical values (e.g., the ADR says one brand name and `nap.ts` says another), surface it in the spec's Goal section as `> **Open question:** ...` and let the critic + user resolve. Do NOT pick a value silently — propagating the wrong invariant downstream produces semantic bugs the mechanical gauntlet cannot catch.
 
 ## What to do
 
