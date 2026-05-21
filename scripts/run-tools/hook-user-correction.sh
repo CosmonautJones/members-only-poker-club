@@ -13,11 +13,22 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 payload="$(cat 2>/dev/null || echo '{}')"
 
-if command -v jq >/dev/null 2>&1; then
-  prompt="$(printf '%s' "$payload" | jq -r '.prompt // .user_prompt // .message // empty' 2>/dev/null || echo "")"
-else
-  prompt="$payload"
-fi
+# Extract prompt via node (Windows often lacks jq). Fallback: treat the raw
+# stdin as the prompt if JSON parse fails.
+prompt="$(printf '%s' "$payload" | node -e '
+  let s = "";
+  process.stdin.on("data", c => s += c);
+  process.stdin.on("end", () => {
+    try {
+      const p = JSON.parse(s || "{}");
+      const v = p.prompt || p.user_prompt || p.message || "";
+      process.stdout.write(String(v));
+    } catch (e) {
+      // Not JSON; treat raw input as the prompt.
+      process.stdout.write(s);
+    }
+  });
+' 2>/dev/null || echo "$payload")"
 
 if [[ -z "$prompt" ]]; then exit 0; fi
 
