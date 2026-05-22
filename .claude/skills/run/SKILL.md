@@ -35,6 +35,7 @@ Work through these in order. Use TodoWrite to track. Check each off as it comple
 ### 3. Plan (≤ 5 min)
 
 - Write a TodoWrite plan covering the acceptance criteria. One task per AC or per logical bundle (don't over-decompose).
+- **Free-form mode requires explicit acceptance criteria (v0.2 from digest 2026-05-21 entry 2):** When invoked as `/run <free-form goal>` with NO `docs/specs/<NNNN>-*.md` spec, the gauntlet falls back to `--quick` (typecheck + lint + test) which has no contract for "what does done mean for this slice." YOU (the orchestrator) MUST author 2–5 explicit acceptance criteria in TodoWrite descriptions BEFORE starting step 4, AND verify each one BEFORE invoking gauntlet at step 5. Doc-only slices may have lighter criteria ("the doc renders + parses + cross-links resolve"); code-changing slices MUST have testable criteria ("function X returns Y for inputs Z" or "test file T passes"). If you cannot articulate at least 2 testable criteria, STOP and surface as `PING: spec-shape — free-form goal too vague for ship-readiness gate`.
 - For each task, judge: **serial or parallel?**
   - Default: serial. Most tasks share invariants, files, or context.
   - Parallel ONLY when ALL: (a) 3+ truly independent tasks, (b) disjoint touched-files, (c) each task is non-trivial (≥ 5 file edits or ≥ 100 LOC), (d) no shared schema/contract changes between them. Otherwise serialize — the dispatch tax is not worth it.
@@ -59,14 +60,14 @@ For each TodoWrite task:
 
 ### 6. Ship
 
-- Run `bash scripts/run-tools/ship.sh <spec-path> <journal-stub-path>`.
-- Tool does, in order:
-  - Pre-push auth check (`gh api user --jq .login` vs origin owner). Halts if mismatch.
-  - `git status` — must be clean except for slice-scoped changes. **You (the orchestrator) are responsible** for ensuring only slice-scoped edits exist before invoking `ship.sh commit` — the tool uses `git add -A` deliberately (trust-the-orchestrator) and the user-authorization gate at push covers the safety property.
-  - Commit with message derived from spec Goal.
-  - **STOP and surface a `PING: ship — N commits ready, push?`** — pushing changes shared state (escalation guardrail #7). User authorizes.
-  - On user-go: `git push -u origin <branch>` → `gh pr create` with body from journal stub.
-- The tool refuses to `--force` anything. The tool refuses to amend pushed commits. If push fails with 403, it re-runs the auth check before retrying.
+Three subcommands invoked in order: **stage → commit → push**.
+
+- **Stage:** `bash scripts/run-tools/ship.sh stage <spec-path>` — pre-flight checks (branch not main, gh auth matches origin owner, working tree has changes). Returns `{status: "ready", branch, files_pending}`.
+- **Commit:** `bash scripts/run-tools/ship.sh commit <spec-path> <commit-msg-file> <file1> [<file2> ...]` — **explicit file list is REQUIRED** (v0.2 from digest 2026-05-21 — eliminates the `git add -A` footgun that captured a stray temp file on the first live test). The tool also refuses to stage anything matching `*.tmp|*.scratch|*.draft|*.wip|*~|*.bak|*.orig`. Commits with message from file. STOPS — does NOT push.
+- **STOP and surface a `PING: ship — N commits ready, push?`** — pushing changes shared state (escalation guardrail #7). User authorizes.
+- **Push:** `bash scripts/run-tools/ship.sh push <branch> <pr-title-file> <pr-body-file>` — re-verifies gh auth, pushes, opens PR. Refuses to push to protected branches. Refuses to `--force` anything. Refuses to amend pushed commits. If push fails with 403, re-checks auth before retrying.
+
+**Temp-file discipline:** before invoking `ship.sh commit`, the orchestrator typically writes the commit message to a temp file like `.commit-msg.tmp`. Pass that temp file path as the second argument (commit-msg-file), but NOT in the staged-file list. The tool's pattern guard refuses to stage `*.tmp` files even if you forget. After the commit succeeds, delete the temp file before any subsequent ship invocation.
 
 ### 7. Journal + close
 

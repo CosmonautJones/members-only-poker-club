@@ -109,22 +109,39 @@ cmd_stage() {
 
 # ----- commit: stage + commit, STOP -----
 cmd_commit() {
-  if [[ $# -lt 2 ]]; then
-    echo "usage: ship.sh commit <spec-path> <commit-message-file>" >&2; exit 64
+  if [[ $# -lt 3 ]]; then
+    echo "usage: ship.sh commit <spec-path> <commit-message-file> <file1> [<file2> ...]" >&2
+    echo "  Note: explicit file list is REQUIRED (eliminates the git add -A footgun)." >&2
+    exit 64
   fi
   local spec="$1" msg_file="$2"
+  shift 2
+  # Remaining positional args are the file list to stage.
 
   if [[ ! -f "$msg_file" ]]; then
     emit "blocked" "commit message file not found: $msg_file" ""
     exit 64
   fi
 
-  # Stage all currently-modified + new files. The orchestrator is responsible
-  # for ensuring only slice-scoped changes exist (the stage step verified tree
-  # has changes; the orchestrator should have NOT made foreign edits).
-  # We use add -A here because the orchestrator's prior judgment is the gate;
-  # this is a deliberate trust-the-orchestrator choice for the "shipper" role.
-  git add -A >&2
+  # Refuse to stage anything that looks like a scratch/temp/draft file.
+  # Belt-and-suspenders alongside the explicit file list — if the
+  # orchestrator passes a temp file in the list, refuse loudly.
+  for f in "$@"; do
+    case "$f" in
+      *.tmp|*.scratch|*.draft|*.wip|*~|*.bak|*.orig)
+        emit "blocked" "refusing to stage scratch/temp file: $f — clean these up before invoking ship.sh commit" ",\"file\":\"$f\""
+        exit 1
+        ;;
+    esac
+  done
+
+  # Stage explicit files only (v0.2 from digest 2026-05-21 entry 1 — eliminates
+  # the git add -A footgun that captured .run-commit-msg.tmp on first live test).
+  git add -- "$@" >&2
+  if [[ $? -ne 0 ]]; then
+    emit "failed" "git add failed for one or more files — see stderr" ""
+    exit 2
+  fi
 
   if ! git commit -F "$msg_file" >&2; then
     emit "failed" "git commit failed — see stderr (pre-commit hook?)" ""
@@ -182,7 +199,7 @@ cmd_push() {
 
 # ----- main -----
 if [[ $# -lt 1 ]]; then
-  echo "usage: ship.sh {stage <spec> | commit <spec> <msg-file> | push <branch> <title-file> <body-file>}" >&2
+  echo "usage: ship.sh {stage <spec> | commit <spec> <msg-file> <file1> [<file2> ...] | push <branch> <title-file> <body-file>}" >&2
   exit 64
 fi
 
