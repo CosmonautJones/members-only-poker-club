@@ -105,9 +105,39 @@ You write artifacts that BIND BEHAVIOR. You do NOT write SKILL.md amendments to 
 
 You do NOT modify settings.json from inside /digest. Hook changes are explicit user actions via the `update-config` skill, not implicit during inbox processing.
 
-## Health metric
+## Health metric (mechanical as of digest 2026-05-21)
 
-After digest runs, the ratio `(new-test + new-tool) / total-applied` should be **>50%**. If most outcomes are new-skill or kb-archive, you're catalog-building, not binding behavior. Surface this to the user as a meta-observation: "60% of applied outcomes were new-skill or kb-archive — consider whether more of these should be tests instead."
+At the end of every digest run, invoke:
+
+```bash
+node scripts/run-tools/digest-health.mjs
+```
+
+This reads `learnings/inbox/*.md`, classifies each `status: processed` entry by its `processed_into:` content (using text-position priority when multiple categories match), and reports JSON:
+
+```json
+{
+  "total_processed": 6,
+  "by_category": {
+    "new-test": 1, "new-tool": 1, "new-skill": 1,
+    "kb-archive": 1, "drop": 1, "surface": 1, "unknown": 0
+  },
+  "binding_numerator": 2,
+  "binding_denominator": 4,
+  "binding_ratio": 0.5,
+  "healthy": false,
+  "threshold": 0.5
+}
+```
+
+- **`binding_numerator`** = `new-test + new-tool` (the strongest-binding categories)
+- **`binding_denominator`** = `total_processed - drop - surface` (drop/surface produce no artifact, so they don't count against the ratio)
+- **`healthy`** = `binding_ratio > 0.5` (strict greater-than per /digest's "should be >50%" threshold)
+- **`healthy: null`** = no applied artifacts at all (denominator 0) — no opinion
+
+Surface the result to the user in the step-7 summary verbatim. If `healthy: false`, add the meta-observation: "Most applied outcomes were new-skill or kb-archive — consider whether more of these should be tests instead."
+
+The pure-function exports (`parseFrontmatter`, `classify`, `computeHealth`) are tested in `tests/skills/digest-health.test.ts` (19 tests) — the classification rules are pinned mechanically so a future drift in `processed_into:` conventions fails CI before it pollutes the health metric.
 
 ## Sentinel contract
 
