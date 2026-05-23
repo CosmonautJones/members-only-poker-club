@@ -11,7 +11,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
-// @ts-expect-error — .mjs has no .d.ts; we exercise the exports at runtime
 import {
   parseFrontmatter,
   classify,
@@ -52,7 +51,7 @@ describe('parseFrontmatter', () => {
       '---\nprocessed_into: scripts/run-tools/ship.sh: tightened signature\n---',
     );
     expect(fm).not.toBeNull();
-    expect(fm.processed_into).toBe('scripts/run-tools/ship.sh: tightened signature');
+    expect(fm!.processed_into).toBe('scripts/run-tools/ship.sh: tightened signature');
   });
 });
 
