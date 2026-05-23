@@ -72,6 +72,14 @@ Three subcommands invoked in order: **stage → commit → push**.
 ### 7. Journal + close
 
 - Write the journal entry at `docs/journal/<YYYY-MM-DD>-NN-run-adr-<NNNN>-<slug>.md` following the frontmatter convention (`date`, `adrs`, `slice`, `type`, `status`). Use the existing entries as shape reference — minimum sections: Context, Changes, Tests, Lessons.
+- **Docs-currency sweep (v0.3 from 2026-05-22 — see `memory/feedback_docs_currency.md`):** before declaring the slice done, ask: did this slice change anything an EXISTING doc references? Walk the list:
+  - The relevant ADR(s) — if this slice amended a decision, add an `## Amendments` section to the original ADR pointing at this journal entry.
+  - The paired spec — if scope shifted mid-slice, update the spec frontmatter or note it inline.
+  - Any `docs/from-claude/` advisory notes that referenced "we plan to..." — if this slice acted on that plan, update the note's frontmatter `status:` → `acted_upon` with pointer to this PR/journal.
+  - Skills + memory — if this slice retired or amended a skill/memory file, update OR archive with tombstone per `feedback_docs_currency.md`.
+  - The `MEMORY.md` index — add/update entries for any new or significantly-changed memory file.
+  - **Stale claims** — if you noticed any doc making a claim that's now wrong (even outside this slice's scope), fix it OR file an inbox entry tagged `stale-doc` for /digest to process.
+  - Bundle doc updates into the SAME commit set as the slice. Don't ship the change and leave the docs "for later" — that's how drift starts.
 - Emit final sentinel: `GOAL-A: ADR-<NNNN> <slug> shipped — PR <url> — journal <path>`.
 - Any surprises this run (unexpected failures, ambiguities, retries) are auto-captured to `learnings/inbox/` by hooks (see `.claude/settings.json`). You do not write to the inbox manually — that's hook territory. Trust it.
 
