@@ -1,35 +1,46 @@
 /**
  * /games/[slug] — tournament detail route.
  *
- * Replaces the T0 stub with a Slice-1 RSC implementation that:
- *  - Looks up the tournament by slug from the `lib/tournaments/fixtures.ts`
- *    seed data (replaced when ADR-0012 ratifies the Tournament data model).
- *  - Calls `notFound()` if the slug is unknown so 404s render correctly.
- *  - Renders the tournament name, start time, buy-in, and capacity in a
- *    minimal but on-brand layout (parent slice owns the full design).
- *  - Mounts `<EventJsonLd>` so the page emits schema.org Event structured
- *    data per ADR-0030 §Decision (acceptance criterion 6).
- *  - Exports `generateMetadata` so the per-tournament title fills the
- *    layout's `%s | ...` template (T2 + T8 of ADR-0030).
+ * Per ADR-0037, reads from the `tournaments` table via
+ * `fetchTournamentBySlug`. Canceled or unknown slugs render 404 (the
+ * query helper already collapses canceled rows to `null` so the
+ * notFound() path covers both).
+ *
+ * The previous fixture-backed lookup is retired by this slice; the
+ * cron-materialized + admin-edited DB is the source of truth.
+ *
+ * SEO: Event JSON-LD is mounted with the tournament's `startsAt` (UTC
+ * timestamp) and the NAP-composed venue address.
  */
 
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { EventJsonLd } from '@/components/seo/event-jsonld';
-import { findTournamentBySlug } from '@/lib/tournaments/fixtures';
+import { fetchTournamentBySlug } from '@/lib/tournaments/queries';
+import { formatMoney, type Cents } from '@/lib/money/types';
+
+export const dynamic = 'force-dynamic';
 
 type PageParams = { params: { slug: string } };
 
-export function generateMetadata({ params }: PageParams): Metadata {
-  const tournament = findTournamentBySlug(params.slug);
+export async function generateMetadata({ params }: PageParams): Promise<Metadata> {
+  let tournament: Awaited<ReturnType<typeof fetchTournamentBySlug>> = null;
+  try {
+    tournament = await fetchTournamentBySlug(params.slug);
+  } catch {
+    // Errors during metadata generation should not crash the page. Falling
+    // through with `tournament === null` produces the "not found" metadata.
+  }
+
   if (!tournament) {
     return {
       title: 'Tournament not found',
       description: 'The tournament you are looking for is not on the schedule.',
     };
   }
-  const description = `${tournament.name} at ${tournament.venueName}. Buy-in $${(tournament.buyInCents / 100).toFixed(0)}, ${tournament.capacity} seats.`;
+  const buyInDisplay = formatMoney(tournament.buyInCents as Cents);
+  const description = `${tournament.name} at ${tournament.venueName}. Buy-in ${buyInDisplay}, ${tournament.capacity} seats.`;
   return {
     title: tournament.name,
     description,
@@ -54,31 +65,29 @@ export function generateMetadata({ params }: PageParams): Metadata {
   };
 }
 
-const buyInFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
+// Club-local rendering per ADR-0034: `formatInZone` would be ideal here,
+// but the tournament row carries its own `tz_name` (which may diverge from
+// the club default once we have multi-venue support). For now, the
+// tournament's own zone wins.
+function formatStartTime(startsAtIso: string, tzName: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: tzName,
+    timeZoneName: 'short',
+  }).format(new Date(startsAtIso));
+}
 
-const dateFormatter = new Intl.DateTimeFormat('en-US', {
-  weekday: 'long',
-  month: 'long',
-  day: 'numeric',
-  year: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-  timeZoneName: 'short',
-});
+export default async function TournamentPage({ params }: PageParams) {
+  const tournament = await fetchTournamentBySlug(params.slug);
+  if (!tournament) notFound();
 
-export default function TournamentPage({ params }: PageParams) {
-  const tournament = findTournamentBySlug(params.slug);
-  if (!tournament) {
-    notFound();
-  }
-
-  const startsAtDate = new Date(tournament.startsAt);
-  const buyIn = buyInFormatter.format(tournament.buyInCents / 100);
+  const startsAtDisplay = formatStartTime(tournament.startsAt, tournament.tzName);
+  const buyIn = formatMoney(tournament.buyInCents as Cents);
 
   return (
     <div
@@ -135,7 +144,7 @@ export default function TournamentPage({ params }: PageParams) {
             margin: 0,
           }}
         >
-          <time dateTime={tournament.startsAt}>{dateFormatter.format(startsAtDate)}</time>
+          <time dateTime={tournament.startsAt}>{startsAtDisplay}</time>
         </dd>
 
         <dt className="eyebrow" style={{ color: 'var(--text-muted)', alignSelf: 'center' }}>

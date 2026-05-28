@@ -1,3 +1,16 @@
+---
+adr: 0037
+slice: 1
+risk: medium
+acceptance_commands:
+  - 'pnpm test tests/db/tournaments-rls.test.ts'
+  - 'pnpm test tests/api/tournament-materialize.test.ts tests/api/tournament-materialize-auth.test.ts'
+  - 'pnpm test tests/tournaments/materialize.test.ts'
+  - 'pnpm test tests/pages/games-page.test.tsx tests/pages/games-slug.test.tsx'
+  - 'pnpm test tests/admin/tournaments-actions.test.ts'
+  - 'bash scripts/backstop-tournament-fixtures.sh'
+---
+
 # ADR-0037 Implementation Spec — Tournament schedule
 
 - **ADR:** [0037](../adr/0037-tournament-schedule.md)
@@ -289,3 +302,34 @@ Each step is independently shippable in a sub-slice if needed; steps 1–6 are o
 - Bulk template-to-instance sync action ("apply this template change to all unedited future instances")
 - Auto-completion (instance status flipping to `'complete'` post-event)
 - PokerAtlas data-source integration (separate brainstorm; this work is its fallback layer)
+
+## Implementation status
+
+- **2026-05-28 — Slice 1 shipped.** Migration `0017_tournament_schedule.sql`,
+  `lib/tournaments/{queries,materialize,materialize-run,types}.ts`, cron
+  route `/api/cron/tournament-materialize`, page rewrites on `/games` +
+  `/games/[slug]` + `/admin/tournaments`, server actions
+  `setTemplateActive` + `cancelTournament`, feature flag
+  `tournament-schedule-live` registered, fixture file deleted with
+  backstop grep, and full test coverage including 26 RLS sub-cases, 6
+  materializer integration sub-cases (including the 2026-03-08 DST gap),
+  11 admin-action contract sub-cases, 10 page-render sub-cases, and an
+  updated sitemap test.
+
+### Slice 1.5 (deferred admin UI surfaces)
+
+The operational MVP shipped — admins can deactivate a template and cancel
+a tournament. The following form surfaces are explicitly deferred to a
+follow-up sub-slice:
+
+- Create-new-template form (templates are seeded via the migration; new
+  templates require a direct INSERT for now)
+- Edit-template fields (buy-in, capacity, time-of-day, structure_md)
+- Create-one-off tournament form
+- Edit-tournament fields (buy-in / capacity / status overrides)
+- Hard-delete one-off tournament (one-offs are currently soft-canceled
+  via `cancelTournament`; the schema allows hard-delete on `source_template_id IS NULL` rows)
+
+Production audit pairing is best-effort (mutation → audit as two
+supabase-js calls) — same posture as every other admin action. The
+atomic-transaction work is tracked as a separate ADR not yet ratified.

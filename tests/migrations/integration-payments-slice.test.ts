@@ -119,17 +119,17 @@ async function bootPgliteWithAllMigrations(): Promise<PGlite> {
 }
 
 describe('ADR-0036 Slice 1 — full 16-migration integration test (T20)', () => {
-  it('applies all 16 migrations in order against a fresh pglite without error', async () => {
+  it('applies all ADR-0036 migrations in order against a fresh pglite without error', async () => {
     const pg = await bootPgliteWithAllMigrations();
     try {
-      // Smoke: count the migrations that exist on disk so the test fails
-      // loudly if a future migration is added without updating the slice
-      // scope (the spec pins the slice at exactly 16 files; growth past
-      // that point is a signal to revisit T20).
+      // ADR-0037 (Slice 1) added migration 0017_tournament_schedule.sql. The
+      // T20 contract is about the FIRST 16 migrations (the ADR-0036 substrate);
+      // any later migration is out of scope for this integration test but the
+      // ordering/presence of the first 16 still pins the slice boundary.
       const allMigrations = readdirSync(MIGRATIONS_DIR)
         .filter((f) => f.endsWith('.sql'))
         .sort();
-      expect(allMigrations.length).toBe(16);
+      expect(allMigrations.length).toBeGreaterThanOrEqual(16);
       expect(allMigrations[0]).toBe('0001_feature_flags.sql');
       expect(allMigrations[15]).toBe('0016_payments_rls.sql');
     } finally {

@@ -10,7 +10,7 @@
  * Currently-known flag keys. Add new entries when registering a new flag in
  * `registry.ts`. Kill-switches use a `kill-` prefix per ADR-0020.
  */
-export type FlagKey = 'kill-stripe-webhook';
+export type FlagKey = 'kill-stripe-webhook' | 'tournament-schedule-live';
 
 /**
  * Roles in the role-gate targeting mode. Mirrors the ADR-0003 role taxonomy

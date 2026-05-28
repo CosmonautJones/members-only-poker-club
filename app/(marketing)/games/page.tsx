@@ -1,22 +1,37 @@
 /**
- * `/games` — cash games, tournament schedule, and format guide.
+ * `/games` — cash games, weekly tournament rhythm, and upcoming events.
  *
- * Replaces the T0 stub (audit 2026-05-15 P0 #1 follow-up). Content
- * researched 2026-05-15: stakes lineup (1/2, 1/3, 2/5, 5/10 NLHE; 2/5
- * PLO) mirrors actual Houston-area private clubs; tournament buy-ins
- * sit in the realistic weekly-private-club band ($150 bounty → $400
- * Saturday deepstack).
+ * Per ADR-0037 (Slice 1), the **upcoming events list** is now read from the
+ * `tournaments` table behind the `tournament-schedule-live` feature flag.
+ * The editorial "weekly rhythm" section (the five-day SCHEDULE array) stays
+ * — it's marketing copy, not data, and the DB row shape doesn't carry the
+ * editorial body. The DB drives "what's actually on the next 30 days" while
+ * the rhythm copy explains "what to expect on a normal week."
  *
- * Per-event JSON-LD lives on `/games/[slug]` detail routes — this page
- * lists them as Links so the existing sitemap/SEO surface continues to
- * reach them.
+ * Flag-off path: renders the in-page UPCOMING_FALLBACK array (a 4-line
+ * static schedule so search engines + skim-readers still see real-looking
+ * future events when the live system is paused).
+ *
+ * Flag-on with query error: renders the explicit "schedule loading" message
+ * with the floor phone number. No silent fallback to stale data — per spec
+ * §`/games` rendering.
+ *
+ * The kill-switch is the feature flag; the in-page fallback is the floor
+ * (not stale data).
  */
 
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { Icon } from '@/components/marketing/primitives';
-import { TOURNAMENTS } from '@/lib/tournaments/fixtures';
+import { isEnabled } from '@/lib/flags';
+import { fetchUpcomingTournaments } from '@/lib/tournaments/queries';
+import { NAP } from '@/lib/content/nap';
+import type { Tournament } from '@/lib/tournaments/types';
+
+// Re-validate every 10 minutes (ADR-0037 §/games rendering). Admin writes
+// also call revalidatePath('/games') to invalidate immediately.
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: 'Games',
@@ -116,7 +131,57 @@ const SCHEDULE = [
   },
 ] as const;
 
-export default function GamesPage() {
+/**
+ * 4-line flag-off fallback (per ADR-0037 spec §Existing code being replaced).
+ * Visible only when `tournament-schedule-live` is OFF — the live read path
+ * is the production source-of-truth once the cron has seeded the table.
+ */
+const UPCOMING_FALLBACK = [
+  { slug: 'tuesday-bounty', name: 'Tuesday Bounty' },
+  { slug: 'thursday-ladies-night', name: 'Thursday Ladies Night Freezeout' },
+  { slug: 'friday-nightly', name: 'Friday Nightly' },
+  { slug: 'saturday-deepstack', name: 'Saturday Deepstack' },
+] as const;
+
+type UpcomingState =
+  | { kind: 'static_fallback' } // flag off
+  | { kind: 'error' } // flag on, query failed
+  | { kind: 'empty' } // flag on, query returned 0 rows
+  | { kind: 'live'; rows: Tournament[] };
+
+async function loadUpcoming(): Promise<UpcomingState> {
+  const live = isEnabled('tournament-schedule-live');
+  if (!live) return { kind: 'static_fallback' };
+
+  try {
+    const rows = await fetchUpcomingTournaments({ days: 30 });
+    if (rows.length === 0) return { kind: 'empty' };
+    return { kind: 'live', rows };
+  } catch (err) {
+    // No silent fallback to stale data per spec. Log so Sentry captures it.
+    console.error(
+      JSON.stringify({
+        event: 'games_page_upcoming_query_error',
+        message: err instanceof Error ? err.message : String(err),
+      }),
+    );
+    return { kind: 'error' };
+  }
+}
+
+const dateLineFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'America/Chicago',
+  timeZoneName: 'short',
+});
+
+export default async function GamesPage() {
+  const upcoming = await loadUpcoming();
+
   return (
     <div>
       {/* HERO */}
@@ -235,7 +300,7 @@ export default function GamesPage() {
         </div>
       </section>
 
-      {/* WEEKLY TOURNAMENTS */}
+      {/* WEEKLY TOURNAMENTS — editorial rhythm */}
       <section
         style={{
           padding: '100px 40px',
@@ -315,29 +380,8 @@ export default function GamesPage() {
           ))}
         </div>
 
-        {/* Per-tournament detail links — preserved for SEO surface */}
-        <div style={{ marginTop: 48 }}>
-          <div className="eyebrow" style={{ marginBottom: 16 }}>
-            Upcoming Events
-          </div>
-          <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
-            {TOURNAMENTS.map((t) => (
-              <li key={t.slug} style={{ marginBottom: 8 }}>
-                <Link
-                  href={`/games/${t.slug}`}
-                  className="gold-text"
-                  style={{
-                    fontSize: 14,
-                    letterSpacing: '0.05em',
-                    textDecoration: 'underline',
-                  }}
-                >
-                  {t.name} <Icon name="arrowRight" size={10} />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Upcoming Events — flag-driven, ADR-0037 */}
+        <UpcomingEvents state={upcoming} />
       </section>
 
       {/* WAITLIST / TICKER */}
@@ -520,6 +564,67 @@ export default function GamesPage() {
           </p>
         </div>
       </section>
+    </div>
+  );
+}
+
+function UpcomingEvents({ state }: { state: UpcomingState }) {
+  return (
+    <div style={{ marginTop: 48 }}>
+      <div className="eyebrow" style={{ marginBottom: 16 }}>
+        Upcoming Events
+      </div>
+      {state.kind === 'live' && (
+        <ul style={{ listStyle: 'none', paddingLeft: 0 }} aria-label="Upcoming tournaments">
+          {state.rows.map((t) => (
+            <li key={t.slug} style={{ marginBottom: 12 }}>
+              <Link
+                href={`/games/${t.slug}`}
+                className="gold-text"
+                style={{
+                  fontSize: 14,
+                  letterSpacing: '0.05em',
+                  textDecoration: 'underline',
+                }}
+              >
+                {t.name} · {dateLineFormatter.format(new Date(t.startsAt))}{' '}
+                <Icon name="arrowRight" size={10} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {state.kind === 'static_fallback' && (
+        <ul style={{ listStyle: 'none', paddingLeft: 0 }} aria-label="Upcoming tournaments">
+          {UPCOMING_FALLBACK.map((t) => (
+            <li key={t.slug} style={{ marginBottom: 8 }}>
+              <Link
+                href={`/games/${t.slug}`}
+                className="gold-text"
+                style={{
+                  fontSize: 14,
+                  letterSpacing: '0.05em',
+                  textDecoration: 'underline',
+                }}
+              >
+                {t.name} <Icon name="arrowRight" size={10} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {state.kind === 'empty' && (
+        <p role="status" style={{ color: 'var(--ivory-400)', fontSize: 14, lineHeight: 1.6 }}>
+          No tournaments are scheduled in the next 30 days. The weekly rhythm above shows what to
+          expect on a normal week — call the floor at {NAP.telephone} for tonight&rsquo;s lineup.
+        </p>
+      )}
+      {state.kind === 'error' && (
+        <p role="status" style={{ color: 'var(--ivory-400)', fontSize: 14, lineHeight: 1.6 }}>
+          Our live schedule is loading. Refresh in a moment, or call the floor at {NAP.telephone}{' '}
+          for tonight&rsquo;s lineup.
+        </p>
+      )}
     </div>
   );
 }
