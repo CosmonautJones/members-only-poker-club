@@ -1,6 +1,6 @@
 # ADR-0037: Tournament schedule — admin-edited live data on /games
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-05-23
 - **Slice:** 1
 - **Implements:** the schedule + admin-edit layer of [ADR-0012](0012-tournament-model.md); pulls forward the `tz_name` column from [ADR-0034](0034-timestamp-and-timezone-policy.md)'s deferral.

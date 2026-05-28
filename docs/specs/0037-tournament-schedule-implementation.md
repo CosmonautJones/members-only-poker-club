@@ -3,7 +3,7 @@
 - **ADR:** [0037](../adr/0037-tournament-schedule.md)
 - **Date:** 2026-05-23
 - **Slice:** 1
-- **Status:** Proposed
+- **Status:** Draft
 - **Feature flag:** `TOURNAMENT_SCHEDULE_LIVE` (off in prod until verified; permanent kill-switch)
 - **Implements:** [ADR-0012](../adr/0012-tournament-model.md) schedule + admin-edit layer; ships [ADR-0034](../adr/0034-timestamp-and-timezone-policy.md) deferred `tz_name` column.
 
