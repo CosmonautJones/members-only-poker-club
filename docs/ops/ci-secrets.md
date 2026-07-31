@@ -36,6 +36,9 @@ serverless platform:
 
 - `SUPABASE_SERVICE_ROLE_KEY` (production project) — bypasses RLS; ADR-0007
   classifies this as a top-tier credential.
+- `SUPABASE_DATABASE_URL` (production project) — Supavisor transaction-mode
+  credential used only by the server-side audited-mutation adapter; must use
+  port 6543 per ADR-0040.
 - `STRIPE_LIVE_SECRET_KEY` — production payment authority; must start with
   `sk_live_`. Compromise = real-money fraud surface.
 - `RESEND_API_KEY` (production) — outbound email capability; compromise =
