@@ -30,4 +30,17 @@ export const FLAGS: Record<FlagKey, FlagDefinition> = {
     allowlist: [],
     owner: 'ops',
   },
+  // ADR-0037 — live tournament-schedule reads on /games. Default OFF until
+  // the cron has run once and the table has rows for the next 60 days. Flip
+  // to enabled=true + percent=100 to ship. Kill-switch semantics: flipping
+  // back to enabled=false reverts /games to the in-page static fallback.
+  // Spec name in ADR-0037 is `TOURNAMENT_SCHEDULE_LIVE`; the registry uses
+  // kebab-case per ADR-0020. Same flag, two casings.
+  'tournament-schedule-live': {
+    key: 'tournament-schedule-live',
+    enabled: false,
+    percent: 0,
+    allowlist: [],
+    owner: 'travis',
+  },
 } as const;

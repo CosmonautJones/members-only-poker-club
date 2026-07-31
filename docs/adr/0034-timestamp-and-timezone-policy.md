@@ -114,3 +114,7 @@ Both columns ship under the ADR-0018 migration template's `timestamptz` defaults
 - **Single-zone-for-everything member display (premortem-risk-2 Option 1).** Simplest. Rejected because in-app UI for a traveling member benefits from explicit profile-preference localization; emails/SMS still pinned to club-zone preserves the audit determinism win.
 - **App-config row instead of `clubs.display_tz` for the v1 default zone.** Rejected: an app-config row is single-club by construction and re-introduces the multi-club rewrite this ADR is built to avoid. The `clubs` row is the right scope owner.
 - **Convert in the JS runtime (Node/browser) instead of Postgres.** Rejected — `Intl.DateTimeFormat` tzdata diverges from Postgres tzdata across runtime image updates (premortem-risk-10). DB tier is the single ownership boundary.
+
+## Amendments
+
+- **2026-05-28 — `tournaments.tz_name` shipped via ADR-0037 Slice 1.** The deferred wall-clock-intent column landed on the `tournaments` table (and the new `tournament_templates` table) per the falsifier-1 prescription. The materializer at `app/api/cron/tournament-materialize/route.ts` enforces the round-trip DST-gap check before any UTC `starts_at` is written. The "RRULE-with-TZID" follow-up for indefinite recurring schedules remains deferred; recurring rules ship as `tournament_templates` rows with a single `day_of_week` + `time_of_day_local` + `tz_name` triple.

@@ -33,7 +33,12 @@
  *     module has a transient syntax error during development.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// ADR-0037 Slice 1: the /games page now transitively imports
+// `lib/tournaments/queries.ts`, which carries `'server-only'`. Neutralise the
+// directive so the dynamic page imports below succeed under happy-dom.
+vi.mock('server-only', () => ({}));
 
 type PageModule = {
   metadata?: { title?: unknown; description?: unknown };
