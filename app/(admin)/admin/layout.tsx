@@ -15,7 +15,7 @@
  *     source-grep in `tests/auth/admin-routes.test.ts` enforces it.
  *   - Renders the admin shell: top nav (Dashboard, Members,
  *     Verifications, Audit log, Flags, Privacy), logo + role badge,
- *     and `{children}`.
+ *     Luna work board, and `{children}`.
  *   - `InsufficientRoleError` propagates to the existing 403 page —
  *     handled by `app/(admin)/admin/error.tsx` (client error boundary).
  *
@@ -51,8 +51,8 @@ export const dynamic = 'force-dynamic';
  */
 const ADMIN_SESSION_SEEN_COOKIE = 'mopc-admin-session-seen';
 
-// Top-nav items rendered in the admin shell header. The six entries
-// (Dashboard, Members, Verifications, Audit log, Flags, Privacy)
+// Top-nav items rendered in the admin shell header. The core six entries
+// (Dashboard, Members, Verifications, Audit log, Flags, Privacy) plus Luna
 // mirror the verbatim list in ADR-0035 AC4. Hold the list in a module
 // constant so future slices (audit log surface, flags surface, etc.)
 // can extend it without touching the JSX.
@@ -63,6 +63,7 @@ const ADMIN_NAV: ReadonlyArray<{ href: string; label: string }> = [
   { href: '/admin/audit-log', label: 'Audit log' },
   { href: '/admin/flags', label: 'Flags' },
   { href: '/admin/privacy', label: 'Privacy' },
+  { href: '/admin/luna', label: 'Luna' },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

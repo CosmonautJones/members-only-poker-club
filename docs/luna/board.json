@@ -1,0 +1,536 @@
+{
+  "snapshotAt": "2026-07-30",
+  "sourceNote": "Reconciled against origin/main after PRs #45, #46, and #47 merged with green CI, E2E, Lighthouse, and Vercel checks, plus the ADR/spec backlog.",
+  "waves": [
+    {
+      "id": 0,
+      "name": "Stabilize",
+      "goal": "Land or close the three aging pull requests and verify production health."
+    },
+    {
+      "id": 1,
+      "name": "Make writes atomic",
+      "goal": "Ratify and ship the Postgres transaction path that removes the dominant audit risk."
+    },
+    {
+      "id": 2,
+      "name": "Clear owner gates",
+      "goal": "Collect the decisions, credentials, and vendor approvals that agents cannot invent."
+    },
+    {
+      "id": 3,
+      "name": "Finish revenue flows",
+      "goal": "Build membership, identity, time-bank, tournament registration, and communications."
+    }
+  ],
+  "tickets": [
+    {
+      "id": "LUNA-000",
+      "title": "Bound Supabase auth middleware failures",
+      "summary": "PR #48 added a three-second timeout so a paused or unreachable Supabase project no longer takes down public pages.",
+      "status": "done",
+      "wave": 0,
+      "priority": "critical",
+      "assignee": "Luna Reliability",
+      "agentRole": "incident responder",
+      "humanGate": false,
+      "blockedBy": [],
+      "nextAction": "Keep the timeout regression tests in the release gauntlet.",
+      "acceptanceCriteria": [
+        "PR #48 is merged to main.",
+        "Marketing routes degrade without a 504 when auth is unavailable.",
+        "Authenticated routes redirect safely when the session cannot be resolved."
+      ],
+      "evidence": [
+        {
+          "label": "Merged PR #48",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/pull/48"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-001",
+      "title": "Repair and land rate-limit middleware",
+      "summary": "PR #46 is open. The local branch is rebased over PR #48, but its remote branch is stale and the latest CI format check is red.",
+      "status": "done",
+      "wave": 0,
+      "priority": "critical",
+      "assignee": "Luna Release",
+      "agentRole": "merge captain",
+      "humanGate": false,
+      "blockedBy": [],
+      "nextAction": "Merged as f746ee5 after rebasing over the Supabase timeout work and passing fresh CI.",
+      "acceptanceCriteria": [
+        "PR #46 is rebased on current main without weakening PR #48.",
+        "Format, lint, typecheck, unit, E2E, Lighthouse, and backstop checks pass.",
+        "Preview responses carry X-RateLimit headers.",
+        "PR #46 is merged or explicitly closed with a replacement reference."
+      ],
+      "evidence": [
+        {
+          "label": "Open PR #46",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/pull/46"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-002",
+      "title": "Ratify the tournament schedule ADR",
+      "summary": "PR #45 is open, mergeable, and green. It is the base dependency for the implementation PR.",
+      "status": "done",
+      "wave": 0,
+      "priority": "critical",
+      "assignee": "Luna Docs",
+      "agentRole": "ADR reviewer",
+      "humanGate": false,
+      "blockedBy": [],
+      "nextAction": "Merged as 774d98d with stack ancestry preserved for PR #47.",
+      "acceptanceCriteria": [
+        "ADR-0037 status and implementation spec agree.",
+        "The static fallback and feature-flag rollout remain explicit.",
+        "PR #45 is merged before PR #47 is rebased."
+      ],
+      "evidence": [
+        {
+          "label": "Open PR #45",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/pull/45"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-003",
+      "title": "Rebase and land tournament schedule Slice 1",
+      "summary": "PR #47 is green and mergeable, but it is stacked on PR #45 rather than main.",
+      "status": "done",
+      "wave": 0,
+      "priority": "critical",
+      "assignee": "Luna Tournaments",
+      "agentRole": "feature integrator",
+      "humanGate": false,
+      "blockedBy": ["LUNA-002"],
+      "nextAction": "Merged as 3b0a593 after two main refreshes and fresh CI against the final #46 merge.",
+      "acceptanceCriteria": [
+        "Migration 0017 applies cleanly after current main.",
+        "All PR checks and the spec gauntlet pass after rebase.",
+        "The tournament fixture backstop remains clean.",
+        "PR #47 is merged."
+      ],
+      "evidence": [
+        {
+          "label": "Open PR #47",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/pull/47"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-004",
+      "title": "Roll out the live tournament schedule",
+      "summary": "The database-backed schedule must stay flag-off until production is materialized and smoke-tested.",
+      "status": "active",
+      "wave": 0,
+      "priority": "high",
+      "assignee": "Luna Operations",
+      "agentRole": "production verifier",
+      "humanGate": true,
+      "blockedBy": ["LUNA-003"],
+      "nextAction": "Obtain production access and CRON_SECRET, run the materializer once, verify rows, smoke admin controls, then enable the flag.",
+      "acceptanceCriteria": [
+        "At least one scheduled row exists per active template.",
+        "A manager can pause, resume, and cancel from /admin/tournaments.",
+        "Flag-off and flag-on /games paths both render correctly.",
+        "The tournament-schedule-live flag is enabled only after verification."
+      ],
+      "evidence": [
+        {
+          "label": "Rollout procedure in PR #47",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/pull/47"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-005",
+      "title": "Close the Supabase incident loop",
+      "summary": "PR #48 bounded the failure but did not establish why production Supabase was unreachable or whether the three-second budget is right.",
+      "status": "active",
+      "wave": 0,
+      "priority": "high",
+      "assignee": "Luna Reliability",
+      "agentRole": "production investigator",
+      "humanGate": true,
+      "blockedBy": [],
+      "nextAction": "Inspect project state and logs, confirm the database is active, measure normal auth latency, and record the incident outcome.",
+      "acceptanceCriteria": [
+        "The upstream outage cause is documented with evidence.",
+        "Production marketing and authenticated routes are smoke-tested.",
+        "The timeout budget is retained or changed from measured latency.",
+        "A follow-up incident or runbook note is committed."
+      ],
+      "evidence": [
+        {
+          "label": "Incident PR #48",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/pull/48"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-006",
+      "title": "Ratify the production transaction adapter",
+      "summary": "The dominant known risk is mutation and audit writes occurring as separate Supabase calls. The existing defaultDb transaction is not a real production transaction.",
+      "status": "active",
+      "wave": 1,
+      "priority": "critical",
+      "assignee": "Luna Architecture",
+      "agentRole": "ADR author",
+      "humanGate": false,
+      "blockedBy": [],
+      "nextAction": "Draft the smallest ADR that chooses a production Postgres transaction path and defines migration seams for withAudit consumers.",
+      "acceptanceCriteria": [
+        "The ADR names the driver, pooling/runtime posture, secrets boundary, and rollback behavior.",
+        "It defines one transaction interface used in production and tests.",
+        "It lists every non-atomic mutation that must migrate.",
+        "Owner review questions are isolated from implementation details."
+      ],
+      "evidence": [
+        {
+          "label": "Atomicity note in PR #47",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/pull/47"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-007",
+      "title": "Implement the production transaction adapter",
+      "summary": "Build the ratified transaction boundary with rollback, cancellation, and a test seam before migrating business actions.",
+      "status": "blocked",
+      "wave": 1,
+      "priority": "critical",
+      "assignee": "Luna Database",
+      "agentRole": "database engineer",
+      "humanGate": false,
+      "blockedBy": ["LUNA-006"],
+      "nextAction": "Implement the adapter from the accepted ADR with red-first integration tests.",
+      "acceptanceCriteria": [
+        "A thrown audit insert rolls back its paired mutation.",
+        "A thrown mutation never writes an audit row.",
+        "Production does not use the fake transaction implementation.",
+        "Connection cleanup and request cancellation are tested."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "LUNA-008",
+      "title": "Migrate high-risk actions to atomic writes",
+      "summary": "Move privacy deletion, verification decisions, role changes, refunds, flags, and tournament mutations onto the real transaction adapter.",
+      "status": "blocked",
+      "wave": 1,
+      "priority": "critical",
+      "assignee": "Luna Database",
+      "agentRole": "migration worker",
+      "humanGate": false,
+      "blockedBy": ["LUNA-007"],
+      "nextAction": "Cut the migration into dependency-safe tickets once the adapter API is fixed.",
+      "acceptanceCriteria": [
+        "Every listed mutation and its audit row commit or roll back together.",
+        "Existing action taxonomy and PII-redaction tests remain green.",
+        "No service-role access is widened.",
+        "The implementation status notes stop describing these writes as best-effort."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "LUNA-009",
+      "title": "Run the atomicity regression gauntlet",
+      "summary": "Verify the transaction migration across privacy, admin, payments, tournaments, RLS, and audit-log surfaces.",
+      "status": "blocked",
+      "wave": 1,
+      "priority": "high",
+      "assignee": "Luna QA",
+      "agentRole": "cross-cutting validator",
+      "humanGate": false,
+      "blockedBy": ["LUNA-008"],
+      "nextAction": "Build a focused matrix from the migrated call sites and execute it before the full suite.",
+      "acceptanceCriteria": [
+        "Focused rollback tests fail against the old path and pass against the new one.",
+        "Full typecheck, lint, format, migration safety, and Vitest suites pass.",
+        "Admin accessibility suites remain green.",
+        "A journal entry records the migrated actions and residual exceptions."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "LUNA-010",
+      "title": "Provision Stripe test and production configuration",
+      "summary": "Membership, time-bank, and registration flows remain blocked on keys, products/prices, webhook secrets, and an approved rollout posture.",
+      "status": "blocked",
+      "wave": 2,
+      "priority": "critical",
+      "assignee": "Luna Payments",
+      "agentRole": "integration preparer",
+      "humanGate": true,
+      "blockedBy": [],
+      "nextAction": "Owner provisions or grants access to Stripe; Luna then validates env coverage and records non-secret identifiers.",
+      "acceptanceCriteria": [
+        "Test and production accounts are identified.",
+        "Membership price IDs and webhook endpoints exist.",
+        "Secrets are stored outside git in the deployment environment.",
+        "A test webhook delivery verifies signature handling."
+      ],
+      "evidence": [
+        {
+          "label": "ADR-0010",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/blob/main/docs/adr/0010-membership-subscription-model.md"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-011",
+      "title": "Choose and approve the identity-verification path",
+      "summary": "ADR-0009 is blocked on the KYC/ID vendor and retention workflow decision.",
+      "status": "blocked",
+      "wave": 2,
+      "priority": "critical",
+      "assignee": "Luna Identity",
+      "agentRole": "vendor evaluator",
+      "humanGate": true,
+      "blockedBy": [],
+      "nextAction": "Owner selects the acceptable verification workflow after cost, PII, deletion, and staff-review tradeoffs are documented.",
+      "acceptanceCriteria": [
+        "The vendor or manual workflow is selected.",
+        "Data residency, retention, deletion, and breach responsibilities are documented.",
+        "The verification state machine and fallback path are ratified.",
+        "Required credentials and sandbox access are available."
+      ],
+      "evidence": [
+        {
+          "label": "ADR-0009",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/blob/main/docs/adr/0009-member-identity-and-id-verification.md"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-012",
+      "title": "Clear email, SMS, and A2P gates",
+      "summary": "ADR-0025 remains blocked on communication credentials and US carrier registration inputs.",
+      "status": "blocked",
+      "wave": 2,
+      "priority": "high",
+      "assignee": "Luna Communications",
+      "agentRole": "deliverability preparer",
+      "humanGate": true,
+      "blockedBy": [],
+      "nextAction": "Owner supplies the sending domain, business identity, phone-number posture, and vendor access; Luna verifies DNS and sandbox delivery.",
+      "acceptanceCriteria": [
+        "The sending domain is verified.",
+        "A2P brand/campaign paperwork is submitted or an email-only launch is approved.",
+        "Test email and SMS delivery succeeds.",
+        "STOP/HELP and consent requirements are captured."
+      ],
+      "evidence": [
+        {
+          "label": "ADR-0025",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/blob/main/docs/adr/0025-email-and-sms-communications.md"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-013",
+      "title": "Resolve PokerAtlas and TableCaptain posture",
+      "summary": "ADR-0013 cannot progress until the owner completes outreach and legal/ToS review. The v1 manual fallback remains valid.",
+      "status": "blocked",
+      "wave": 2,
+      "priority": "medium",
+      "assignee": "Luna Integrations",
+      "agentRole": "vendor researcher",
+      "humanGate": true,
+      "blockedBy": [],
+      "nextAction": "Owner authorizes outreach and records the vendor response; Luna updates the ADR with a supported integration or hardened manual workflow.",
+      "acceptanceCriteria": [
+        "Terms and vendor permission are reviewed.",
+        "API/export/webhook capabilities are confirmed in writing.",
+        "The v1 manual reconciliation workflow is documented if no integration exists.",
+        "No scraper ships on an unverified legal assumption."
+      ],
+      "evidence": [
+        {
+          "label": "ADR-0013",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/blob/main/docs/adr/0013-pokeratlas-integration.md"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-014",
+      "title": "Approve legal and stored-value policies",
+      "summary": "Counsel and CPA decisions are needed for the member agreement, privacy/terms updates, time-bank expiration, refunds, and Texas unclaimed-property posture.",
+      "status": "blocked",
+      "wave": 2,
+      "priority": "critical",
+      "assignee": "Luna Compliance",
+      "agentRole": "decision recorder",
+      "humanGate": true,
+      "blockedBy": [],
+      "nextAction": "Owner obtains counsel/CPA answers; Luna converts each answer into an ADR/spec amendment and acceptance test.",
+      "acceptanceCriteria": [
+        "Member agreement text is approved.",
+        "Time-bank refund and expiration rules are approved.",
+        "Stored-value and sales-tax posture is recorded.",
+        "TABC permit language is added when available."
+      ],
+      "evidence": [
+        {
+          "label": "Project open questions",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/blob/main/docs/spec.md#open-questions"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-015",
+      "title": "Finish production and ownership hygiene",
+      "summary": "The project still needs explicit confirmation of its production domain, private-repository posture, vector brand assets, and deployment access.",
+      "status": "blocked",
+      "wave": 2,
+      "priority": "high",
+      "assignee": "Luna Operations",
+      "agentRole": "launch coordinator",
+      "humanGate": true,
+      "blockedBy": [],
+      "nextAction": "Owner confirms access and decisions; Luna updates configuration, docs, and launch checks without committing secrets.",
+      "acceptanceCriteria": [
+        "The primary domain and redirect domain are confirmed.",
+        "Repository visibility is appropriate for auth and payment code.",
+        "Production deployment and database owners are documented.",
+        "Launch-grade vector assets are available or explicitly deferred."
+      ],
+      "evidence": [
+        {
+          "label": "Project open questions",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/blob/main/docs/spec.md#open-questions"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-016",
+      "title": "Ship membership billing lifecycle",
+      "summary": "Implement signup billing, autopay/invoice pricing, webhooks, dunning, cancel, and reactivate on the existing auth and payment substrate.",
+      "status": "blocked",
+      "wave": 3,
+      "priority": "critical",
+      "assignee": "Luna Membership",
+      "agentRole": "revenue-flow worker",
+      "humanGate": false,
+      "blockedBy": ["LUNA-007", "LUNA-010", "LUNA-014"],
+      "nextAction": "Decompose ADR-0010 into red-first wave tickets after its external gates clear.",
+      "acceptanceCriteria": [
+        "Autopay and invoice signup complete in test mode.",
+        "Webhook replay is idempotent.",
+        "Membership state follows Stripe.",
+        "Cancel, reactivate, and past-due paths pass E2E."
+      ],
+      "evidence": [
+        {
+          "label": "ADR-0010",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/blob/main/docs/adr/0010-membership-subscription-model.md"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-017",
+      "title": "Ship member ID verification",
+      "summary": "Complete upload, review, approval/rejection, re-verification, and retention behavior using the approved identity path.",
+      "status": "blocked",
+      "wave": 3,
+      "priority": "critical",
+      "assignee": "Luna Identity",
+      "agentRole": "identity-flow worker",
+      "humanGate": false,
+      "blockedBy": ["LUNA-007", "LUNA-011", "LUNA-014"],
+      "nextAction": "Write the implementation spec and test matrix after the verification and retention decisions are ratified.",
+      "acceptanceCriteria": [
+        "Members can complete the approved verification flow.",
+        "Managers can review without exposing documents to lower roles.",
+        "Retention and deletion jobs match policy.",
+        "Approval/rejection and audit writes are atomic."
+      ],
+      "evidence": [
+        {
+          "label": "ADR-0009",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/blob/main/docs/adr/0009-member-identity-and-id-verification.md"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-018",
+      "title": "Ship time-bank and cashier operations",
+      "summary": "Complete purchases, promo credit, idempotent redemption, manual adjustments, balance views, and daily reconciliation.",
+      "status": "blocked",
+      "wave": 3,
+      "priority": "critical",
+      "assignee": "Luna Cashier",
+      "agentRole": "ledger-flow worker",
+      "humanGate": false,
+      "blockedBy": ["LUNA-007", "LUNA-010", "LUNA-014", "LUNA-016"],
+      "nextAction": "Cut ADR-0011 and cashier-console work into parallel-safe schema, ledger, UI, and validation tickets.",
+      "acceptanceCriteria": [
+        "A $200 purchase credits the approved promo balance.",
+        "A duplicate redemption cannot double-charge time.",
+        "The append-only ledger can rebuild the wallet balance.",
+        "Cashier permissions and reconciliation E2E pass."
+      ],
+      "evidence": [
+        {
+          "label": "ADR-0011",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/blob/main/docs/adr/0011-time-bank-model.md"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-019",
+      "title": "Ship paid tournament registration",
+      "summary": "Extend the live schedule with member registration, capacity/waitlist handling, entry payment, cancellation, and refund behavior.",
+      "status": "blocked",
+      "wave": 3,
+      "priority": "high",
+      "assignee": "Luna Tournaments",
+      "agentRole": "registration-flow worker",
+      "humanGate": false,
+      "blockedBy": ["LUNA-003", "LUNA-007", "LUNA-010", "LUNA-016"],
+      "nextAction": "Write the Slice 2 registration spec once the schedule and payment lifecycle are on main.",
+      "acceptanceCriteria": [
+        "Capacity and waitlist transitions are concurrency-safe.",
+        "Entry payment and registration are idempotent.",
+        "Cancellation/refund rules match approved policy.",
+        "Member and admin E2E flows pass."
+      ],
+      "evidence": [
+        {
+          "label": "ADR-0012",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/blob/main/docs/adr/0012-tournament-model.md"
+        }
+      ]
+    },
+    {
+      "id": "LUNA-020",
+      "title": "Ship transactional communications",
+      "summary": "Deliver receipts, low-balance alerts, tournament reminders, delivery tracking, and opt-out handling after provider gates clear.",
+      "status": "blocked",
+      "wave": 3,
+      "priority": "high",
+      "assignee": "Luna Communications",
+      "agentRole": "messaging-flow worker",
+      "humanGate": false,
+      "blockedBy": ["LUNA-012", "LUNA-016", "LUNA-018", "LUNA-019"],
+      "nextAction": "Implement email-first templates and add SMS only where registration and consent allow it.",
+      "acceptanceCriteria": [
+        "Receipts and operational alerts render from tested templates.",
+        "Retries do not duplicate messages.",
+        "STOP/HELP and consent state are enforced.",
+        "Email-only degradation is documented and tested."
+      ],
+      "evidence": [
+        {
+          "label": "ADR-0025",
+          "href": "https://github.com/CosmonautJones/members-only-poker-club/blob/main/docs/adr/0025-email-and-sms-communications.md"
+        }
+      ]
+    }
+  ]
+}
