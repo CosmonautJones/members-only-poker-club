@@ -158,12 +158,15 @@ interface PgliteTxLike {
  * Adapter that wraps pglite's `pg.transaction()` into the
  * `TransactionRunner` shape the action expects.
  */
-function pgliteRunner(p: PGlite): TransactionRunner {
+function pgliteRunner(p: PGlite, rejectAuditInsert = false): TransactionRunner {
   return {
     transaction: async (callback) => {
       return p.transaction(async (tx: PgliteTxLike) => {
         return callback({
           query: async (sql, params) => {
+            if (rejectAuditInsert && /^\s*INSERT\s+INTO\s+audit_log/i.test(sql)) {
+              throw new Error('forced audit insert failure');
+            }
             const r = await tx.query(sql, params);
             return { rows: r.rows as unknown[] };
           },
@@ -353,6 +356,24 @@ describe('approveVerification — AC12 happy path', () => {
     expect(after.member_number).toBe(result.memberNumber);
 
     expect(cacheSpy.revalidateTag).toHaveBeenCalledWith('admin-dashboard-counts');
+  });
+});
+
+describe('approveVerification — transaction rollback', () => {
+  it('rolls back verification and member number when the audit insert fails', async () => {
+    requireRoleState.currentActor = { id: manager1, role: 'manager' };
+    await setTestUid(pg, manager1);
+    await asAuthenticated(pg, manager1);
+
+    await expect(
+      approveVerification({ profileId: target1 }, pgliteRunner(pg, true)),
+    ).rejects.toThrow('forced audit insert failure');
+
+    const profile = await readProfile(target1);
+    expect(profile.id_verified_at).toBeNull();
+    expect(profile.member_number).toBeNull();
+    expect(await readAuditRows(target1)).toHaveLength(0);
+    expect(cacheSpy.revalidateTag).not.toHaveBeenCalled();
   });
 });
 
