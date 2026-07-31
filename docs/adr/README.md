@@ -55,6 +55,7 @@ Each ADR captures one decision: **Context → Decision → Consequences → Alte
 | [019](0019-backups-and-disaster-recovery.md) | Backups & disaster recovery | Accepted | 4 |
 | [020](0020-feature-flags.md) | Feature flags | Accepted | 4 |
 | [021](0021-testing-strategy.md) | Testing strategy | Accepted | 1 (skeleton), 4 (formalized) |
+| [040](0040-production-postgres-transaction-adapter.md) | Production Postgres transaction adapter | Accepted | Luna wave 1 |
 
 ### Compliance & customer
 
