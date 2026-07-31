@@ -4,6 +4,7 @@
 - **Date:** 2026-05-04
 - **Ratified:** 2026-05-08
 - **Slice:** 1 (read-only listing) → 3 (registration with Stripe entry fees)
+- **Schedule + admin-edit layer:** implemented by [ADR-0037](0037-tournament-schedule.md) (Proposed 2026-05-23). ADR-0037 ships the `tournaments` table, the admin schedule editor at `/admin/tournaments`, and pulls forward the `tz_name` column from ADR-0034's deferred set. `tournament_regs` (registration) remains Slice 3 work, gated on Stripe live keys.
 
 ## Context
 

@@ -89,3 +89,4 @@ Each ADR captures one decision: **Context → Decision → Consequences → Alte
 | [033](0033-alcohol-model-byob-pre-license.md) | Alcohol model — BYOB pre-license | Accepted | 1 |
 | [035](0035-admin-operations-console.md) | Admin operations console | Accepted | 4 |
 | [036](0036-payment-management-console.md) | Payment management console | Accepted | 2/3 (webhook + schema), 4 (console) |
+| [037](0037-tournament-schedule.md) | Tournament schedule (admin-edited live data on /games) | Accepted | 1 |
