@@ -1,6 +1,7 @@
 import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import { type User } from '@supabase/supabase-js';
 import { type NextRequest, NextResponse } from 'next/server';
+import { nowUtc } from '@/lib/time';
 
 /**
  * Middleware-side Supabase client. Refreshes the session cookie on every request
@@ -99,10 +100,18 @@ export async function updateSession(
   // as unauthenticated, log structured, return the unchanged response so the
   // request still completes. Gated routes will redirect to /login; marketing
   // pages render normally with no session.
+  const authStartedAt = nowUtc().getTime();
   const resolution = await resolveSupabaseUser(() => supabase.auth.getUser());
+  const authDurationMs = Math.max(0, nowUtc().getTime() - authStartedAt);
 
   switch (resolution.kind) {
     case 'ok':
+      console.info(
+        JSON.stringify({
+          event: 'supabase_auth_ok',
+          duration_ms: authDurationMs,
+        }),
+      );
       return { response, user: resolution.user };
     case 'timeout':
       console.warn(
