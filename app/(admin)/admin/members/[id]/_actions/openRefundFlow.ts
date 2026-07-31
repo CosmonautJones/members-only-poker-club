@@ -52,18 +52,17 @@ import 'server-only';
  *     intended (membership vs time-bank vs tournament-entry) so a
  *     future ADR-0036 audit-log viewer can group breadcrumbs by scope.
  *
- * Production note — same `db` injection pattern as `changeRole.ts`. See
- * that file's header for the supabase-js / pg-driver migration plan
- * (ADR-0017). The action's pre-validation `SELECT 1 FROM profiles` is
- * run through the SAME transaction runner so a pglite-backed test can
- * stub everything via one DI seam.
+ * Production defaults to the shared Postgres transaction runner. The
+ * pre-validation probe and audit insert use the same injected runner
+ * seam in production and tests.
  */
 
 import { revalidateTag } from 'next/cache';
 
 import { requireRole } from '@/lib/auth/requireRole';
-import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { withAudit } from '@/lib/audit/withAudit';
+import { postgresTransactionRunner } from '@/lib/db/postgres-transaction-runner';
+import type { TransactionRunner } from '@/lib/db/transactions';
 
 import { BadRequest } from '@/app/(admin)/admin/_errors';
 import { ADMIN_REFUND_FLOW_OPENED } from '@/lib/audit/actions';
@@ -96,12 +95,10 @@ export interface OpenRefundFlowResult {
 }
 
 /**
- * Structural transaction runner — mirrors `changeRole.ts`. Tests inject
- * a pglite-backed adapter; production uses the supabase-admin shim.
+ * Shared transaction seam. Tests inject a PGlite-backed runner;
+ * production uses the Postgres runner.
  */
-export interface TransactionRunner {
-  transaction<T>(callback: (tx: TransactionClient) => Promise<T>): Promise<T>;
-}
+export type { TransactionRunner } from '@/lib/db/transactions';
 
 // ---- Validation constants -------------------------------------------------
 
@@ -162,7 +159,7 @@ export async function openRefundFlow(
     );
   }
 
-  const runner = db ?? defaultDb();
+  const runner = db ?? postgresTransactionRunner;
 
   // Premortem R9 existence check — verify the profile row exists
   // BEFORE the audit-tx opens. We run this through the SAME
@@ -245,103 +242,4 @@ export async function openRefundFlow(
   });
 
   return { redirectTo };
-}
-
-// ---- Default production adapter -------------------------------------------
-//
-// Defined BELOW `openRefundFlow` so the file's first `await` token is
-// the `await requireRole('manager')` inside the action. AC5's regex-tier
-// defense-in-depth walker scans for the first `\bawait\b` in source
-// order; placing the adapter (which contains internal `await` calls
-// against the supabase client) above the action would silently fail
-// the gate. Function declarations are hoisted, so the
-// `db ?? defaultDb()` reference resolves correctly despite the textual
-// ordering.
-
-/**
- * Production `TransactionRunner` — see `changeRole.ts` §Production note
- * for the supabase-js no-real-tx caveat. This action issues two query
- * shapes:
- *
- *   (1) SELECT 1 AS exists FROM profiles WHERE id = $1   ← R9 probe
- *   (2) INSERT INTO audit_log (...)                       ← withAudit
- *
- * Any other SQL shape throws so the failure mode is loud — see the
- * SAFETY POSTURE note in `changeRole.ts`.
- */
-function defaultDb(): TransactionRunner {
-  let admin: ReturnType<typeof createAdminClient> | null = null;
-  const getAdmin = () => {
-    if (admin === null) admin = createAdminClient();
-    return admin;
-  };
-
-  const asStringOrNull = (v: unknown): string | null => {
-    if (v === null || v === undefined) return null;
-    if (typeof v === 'string') return v;
-    throw new Error(`openRefundFlow defaultDb: expected string|null param, got ${typeof v}`);
-  };
-  const asString = (v: unknown): string => {
-    if (typeof v === 'string') return v;
-    throw new Error(`openRefundFlow defaultDb: expected string param, got ${typeof v}`);
-  };
-
-  const txClient: TransactionClient = {
-    async query(sql, params) {
-      const adminClient = getAdmin();
-      const normalized = sql.replace(/\s+/g, ' ').trim();
-
-      // Shape (1): SELECT 1 AS exists FROM profiles WHERE id = $1
-      if (/^SELECT\s+1\s+AS\s+exists\s+FROM\s+profiles\s+WHERE\s+id\s*=\s*\$1/i.test(normalized)) {
-        const id = asString(params?.[0]);
-        const { data, error } = await adminClient
-          .from('profiles')
-          .select('id')
-          .eq('id', id)
-          .maybeSingle();
-        if (error) {
-          throw new Error(`openRefundFlow defaultDb: SELECT 1 profiles failed: ${error.message}`);
-        }
-        return { rows: data ? [{ exists: 1 }] : [] };
-      }
-
-      // Shape (2): INSERT INTO audit_log (...) — emitted by withAudit.
-      if (/^INSERT\s+INTO\s+audit_log\s*\(/i.test(normalized)) {
-        const parseJson = (v: unknown): unknown => {
-          if (typeof v !== 'string') return v;
-          try {
-            return JSON.parse(v);
-          } catch {
-            return v;
-          }
-        };
-        const row = {
-          actor_id: asStringOrNull(params?.[0]),
-          action: asString(params?.[1]),
-          target_type: asString(params?.[2]),
-          target_id: asString(params?.[3]),
-          before: parseJson(params?.[4]),
-          after: parseJson(params?.[5]),
-          ip: asStringOrNull(params?.[6]),
-          user_agent: asStringOrNull(params?.[7]),
-        };
-        const { error } = await adminClient.from('audit_log').insert(row);
-        if (error) {
-          throw new Error(`openRefundFlow defaultDb: audit_log INSERT failed: ${error.message}`);
-        }
-        return { rows: [] };
-      }
-
-      throw new Error(
-        `openRefundFlow defaultDb: unsupported SQL shape ` +
-          `(this adapter only translates the action's two canonical shapes; ` +
-          `add a pg driver via ADR-0017 rather than growing this translator). ` +
-          `Got: ${normalized.slice(0, 120)}`,
-      );
-    },
-  };
-
-  return {
-    transaction: async (callback) => callback(txClient),
-  };
 }

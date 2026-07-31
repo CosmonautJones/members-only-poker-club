@@ -69,17 +69,16 @@ import 'server-only';
  *      dashboard. Wrapped in try/catch so a Next-cache outage cannot
  *      roll back the audit-tx commit (premortem R2).
  *
- * Production note — `db` injection point:
- *   - Same `db` injection pattern as `changeRole.ts` / `openRefundFlow.ts`.
- *     See `changeRole.ts` header for the supabase-js no-real-tx caveat
- *     and ADR-0017 swap-in plan.
+ * Production defaults to the shared Postgres transaction runner. Tests
+ * inject the same `TransactionRunner` seam with PGlite.
  */
 
 import { revalidateTag } from 'next/cache';
 
 import { requireRole } from '@/lib/auth/requireRole';
-import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { withAudit } from '@/lib/audit/withAudit';
+import { postgresTransactionRunner } from '@/lib/db/postgres-transaction-runner';
+import type { TransactionRunner } from '@/lib/db/transactions';
 import { trackAdminEvent } from '@/lib/analytics/admin-events';
 
 import { SelfEditViolation, RejectReasonInvalid, BadRequest } from '@/app/(admin)/admin/_errors';
@@ -99,12 +98,10 @@ export interface InitiateMemberDeletionResult {
 }
 
 /**
- * Structural transaction runner — mirrors `changeRole.ts`. Tests inject
- * a pglite-backed adapter; production uses the supabase-admin shim.
+ * Shared transaction seam. Tests inject a PGlite-backed runner;
+ * production uses the Postgres runner.
  */
-export interface TransactionRunner {
-  transaction<T>(callback: (tx: TransactionClient) => Promise<T>): Promise<T>;
-}
+export type { TransactionRunner } from '@/lib/db/transactions';
 
 // ---- Validation constants ------------------------------------------------
 
@@ -153,7 +150,7 @@ export async function initiateMemberDeletion(
     );
   }
 
-  const runner = db ?? defaultDb();
+  const runner = db ?? postgresTransactionRunner;
 
   let capturedRequestId: string | null = null;
 
@@ -261,139 +258,4 @@ export async function initiateMemberDeletion(
   });
 
   return { ok: true, requestId: capturedRequestId };
-}
-
-// ---- Default production adapter -------------------------------------------
-//
-// Defined BELOW `initiateMemberDeletion` so the file's first `await`
-// token is the `await requireRole('manager')` inside the action. AC5's
-// regex-tier defense-in-depth walker scans for the first `\bawait\b` in
-// source order; placing the adapter (which contains internal `await`
-// calls against the supabase client) above the action would silently
-// fail the gate. Function declarations are hoisted, so the
-// `db ?? defaultDb()` reference resolves correctly despite the textual
-// ordering.
-
-/**
- * Production `TransactionRunner` — see `changeRole.ts` §Production note
- * for the supabase-js no-real-tx caveat. This action issues three query
- * shapes:
- *
- *   (1) SELECT id, email FROM profiles WHERE id = $1 FOR UPDATE
- *   (2) INSERT INTO privacy_requests (...) VALUES (...) RETURNING id
- *   (3) INSERT INTO audit_log (...)            ← issued by withAudit itself
- *
- * Any other SQL shape throws so the failure mode is loud — see the
- * SAFETY POSTURE note in `changeRole.ts`.
- */
-function defaultDb(): TransactionRunner {
-  let admin: ReturnType<typeof createAdminClient> | null = null;
-  const getAdmin = () => {
-    if (admin === null) admin = createAdminClient();
-    return admin;
-  };
-
-  const asStringOrNull = (v: unknown): string | null => {
-    if (v === null || v === undefined) return null;
-    if (typeof v === 'string') return v;
-    throw new Error(
-      `initiateMemberDeletion defaultDb: expected string|null param, got ${typeof v}`,
-    );
-  };
-  const asString = (v: unknown): string => {
-    if (typeof v === 'string') return v;
-    throw new Error(`initiateMemberDeletion defaultDb: expected string param, got ${typeof v}`);
-  };
-
-  const txClient: TransactionClient = {
-    async query(sql, params) {
-      const adminClient = getAdmin();
-      const normalized = sql.replace(/\s+/g, ' ').trim();
-
-      // Shape (1): SELECT id, email FROM profiles WHERE id = $1 [FOR UPDATE]
-      if (/^SELECT\s+id,\s*email\s+FROM\s+profiles\s+WHERE\s+id\s*=\s*\$1/i.test(normalized)) {
-        const id = asString(params?.[0]);
-        const { data, error } = await adminClient
-          .from('profiles')
-          .select('id, email')
-          .eq('id', id)
-          .maybeSingle();
-        if (error) {
-          throw new Error(
-            `initiateMemberDeletion defaultDb: SELECT id, email failed: ${error.message}`,
-          );
-        }
-        return { rows: data ? [data] : [] };
-      }
-
-      // Shape (2): INSERT INTO privacy_requests (...) RETURNING id
-      if (/^INSERT\s+INTO\s+privacy_requests\s*\(/i.test(normalized)) {
-        const row = {
-          profile_id: asString(params?.[0]),
-          requester_email: asString(params?.[1]),
-          kind: asString(params?.[2]),
-          status: asString(params?.[3]),
-          // submitted_at uses now() default at the DB layer
-          resolved_by: null,
-        };
-        const { data, error } = await adminClient
-          .from('privacy_requests')
-          .insert(row)
-          .select('id')
-          .single();
-        if (error) {
-          throw new Error(
-            `initiateMemberDeletion defaultDb: INSERT privacy_requests failed: ${error.message}`,
-          );
-        }
-        // PostgREST returns `unknown` for the `.select('id').single()`
-        // shape without a typed schema; narrow to the canonical id-only
-        // row type at the boundary so the @typescript-eslint/no-unsafe-
-        // assignment guard is satisfied AND a future schema-typed
-        // supabase client still gets a useful narrowing site.
-        const inserted = data as { id: string } | null;
-        return { rows: inserted ? [{ id: inserted.id }] : [] };
-      }
-
-      // Shape (3): INSERT INTO audit_log — emitted by withAudit.
-      if (/^INSERT\s+INTO\s+audit_log\s*\(/i.test(normalized)) {
-        const parseJson = (v: unknown): unknown => {
-          if (typeof v !== 'string') return v;
-          try {
-            return JSON.parse(v);
-          } catch {
-            return v;
-          }
-        };
-        const auditRow = {
-          actor_id: asStringOrNull(params?.[0]),
-          action: asString(params?.[1]),
-          target_type: asString(params?.[2]),
-          target_id: asString(params?.[3]),
-          before: parseJson(params?.[4]),
-          after: parseJson(params?.[5]),
-          ip: asStringOrNull(params?.[6]),
-          user_agent: asStringOrNull(params?.[7]),
-        };
-        const { error } = await adminClient.from('audit_log').insert(auditRow);
-        if (error) {
-          throw new Error(
-            `initiateMemberDeletion defaultDb: audit_log INSERT failed: ${error.message}`,
-          );
-        }
-        return { rows: [] };
-      }
-
-      throw new Error(
-        `initiateMemberDeletion defaultDb: unsupported SQL shape ` +
-          `(this adapter only translates the action's three canonical shapes; ` +
-          `add a pg driver via ADR-0017 rather than growing this translator). ` +
-          `Got: ${normalized.slice(0, 120)}`,
-      );
-    },
-  };
-
-  return {
-    transaction: async (callback) => callback(txClient),
-  };
 }

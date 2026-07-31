@@ -130,12 +130,22 @@ interface PgliteTxLike {
   query<T = unknown>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
 }
 
-function pgliteRunner(p: PGlite): TransactionRunner {
+function pgliteRunner(
+  p: PGlite,
+  rejectAuditInsert = false,
+  rejectMutation = false,
+): TransactionRunner {
   return {
     transaction: async (callback) => {
       return p.transaction(async (tx: PgliteTxLike) => {
         return callback({
           query: async (sql, params) => {
+            if (rejectAuditInsert && /^\s*INSERT\s+INTO\s+audit_log/i.test(sql)) {
+              throw new Error('test audit insert failure');
+            }
+            if (rejectMutation && /^\s*UPDATE\s+profiles\s+SET\s+id_verified_at/i.test(sql)) {
+              throw new Error('test mutation failure');
+            }
             const r = await tx.query(sql, params);
             return { rows: r.rows as unknown[] };
           },
@@ -297,6 +307,47 @@ describe('requestReverification — AC16 happy path', () => {
     expect(rows).toHaveLength(1);
     const before = rows[0]!.before as { id_verified_at: string | null };
     expect(before.id_verified_at).toBeNull();
+  });
+});
+
+describe('requestReverification — transaction rollback', () => {
+  it('restores id_verified_at when the audit insert fails', async () => {
+    requireRoleState.currentActor = { id: manager1, role: 'manager' };
+    await setTestUid(pg, manager1);
+    await asAuthenticated(pg, manager1);
+
+    await expect(
+      requestReverification(
+        { profileId: target1, reason: 'ID photo quality insufficient' },
+        pgliteRunner(pg, true),
+      ),
+    ).rejects.toThrow('test audit insert failure');
+
+    await asServiceRole(pg);
+    const profile = await pg.query<{ id_verified_at: Date | string | null }>(
+      'SELECT id_verified_at FROM profiles WHERE id = $1',
+      [target1],
+    );
+    expect(new Date(profile.rows[0]!.id_verified_at!).toISOString()).toBe(
+      '2026-01-15T10:00:00.000Z',
+    );
+    expect(await readAuditRows(target1)).toHaveLength(0);
+    expect(cacheSpy.revalidateTag).not.toHaveBeenCalled();
+  });
+
+  it('writes no audit row when the profile mutation fails', async () => {
+    requireRoleState.currentActor = { id: manager1, role: 'manager' };
+    await setTestUid(pg, manager1);
+    await asAuthenticated(pg, manager1);
+
+    await expect(
+      requestReverification(
+        { profileId: target1, reason: 'ID photo quality insufficient' },
+        pgliteRunner(pg, false, true),
+      ),
+    ).rejects.toThrow('test mutation failure');
+
+    expect(await readAuditRows(target1)).toHaveLength(0);
   });
 });
 

@@ -121,12 +121,22 @@ interface PgliteTxLike {
   query<T = unknown>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
 }
 
-function pgliteRunner(p: PGlite): TransactionRunner {
+function pgliteRunner(
+  p: PGlite,
+  rejectAuditInsert = false,
+  rejectMutation = false,
+): TransactionRunner {
   return {
     transaction: async (callback) => {
       return p.transaction(async (tx: PgliteTxLike) => {
         return callback({
           query: async (sql, params) => {
+            if (rejectAuditInsert && /^\s*INSERT\s+INTO\s+audit_log/i.test(sql)) {
+              throw new Error('test audit insert failure');
+            }
+            if (rejectMutation && /^\s*UPDATE\s+feature_flags/i.test(sql)) {
+              throw new Error('test mutation failure');
+            }
             const r = await tx.query(sql, params);
             return { rows: r.rows as unknown[] };
           },
@@ -309,6 +319,37 @@ describe('updateFlag — AC22 audit event selection (single-field changes)', () 
 
     const flag = await readFlag(TEST_FLAG_KEY);
     expect(flag.role_gate).toBe('manager');
+  });
+});
+
+describe('updateFlag — transaction rollback', () => {
+  it('rolls back the flag mutation when the audit insert fails', async () => {
+    requireRoleState.currentActor = { id: manager1, role: 'manager' };
+    await setTestUid(pg, manager1);
+    await asAuthenticated(pg, manager1);
+
+    await expect(
+      updateFlag({ key: TEST_FLAG_KEY, enabled: true }, pgliteRunner(pg, true)),
+    ).rejects.toThrow('test audit insert failure');
+
+    const flag = await readFlag(TEST_FLAG_KEY);
+    expect(flag.enabled).toBe(false);
+    expect(flag.updated_by).toBeNull();
+    expect(await readAuditRows(TEST_FLAG_KEY)).toHaveLength(0);
+    expect(cacheSpy.revalidateTag).not.toHaveBeenCalled();
+  });
+
+  it('writes no audit row when the flag mutation fails', async () => {
+    requireRoleState.currentActor = { id: manager1, role: 'manager' };
+    await setTestUid(pg, manager1);
+    await asAuthenticated(pg, manager1);
+
+    await expect(
+      updateFlag({ key: TEST_FLAG_KEY, enabled: true }, pgliteRunner(pg, false, true)),
+    ).rejects.toThrow('test mutation failure');
+
+    expect((await readFlag(TEST_FLAG_KEY)).enabled).toBe(false);
+    expect(await readAuditRows(TEST_FLAG_KEY)).toHaveLength(0);
   });
 });
 

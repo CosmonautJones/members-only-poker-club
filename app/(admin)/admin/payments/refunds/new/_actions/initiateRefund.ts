@@ -63,10 +63,8 @@ import 'server-only';
  *
  * The transaction-runner injection mirrors
  * `app/(admin)/admin/members/[id]/_actions/openRefundFlow.ts`:
- * production uses the supabase-admin shim (default adapter below);
- * tests pass a pglite-backed runner. The default adapter ONLY
- * supports the audit-INSERT shape since Slice 1 writes nothing
- * else.
+ * production uses the shared Postgres runner and tests inject the
+ * same structural seam.
  *
  * Forensic note — why an audit row at all on a not-configured throw:
  *   The Stripe activation runbook (ADR-0010) is the long-pole. While
@@ -80,13 +78,14 @@ import 'server-only';
 import { z } from 'zod';
 
 import { requireRole } from '@/lib/auth/requireRole';
-import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
+import { withAudit } from '@/lib/audit/withAudit';
+import { postgresTransactionRunner } from '@/lib/db/postgres-transaction-runner';
+import type { TransactionRunner } from '@/lib/db/transactions';
 import { assertRefundAuthority, type RefundType } from '@/lib/payments/authority';
 import { assertStripeConfigured } from '@/lib/payments/stripe-client';
 import { ADMIN_REFUND_DENIED } from '@/lib/audit/actions';
 import { cents } from '@/lib/money/types';
 import { BadRequest } from '@/app/(admin)/admin/_errors';
-import { createAdminClient } from '@/lib/supabase/admin';
 
 // ---- Public types ---------------------------------------------------------
 
@@ -132,13 +131,10 @@ export interface InitiateRefundResult {
 }
 
 /**
- * Structural transaction runner — mirrors `openRefundFlow.ts`. Tests
- * inject a pglite-backed adapter; production uses the supabase-admin
- * shim (`defaultDb()` below).
+ * Shared transaction seam. Tests inject a runner; production uses the
+ * Postgres runner.
  */
-export interface TransactionRunner {
-  transaction<T>(callback: (tx: TransactionClient) => Promise<T>): Promise<T>;
-}
+export type { TransactionRunner } from '@/lib/db/transactions';
 
 // ---- Zod schema -----------------------------------------------------------
 
@@ -249,7 +245,7 @@ export async function initiateRefund(
   //     callback — the throw would escape `mutate` BEFORE the
   //     audit INSERT runs (per `lib/audit/withAudit.ts` line 271:
   //     the audit INSERT runs AFTER `mutate` returns).
-  const runner = db ?? defaultDb();
+  const runner = db ?? postgresTransactionRunner;
   await runner.transaction(async (tx) =>
     withAudit(
       tx,
@@ -302,89 +298,4 @@ export async function initiateRefund(
   // pins the Slice 2 success shape.
   /* istanbul ignore next — unreachable in Slice 1 */
   throw new Error('initiateRefund: unreachable — assertStripeConfigured did not throw in Slice 1');
-}
-
-// ---- Default production adapter -------------------------------------------
-//
-// Defined BELOW `initiateRefund` so the file's first `await` token is the
-// `await requireRole('manager')` inside the action. ADR-0035 AC5's
-// regex-tier defense-in-depth walker scans for the first `\bawait\b` in
-// source order; placing the adapter (which contains internal `await` calls
-// against the supabase client) above the action would silently fail the
-// gate. Function declarations are hoisted, so the `db ?? defaultDb()`
-// reference resolves correctly despite the textual ordering.
-
-/**
- * Production `TransactionRunner` — Slice 1 only supports one SQL
- * shape: the `INSERT INTO audit_log (...)` emitted by `withAudit`.
- * Any other shape throws so the failure mode is loud. Slice 2 will
- * extend this adapter (or, preferably, swap to a real `pg`-driver
- * runner per ADR-0017) to support the `refund_requests` INSERT
- * shape.
- *
- * Mirrors `openRefundFlow.ts`'s `defaultDb()` pattern.
- */
-function defaultDb(): TransactionRunner {
-  let admin: ReturnType<typeof createAdminClient> | null = null;
-  const getAdmin = () => {
-    if (admin === null) admin = createAdminClient();
-    return admin;
-  };
-
-  const asStringOrNull = (v: unknown): string | null => {
-    if (v === null || v === undefined) return null;
-    if (typeof v === 'string') return v;
-    throw new Error(`initiateRefund defaultDb: expected string|null param, got ${typeof v}`);
-  };
-  const asString = (v: unknown): string => {
-    if (typeof v === 'string') return v;
-    throw new Error(`initiateRefund defaultDb: expected string param, got ${typeof v}`);
-  };
-
-  const txClient: TransactionClient = {
-    async query(sql, params) {
-      const adminClient = getAdmin();
-      const normalized = sql.replace(/\s+/g, ' ').trim();
-
-      // The ONLY shape Slice 1 emits: `INSERT INTO audit_log (...)`
-      // from `withAudit`. Any other shape is a fail-loud bug — see
-      // SAFETY POSTURE in openRefundFlow.ts's defaultDb.
-      if (/^INSERT\s+INTO\s+audit_log\s*\(/i.test(normalized)) {
-        const parseJson = (v: unknown): unknown => {
-          if (typeof v !== 'string') return v;
-          try {
-            return JSON.parse(v);
-          } catch {
-            return v;
-          }
-        };
-        const row = {
-          actor_id: asStringOrNull(params?.[0]),
-          action: asString(params?.[1]),
-          target_type: asString(params?.[2]),
-          target_id: asString(params?.[3]),
-          before: parseJson(params?.[4]),
-          after: parseJson(params?.[5]),
-          ip: asStringOrNull(params?.[6]),
-          user_agent: asStringOrNull(params?.[7]),
-        };
-        const { error } = await adminClient.from('audit_log').insert(row);
-        if (error) {
-          throw new Error(`initiateRefund defaultDb: audit_log INSERT failed: ${error.message}`);
-        }
-        return { rows: [] };
-      }
-
-      throw new Error(
-        `initiateRefund defaultDb: unsupported SQL shape ` +
-          `(Slice 1 only translates the audit-INSERT shape; ` +
-          `Slice 2 will extend this adapter or swap to a real pg driver ` +
-          `via ADR-0017). Got: ${normalized.slice(0, 120)}`,
-      );
-    },
-  };
-
-  return {
-    transaction: async (callback) => callback(txClient),
-  };
 }

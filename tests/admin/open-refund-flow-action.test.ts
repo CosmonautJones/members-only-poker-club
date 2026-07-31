@@ -141,12 +141,15 @@ interface PgliteTxLike {
   query<T = unknown>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
 }
 
-function pgliteRunner(p: PGlite): TransactionRunner {
+function pgliteRunner(p: PGlite, rejectAuditInsert = false): TransactionRunner {
   return {
     transaction: async (callback) => {
       return p.transaction(async (tx: PgliteTxLike) => {
         return callback({
           query: async (sql, params) => {
+            if (rejectAuditInsert && /^\s*INSERT\s+INTO\s+audit_log/i.test(sql)) {
+              throw new Error('test audit insert failure');
+            }
             const r = await tx.query(sql, params);
             return { rows: r.rows as unknown[] };
           },
@@ -272,6 +275,20 @@ describe('openRefundFlow — AC17 happy path (PAYMENTS_CONSOLE_READY=false)', ()
     const rows = await readAuditRows(target1);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.after).toEqual({ scope: 'tournament_entry' });
+  });
+});
+
+describe('openRefundFlow — transaction failure', () => {
+  it('propagates an audit insert failure without leaving a breadcrumb', async () => {
+    requireRoleState.currentActor = { id: manager1, role: 'manager' };
+    await setTestUid(pg, manager1);
+    await asAuthenticated(pg, manager1);
+
+    await expect(
+      openRefundFlow({ profileId: target1, scope: 'membership' }, pgliteRunner(pg, true)),
+    ).rejects.toThrow('test audit insert failure');
+
+    expect(await readAuditRows(target1)).toHaveLength(0);
   });
 });
 

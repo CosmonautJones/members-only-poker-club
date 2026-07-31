@@ -56,8 +56,8 @@ import 'server-only';
  *      here. For now we emit a `console.warn` breadcrumb so the pending
  *      hook is discoverable in logs.
  *
- * Production note — `db` injection point mirrors `changeRole.ts`. See
- * that file's header for the supabase-js no-real-tx caveat (ADR-0017).
+ * Production defaults to the shared Postgres transaction runner. Tests
+ * inject the same `TransactionRunner` seam with PGlite.
  *
  * See ADR-0035 §Surface 7 + AC21 / AC22.
  */
@@ -66,9 +66,9 @@ import { revalidateTag } from 'next/cache';
 
 import { requireRole } from '@/lib/auth/requireRole';
 import type { Role } from '@/lib/auth/types';
-import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { nowUtc } from '@/lib/time';
+import { withAudit } from '@/lib/audit/withAudit';
+import { postgresTransactionRunner } from '@/lib/db/postgres-transaction-runner';
+import type { TransactionRunner } from '@/lib/db/transactions';
 
 import { NoChange } from '@/app/(admin)/admin/_errors';
 import { trackAdminEvent, type AdminFlagField } from '@/lib/analytics/admin-events';
@@ -91,13 +91,10 @@ export interface UpdateFlagResult {
 }
 
 /**
- * Structural transaction runner — mirrors `changeRole.ts` /
- * `requestReverification.ts`. Tests inject a pglite-backed adapter;
- * production uses the supabase-admin shim.
+ * Shared transaction seam. Tests inject a PGlite-backed runner;
+ * production uses the Postgres runner.
  */
-export interface TransactionRunner {
-  transaction<T>(callback: (tx: TransactionClient) => Promise<T>): Promise<T>;
-}
+export type { TransactionRunner } from '@/lib/db/transactions';
 
 // ---- Audit-event taxonomy (most-specific-first) ---------------------------
 //
@@ -165,7 +162,7 @@ export async function updateFlag(
     }
   }
 
-  const runner = db ?? defaultDb();
+  const runner = db ?? postgresTransactionRunner;
 
   // Most-specific-first audit event selection. The verb is decided BEFORE
   // the audit-tx opens (only depends on which fields the caller provided
@@ -360,150 +357,4 @@ export async function updateFlag(
   });
 
   return { ok: true };
-}
-
-// ---- Default production adapter -------------------------------------------
-//
-// Defined BELOW `updateFlag` so the file's first `await` token in source
-// order is the `await requireRole('manager')` inside the action. AC5's
-// regex-tier defense-in-depth walker scans for the first `\bawait\b` in
-// source order; placing the adapter (which contains internal `await`
-// calls against the supabase client) above the action would silently fail
-// the gate. Function declarations are hoisted so the
-// `db ?? defaultDb()` reference resolves correctly despite the textual
-// ordering.
-
-/**
- * Production `TransactionRunner` — see `changeRole.ts` §Production note
- * for the supabase-js no-real-tx caveat. This action issues three query
- * shapes:
- *
- *   (1) SELECT enabled, percent, allowlist, role_gate, updated_at, updated_by
- *       FROM feature_flags WHERE key = $1 [FOR UPDATE]
- *   (2) UPDATE feature_flags SET <dynamic set list>, updated_at = now(),
- *       updated_by = $N WHERE key = $M
- *   (3) INSERT INTO audit_log (...)  <- issued by withAudit itself
- *
- * Any other SQL shape throws so the failure mode is loud — see the SAFETY
- * POSTURE note in `changeRole.ts`.
- */
-function defaultDb(): TransactionRunner {
-  let admin: ReturnType<typeof createAdminClient> | null = null;
-  const getAdmin = () => {
-    if (admin === null) admin = createAdminClient();
-    return admin;
-  };
-
-  const asStringOrNull = (v: unknown): string | null => {
-    if (v === null || v === undefined) return null;
-    if (typeof v === 'string') return v;
-    throw new Error(`updateFlag defaultDb: expected string|null param, got ${typeof v}`);
-  };
-  const asString = (v: unknown): string => {
-    if (typeof v === 'string') return v;
-    throw new Error(`updateFlag defaultDb: expected string param, got ${typeof v}`);
-  };
-
-  const txClient: TransactionClient = {
-    async query(sql, params) {
-      const adminClient = getAdmin();
-      const normalized = sql.replace(/\s+/g, ' ').trim();
-
-      // Shape (1): SELECT ... FROM feature_flags WHERE key = $1 [FOR UPDATE]
-      if (
-        /^SELECT\s+enabled,\s+percent,\s+allowlist,\s+role_gate,\s+updated_at,\s+updated_by\s+FROM\s+feature_flags\s+WHERE\s+key\s*=\s*\$1/i.test(
-          normalized,
-        )
-      ) {
-        const key = asString(params?.[0]);
-        const { data, error } = await adminClient
-          .from('feature_flags')
-          .select('enabled, percent, allowlist, role_gate, updated_at, updated_by')
-          .eq('key', key)
-          .maybeSingle();
-        if (error) {
-          throw new Error(`updateFlag defaultDb: SELECT failed: ${error.message}`);
-        }
-        return { rows: data ? [data] : [] };
-      }
-
-      // Shape (2): UPDATE feature_flags SET ... WHERE key = $N
-      if (/^UPDATE\s+feature_flags\s+SET\s+/i.test(normalized)) {
-        // Parse the dynamic SET list to extract the column updates. The
-        // action's SQL builder uses a fixed column-name vocabulary so we
-        // can pattern-match each.
-        const update: Record<string, unknown> = {};
-        const setSection = /SET\s+(.+?)\s+WHERE/i.exec(normalized);
-        if (!setSection) {
-          throw new Error(`updateFlag defaultDb: UPDATE SET-clause parse failed: ${normalized}`);
-        }
-        const setItems = setSection[1]!.split(',').map((s) => s.trim());
-        // Positional params: [<provided cols in order>, actor_id, key].
-        // We rebuild the column list from the normalized SQL. The
-        // `updated_at = now()` SET item has no positional param.
-        let paramIdx = 0;
-        for (const item of setItems) {
-          if (/^updated_at\s*=\s*now\(\)/i.test(item)) continue;
-          const colMatch = /^(\w+)\s*=\s*\$(\d+)/.exec(item);
-          if (!colMatch) {
-            throw new Error(`updateFlag defaultDb: SET item parse failed: ${item}`);
-          }
-          const col = colMatch[1]!;
-          update[col] = params?.[paramIdx];
-          paramIdx += 1;
-        }
-        // updated_at — set to a fresh now() ISO string. supabase-js doesn't
-        // support the SQL function `now()` via PostgREST; the closest
-        // production-fidelity approach is to set the column to a JS-side
-        // ISO timestamp. The pglite tests get the SQL-side `now()` (more
-        // accurate); production drifts by milliseconds.
-        update.updated_at = nowUtc().toISOString();
-
-        const key = asString(params?.[(params?.length ?? 1) - 1]);
-        const { error } = await adminClient.from('feature_flags').update(update).eq('key', key);
-        if (error) {
-          throw new Error(`updateFlag defaultDb: UPDATE failed: ${error.message}`);
-        }
-        return { rows: [] };
-      }
-
-      // Shape (3): INSERT INTO audit_log — emitted by withAudit.
-      if (/^INSERT\s+INTO\s+audit_log\s*\(/i.test(normalized)) {
-        const parseJson = (v: unknown): unknown => {
-          if (typeof v !== 'string') return v;
-          try {
-            return JSON.parse(v);
-          } catch {
-            return v;
-          }
-        };
-        const row = {
-          actor_id: asStringOrNull(params?.[0]),
-          action: asString(params?.[1]),
-          target_type: asString(params?.[2]),
-          target_id: asString(params?.[3]),
-          before: parseJson(params?.[4]),
-          after: parseJson(params?.[5]),
-          ip: asStringOrNull(params?.[6]),
-          user_agent: asStringOrNull(params?.[7]),
-        };
-        const { error } = await adminClient.from('audit_log').insert(row);
-        if (error) {
-          throw new Error(`updateFlag defaultDb: audit_log INSERT failed: ${error.message}`);
-        }
-        return { rows: [] };
-      }
-
-      throw new Error(
-        `updateFlag defaultDb: unsupported SQL shape ` +
-          `(this adapter only translates the action's three canonical shapes; ` +
-          `add a pg driver via ADR-0017 rather than growing this translator). ` +
-          `Got: ${normalized.slice(0, 120)}`,
-      );
-    },
-  };
-
-  return {
-    transaction: async (callback) => callback(txClient),
-  };
 }
