@@ -180,7 +180,7 @@
       "blockedBy": [],
       "nextAction": "Using the designated test-member credentials and Supabase dashboard access, run sign-in, one gated route, and sign-out in production; correlate supabase_auth_ok latency with Supabase logs; document an evidenced cause or leave it explicitly unproven; change the three-second budget only from measured data.",
       "acceptanceCriteria": [
-        "The upstream outage cause is documented with evidence.",
+        "Authorized log review documents an evidenced upstream cause or explicitly records that the cause remains unproven.",
         "Production marketing and authenticated routes are smoke-tested.",
         "The timeout budget is retained or changed from measured latency.",
         "A follow-up incident or runbook note is committed."
@@ -393,7 +393,7 @@
       "acceptanceCriteria": [
         "The sending domain is verified.",
         "A2P brand/campaign paperwork is submitted or an email-only launch is approved.",
-        "Test email and SMS delivery succeeds.",
+        "Test email delivery succeeds; SMS delivery succeeds only if SMS is enabled and registration permits it.",
         "STOP/HELP and consent requirements are captured."
       ],
       "evidence": [
