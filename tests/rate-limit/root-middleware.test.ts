@@ -31,10 +31,9 @@ vi.mock('@/lib/supabase/middleware', () => ({
 
 vi.mock('@/lib/rate-limit/middleware', async () => {
   // Pull through the real ipFromHeaders + rateLimitedBody, mock the rest.
-  const actual =
-    await vi.importActual<typeof import('@/lib/rate-limit/middleware')>(
-      '@/lib/rate-limit/middleware',
-    );
+  const actual = await vi.importActual<typeof import('@/lib/rate-limit/middleware')>(
+    '@/lib/rate-limit/middleware',
+  );
   return {
     ...actual,
     applyRateLimit: mocks.applyRateLimit,
