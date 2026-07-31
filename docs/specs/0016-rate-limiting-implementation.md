@@ -75,6 +75,7 @@ UPSTASH_REDIS_REST_TOKEN).
 - Create: `tests/rate-limit/headers.test.ts`
 - Create: `tests/rate-limit/middleware.test.ts`
 - Create: `tests/rate-limit/buckets.test.ts`
+- Create: `tests/rate-limit/root-middleware.test.ts` (added 2026-05-28 alongside AC5 wiring)
 
 ## Risk flags
 
@@ -87,3 +88,19 @@ UPSTASH_REDIS_REST_TOKEN).
 ## Open questions
 
 None at planning time.
+
+## Implementation status
+
+- **2026-05-09 (PR #16):** ACs 1–4, 6, 7, 8 shipped. Buckets, store, headers,
+  helper functions, and `tests/rate-limit/` coverage all green. AC5 (root
+  middleware wiring) was deferred without explicit note — the limiter was
+  built but never called from `middleware.ts`.
+- **2026-05-28:** AC5 finished. Root `middleware.ts` now calls
+  `applyRateLimit('anonymous', ip:<ip>)` for every matched route, attaches
+  `X-RateLimit-*` headers to both pass-through and gated-redirect responses,
+  and returns 429 with the structured body when `RATE_LIMIT_MODE === 'enforce'`.
+  Default behavior remains monitor-only. Wiring covered by
+  `tests/rate-limit/root-middleware.test.ts` (7 tests).
+
+Remaining slice 1 work: none. Slice 4 (Upstash Redis adapter swap, login/
+signup per-route bucket assignment) is still gated on Upstash secrets.
