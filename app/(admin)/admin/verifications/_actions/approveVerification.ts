@@ -113,7 +113,7 @@ export type { TransactionRunner };
 /**
  * Approve a member's ID verification. See file header for the full
  * contract. The `db` parameter is for test injection only — production
- * callers MUST omit it so the default service-role adapter is used.
+ * callers MUST omit it so the shared Postgres transaction runner is used.
  *
  * @param params.profileId — UUID of the target profile.
  * @param db — optional `TransactionRunner` for test injection. Omit in
