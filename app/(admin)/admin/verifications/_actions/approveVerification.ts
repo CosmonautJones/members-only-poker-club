@@ -63,20 +63,10 @@ import 'server-only';
  *      a stub-side failure must not roll back the audit-tx commit.
  *
  * Production note — `db` injection point:
- *   - Default `db` uses the supabase service-role admin client wrapped
- *     in a structural `TransactionRunner` adapter (see `defaultDb()`).
- *     Because supabase-js does NOT expose a real Postgres transaction
- *     API as of cycle 3, the production adapter runs the queries
- *     sequentially through the admin client and emits the audit row
- *     via a final `INSERT INTO audit_log`. This is NOT atomic in
- *     production until ADR-0017's server-side pg driver lands. The
- *     pglite-backed tests DO get atomicity (real `pg.transaction()`)
- *     so the spec's `withAudit` invariant is exercised end-to-end in
- *     CI.
+ *   - Default `db` is `postgresTransactionRunner`, so the mutation and
+ *     audit insert commit or roll back together in production.
  *   - Tests inject a pglite-backed `TransactionRunner` via the `db`
  *     parameter; see `tests/admin/approve-verification-action.test.ts`.
- *   - When ADR-0017 ships, swap `defaultDb()` to return a real
- *     pg-driver-backed adapter — no call-site changes needed.
  *
  * See ADR-0035 §AC12 + premortem R6.
  */
@@ -84,8 +74,9 @@ import 'server-only';
 import { revalidateTag } from 'next/cache';
 
 import { requireRole } from '@/lib/auth/requireRole';
-import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { withAudit } from '@/lib/audit/withAudit';
+import { postgresTransactionRunner } from '@/lib/db/postgres-transaction-runner';
+import type { TransactionRunner } from '@/lib/db/transactions';
 
 import { SelfEditViolation } from '@/app/(admin)/admin/_errors';
 import { trackAdminEvent, readVerificationQueueDepth } from '@/lib/analytics/admin-events';
@@ -112,20 +103,17 @@ export interface ApproveVerificationResult {
  * the `withAudit` call in `db.transaction(...)` so the SELECT-FOR-UPDATE
  * + UPDATE + audit-INSERT either all commit or all roll back.
  *
- * Tests pass a pglite-backed adapter (real txn semantics). Production
- * uses `defaultDb()` — see file header for the transaction-fidelity
- * caveat.
+ * Tests pass a pglite-backed adapter; production uses the shared
+ * Postgres.js runner.
  */
-export interface TransactionRunner {
-  transaction<T>(callback: (tx: TransactionClient) => Promise<T>): Promise<T>;
-}
+export type { TransactionRunner };
 
 // ---- The action ------------------------------------------------------------
 
 /**
  * Approve a member's ID verification. See file header for the full
  * contract. The `db` parameter is for test injection only — production
- * callers MUST omit it so the default service-role adapter is used.
+ * callers MUST omit it so the shared Postgres transaction runner is used.
  *
  * @param params.profileId — UUID of the target profile.
  * @param db — optional `TransactionRunner` for test injection. Omit in
@@ -147,7 +135,7 @@ export async function approveVerification(
     throw new SelfEditViolation('cannot approve own verification');
   }
 
-  const runner = db ?? defaultDb();
+  const runner = db ?? postgresTransactionRunner;
 
   // Track the assigned member_number for the post-tx return value AND
   // for the idempotent-no-op branch. The closure variable is set
@@ -420,175 +408,4 @@ function coerceMemberNumber(v: unknown): number | null {
     return n;
   }
   return null;
-}
-
-// ---- Default production adapter -------------------------------------------
-//
-// Defined BELOW `approveVerification` so the file's first `await` token
-// is the `await requireRole('manager')` inside the action. AC5's regex-
-// tier defense-in-depth walker scans for the first `\bawait\b` token in
-// source order; placing the adapter (which contains internal `await`
-// calls against the supabase client) above the action would silently
-// fail the gate. Function declarations are hoisted in JS, so the
-// `db ?? defaultDb()` reference in the action resolves correctly
-// despite the textual ordering.
-
-/**
- * Construct the production `TransactionRunner` backed by the supabase
- * service-role admin client. See `changeRole.ts` for the full
- * supabase-js no-real-tx caveat — this adapter is the same shape with
- * the four query patterns this action issues:
- *
- *   (1) SELECT id_verified_at, member_number FROM profiles
- *         WHERE id = $1 [FOR UPDATE]
- *   (2) UPDATE profiles SET id_verified_at = now(),
- *         member_number = nextval('member_number_seq') WHERE id = $1
- *   (3) (handled by shape 1 — post-UPDATE SELECT shares the regex)
- *   (4) INSERT INTO audit_log (...)  ← issued by withAudit itself
- *
- * Any other SQL throws so the failure mode is loud — see SAFETY
- * POSTURE in `changeRole.ts`.
- */
-function defaultDb(): TransactionRunner {
-  let admin: ReturnType<typeof createAdminClient> | null = null;
-  const getAdmin = () => {
-    if (admin === null) admin = createAdminClient();
-    return admin;
-  };
-
-  const asStringOrNull = (v: unknown): string | null => {
-    if (v === null || v === undefined) return null;
-    if (typeof v === 'string') return v;
-    throw new Error(`approveVerification defaultDb: expected string|null param, got ${typeof v}`);
-  };
-  const asString = (v: unknown): string => {
-    if (typeof v === 'string') return v;
-    throw new Error(`approveVerification defaultDb: expected string param, got ${typeof v}`);
-  };
-
-  const txClient: TransactionClient = {
-    async query(sql, params) {
-      const adminClient = getAdmin();
-      const normalized = sql.replace(/\s+/g, ' ').trim();
-
-      // Shapes (1) + (3): SELECT id_verified_at, member_number FROM profiles
-      //   WHERE id = $1 [FOR UPDATE]
-      if (
-        /^SELECT\s+id_verified_at\s*,\s*member_number\s+FROM\s+profiles\s+WHERE\s+id\s*=\s*\$1/i.test(
-          normalized,
-        )
-      ) {
-        const id = asString(params?.[0]);
-        const { data, error } = await adminClient
-          .from('profiles')
-          .select('id_verified_at, member_number')
-          .eq('id', id)
-          .maybeSingle();
-        if (error) {
-          throw new Error(
-            `approveVerification defaultDb: SELECT id_verified_at,member_number failed: ${error.message}`,
-          );
-        }
-        return { rows: data ? [data] : [] };
-      }
-
-      // Shape (2): UPDATE profiles SET id_verified_at = now(),
-      //   member_number = nextval('member_number_seq') WHERE id = $1
-      //
-      // PostgREST does NOT support `now()` or `nextval()` as update
-      // expression values — the supabase admin client can only POST
-      // literal values via `.update()`. We invoke a single RPC instead.
-      // If that RPC is not yet provisioned (ADR-0009 / ADR-0017
-      // pending), this branch falls back to a read-then-write that
-      // is NOT atomic — the pglite tests provide atomicity coverage;
-      // production lands real atomicity with the pg driver in
-      // ADR-0017.
-      if (
-        /^UPDATE\s+profiles\s+SET\s+id_verified_at\s*=\s*now\(\)\s*,\s*member_number\s*=\s*nextval\(/i.test(
-          normalized,
-        )
-      ) {
-        const id = asString(params?.[0]);
-        // Best-effort RPC path. The RPC is owned by ADR-0009's slice
-        // 2/3 work; until it ships, we degrade to a read-write pair.
-        // The pglite tests exercise the atomic path so this branch
-        // is purely the production stub.
-        const rpc = adminClient as unknown as {
-          rpc: (
-            name: string,
-            args: Record<string, unknown>,
-          ) => Promise<{ data: unknown; error: { message: string } | null }>;
-        };
-        if (typeof rpc.rpc === 'function') {
-          const { error } = await rpc.rpc('approve_verification_assign_number', {
-            target_profile_id: id,
-          });
-          if (!error) {
-            return { rows: [] };
-          }
-          // RPC missing — fall through to the structural fallback so
-          // the action still completes (audit row already in flight).
-          console.warn('approveVerification defaultDb: RPC unavailable, falling back', {
-            error: error.message,
-          });
-        }
-
-        // Structural fallback — NOT atomic; tests cover the atomic
-        // path via the injected pglite runner. The fallback issues
-        // a single UPDATE that lets Postgres resolve now() +
-        // nextval() server-side; supabase-js's `.update({...})` does
-        // not expose raw expressions, but `.rpc(...)` on a SQL
-        // execution endpoint would. With neither available, the
-        // safest production stub is to short-circuit with a loud
-        // error so ops sees the misconfiguration rather than
-        // silently writing a stale row.
-        throw new Error(
-          'approveVerification defaultDb: no atomic UPDATE path available ' +
-            '(supabase-js cannot express now() + nextval() in .update(); ' +
-            'provision approve_verification_assign_number RPC per ADR-0009 ' +
-            'or land ADR-0017 pg driver).',
-        );
-      }
-
-      // Shape (4): INSERT INTO audit_log — emitted by withAudit.
-      if (/^INSERT\s+INTO\s+audit_log\s*\(/i.test(normalized)) {
-        const parseJson = (v: unknown): unknown => {
-          if (typeof v !== 'string') return v;
-          try {
-            return JSON.parse(v);
-          } catch {
-            return v;
-          }
-        };
-        const row = {
-          actor_id: asStringOrNull(params?.[0]),
-          action: asString(params?.[1]),
-          target_type: asString(params?.[2]),
-          target_id: asString(params?.[3]),
-          before: parseJson(params?.[4]),
-          after: parseJson(params?.[5]),
-          ip: asStringOrNull(params?.[6]),
-          user_agent: asStringOrNull(params?.[7]),
-        };
-        const { error } = await adminClient.from('audit_log').insert(row);
-        if (error) {
-          throw new Error(
-            `approveVerification defaultDb: audit_log INSERT failed: ${error.message}`,
-          );
-        }
-        return { rows: [] };
-      }
-
-      throw new Error(
-        `approveVerification defaultDb: unsupported SQL shape ` +
-          `(this adapter only translates the action's three canonical shapes; ` +
-          `add a pg driver via ADR-0017 rather than growing this translator). ` +
-          `Got: ${normalized.slice(0, 120)}`,
-      );
-    },
-  };
-
-  return {
-    transaction: async (callback) => callback(txClient),
-  };
 }

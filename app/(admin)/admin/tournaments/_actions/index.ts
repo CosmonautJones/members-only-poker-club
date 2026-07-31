@@ -4,8 +4,8 @@
  * `'use server'` re-export shim for the tournament admin Actions
  * (ADR-0037, mirrors the pattern in `app/(admin)/admin/privacy/_actions/index.ts`).
  *
- * The underlying action files import `'server-only'` + `createAdminClient`
- * and cannot be bundled to the client. This shim carries the
+ * The underlying action files import `'server-only'` and cannot be
+ * bundled to the client. This shim carries the
  * `'use server'` directive and re-exports thin wrappers the client
  * components reference (TemplateRow, TournamentRow).
  *
