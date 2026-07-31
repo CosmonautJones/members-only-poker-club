@@ -128,12 +128,15 @@ interface PgliteTxLike {
   query<T = unknown>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
 }
 
-function pgliteRunner(p: PGlite): TransactionRunner {
+function pgliteRunner(p: PGlite, rejectAuditInsert = false): TransactionRunner {
   return {
     transaction: async (callback) => {
       return p.transaction(async (tx: PgliteTxLike) => {
         return callback({
           query: async (sql, params) => {
+            if (rejectAuditInsert && /^\s*INSERT\s+INTO\s+audit_log/i.test(sql)) {
+              throw new Error('forced audit insert failure');
+            }
             const r = await tx.query(sql, params);
             return { rows: r.rows as unknown[] };
           },
@@ -325,6 +328,27 @@ describe('rejectRequest — AC26 happy path', () => {
     );
     const req = await readRequest(pendingDeleteId);
     expect(req.status).toBe('rejected');
+  });
+});
+
+describe('rejectRequest — transaction rollback', () => {
+  it('rolls the status transition back when the audit insert fails', async () => {
+    requireRoleState.currentActor = { id: manager1, role: 'manager' };
+    await setTestUid(pg, manager1);
+    await asAuthenticated(pg, manager1);
+
+    await expect(
+      rejectRequest(
+        { requestId: pendingExportId, reason: 'Cannot satisfy this request.' },
+        pgliteRunner(pg, true),
+      ),
+    ).rejects.toThrow('forced audit insert failure');
+
+    const request = await readRequest(pendingExportId);
+    expect(request.status).toBe('pending');
+    expect(request.reject_reason).toBeNull();
+    expect(await readAuditRows(pendingExportId)).toHaveLength(0);
+    expect(cacheSpy.revalidateTag).not.toHaveBeenCalled();
   });
 });
 

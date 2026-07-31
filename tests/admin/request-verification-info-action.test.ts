@@ -122,12 +122,15 @@ interface PgliteTxLike {
   query<T = unknown>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
 }
 
-function pgliteRunner(p: PGlite): TransactionRunner {
+function pgliteRunner(p: PGlite, rejectAuditInsert = false): TransactionRunner {
   return {
     transaction: async (callback) => {
       return p.transaction(async (tx: PgliteTxLike) => {
         return callback({
           query: async (sql, params) => {
+            if (rejectAuditInsert && /^\s*INSERT\s+INTO\s+audit_log/i.test(sql)) {
+              throw new Error('forced audit insert failure');
+            }
             const r = await tx.query(sql, params);
             return { rows: r.rows as unknown[] };
           },
@@ -274,6 +277,30 @@ describe('requestVerificationInfo — AC14 happy path', () => {
     const rows = await readAuditRows(target1);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.after).toEqual({ message_length: 1000 });
+  });
+});
+
+describe('requestVerificationInfo — transaction boundary', () => {
+  it('does not enqueue email or invalidate cache when the audit insert fails', async () => {
+    requireRoleState.currentActor = { id: manager1, role: 'manager' };
+    await setTestUid(pg, manager1);
+    await asAuthenticated(pg, manager1);
+    const emailSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    try {
+      await expect(
+        requestVerificationInfo(
+          { profileId: target1, message: 'Please upload a clearer document.' },
+          pgliteRunner(pg, true),
+        ),
+      ).rejects.toThrow('forced audit insert failure');
+    } finally {
+      expect(emailSpy).not.toHaveBeenCalled();
+      emailSpy.mockRestore();
+    }
+
+    expect(await readAuditRows(target1)).toHaveLength(0);
+    expect(cacheSpy.revalidateTag).not.toHaveBeenCalled();
   });
 });
 

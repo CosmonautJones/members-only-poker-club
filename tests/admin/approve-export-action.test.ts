@@ -134,17 +134,25 @@ interface PgliteTxLike {
   query<T = unknown>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
 }
 
-function pgliteRunner(p: PGlite): TransactionRunner {
+function pgliteRunner(
+  p: PGlite,
+  options: { rejectAuditInsert?: boolean; events?: string[] } = {},
+): TransactionRunner {
   return {
     transaction: async (callback) => {
-      return p.transaction(async (tx: PgliteTxLike) => {
+      const result = await p.transaction(async (tx: PgliteTxLike) => {
         return callback({
           query: async (sql, params) => {
+            if (options.rejectAuditInsert && /^\s*INSERT\s+INTO\s+audit_log/i.test(sql)) {
+              throw new Error('forced audit insert failure');
+            }
             const r = await tx.query(sql, params);
             return { rows: r.rows as unknown[] };
           },
         });
       });
+      options.events?.push('transaction-committed');
+      return result;
     },
   };
 }
@@ -334,6 +342,47 @@ describe('approveExport — AC24 state transitions', () => {
     expect(after.status).toBe('in_progress');
 
     expect(cacheSpy.revalidateTag).toHaveBeenCalledWith('admin-dashboard-counts');
+  });
+});
+
+describe('approveExport — transaction and post-commit ordering', () => {
+  it('rolls back phase 1 and never signs when the approval audit insert fails', async () => {
+    requireRoleState.currentActor = { id: manager1, role: 'manager' };
+    await setTestUid(pg, manager1);
+    await asAuthenticated(pg, manager1);
+    const storage: ExportStorage = {
+      signExportUrl: vi.fn(async () => ({ signedUrl: 'https://signed.test/unused' })),
+    };
+
+    await expect(
+      approveExport(
+        { requestId: pendingExportId },
+        pgliteRunner(pg, { rejectAuditInsert: true }),
+        storage,
+      ),
+    ).rejects.toThrow('forced audit insert failure');
+
+    expect((await readRequest(pendingExportId)).status).toBe('pending');
+    expect(await readAuditRows(pendingExportId)).toHaveLength(0);
+    expect(storage.signExportUrl).not.toHaveBeenCalled();
+    expect(cacheSpy.revalidateTag).not.toHaveBeenCalled();
+  });
+
+  it('does not call storage until the approval transaction has committed', async () => {
+    requireRoleState.currentActor = { id: manager1, role: 'manager' };
+    await setTestUid(pg, manager1);
+    await asAuthenticated(pg, manager1);
+    const events: string[] = [];
+    const storage: ExportStorage = {
+      signExportUrl: vi.fn(async () => {
+        events.push('storage-sign');
+        return { signedUrl: 'https://signed.test/export.json' };
+      }),
+    };
+
+    await approveExport({ requestId: pendingExportId }, pgliteRunner(pg, { events }), storage);
+
+    expect(events.slice(0, 2)).toEqual(['transaction-committed', 'storage-sign']);
   });
 });
 

@@ -330,6 +330,9 @@ follow-up sub-slice:
 - Hard-delete one-off tournament (one-offs are currently soft-canceled
   via `cancelTournament`; the schema allows hard-delete on `source_template_id IS NULL` rows)
 
-Production audit pairing is best-effort (mutation → audit as two
-supabase-js calls) — same posture as every other admin action. The
-atomic-transaction work is tracked as a separate ADR not yet ratified.
+Production mutation/audit pairing is atomic. Accepted
+[ADR-0040](../adr/0040-production-postgres-transaction-adapter.md) ships
+the shared Postgres transaction runner used by the tournament actions
+and materializer, so a mutation and its audit row commit or roll back
+together. Promotion still requires the ADR-0040 staging Supavisor
+integration check with the environment's `SUPABASE_DATABASE_URL`.
