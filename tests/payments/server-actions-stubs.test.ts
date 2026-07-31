@@ -323,6 +323,18 @@ describe('initiateRefund — fail-loud path commits audit before throwing (sub-c
     });
   });
 
+  it('propagates an audit failure before probing Stripe', async () => {
+    requireRoleState.currentActor = { id: MANAGER_ID, role: 'manager' };
+    withAuditMock.mockRejectedValueOnce(new Error('test audit insert failure'));
+
+    await expect(initiateRefund(VALID_PARAMS, recordingRunner())).rejects.toThrow(
+      'test audit insert failure',
+    );
+
+    expect(callSequence.entries).toEqual(['runner.transaction_called']);
+    expect(assertStripeConfiguredMock).not.toHaveBeenCalled();
+  });
+
   it('captures the refundType variant in audit after.refund_type for membership_current', async () => {
     expect.assertions(2);
     requireRoleState.currentActor = { id: MANAGER_ID, role: 'manager' };

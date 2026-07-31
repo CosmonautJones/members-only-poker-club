@@ -151,7 +151,11 @@ interface PgliteTxLike {
  * app_authenticated when done so subsequent test assertions can still
  * exercise RLS-subject reads.
  */
-function pgliteRunner(p: PGlite): TransactionRunner {
+function pgliteRunner(
+  p: PGlite,
+  rejectAuditInsert = false,
+  rejectMutation = false,
+): TransactionRunner {
   return {
     transaction: async (callback) => {
       await p.query('RESET ROLE');
@@ -159,6 +163,12 @@ function pgliteRunner(p: PGlite): TransactionRunner {
         return await p.transaction(async (tx: PgliteTxLike) => {
           return callback({
             query: async (sql, params) => {
+              if (rejectAuditInsert && /^\s*INSERT\s+INTO\s+audit_log/i.test(sql)) {
+                throw new Error('test audit insert failure');
+              }
+              if (rejectMutation && /^\s*INSERT\s+INTO\s+privacy_requests/i.test(sql)) {
+                throw new Error('test mutation failure');
+              }
               const r = await tx.query(sql, params);
               return { rows: r.rows as unknown[] };
             },
@@ -321,6 +331,41 @@ describe('initiateMemberDeletion — AC34 happy path', () => {
     expect(rows[0]!.after).toEqual({ request_id: result.requestId });
 
     expect(cacheSpy.revalidateTag).toHaveBeenCalledWith('admin-dashboard-counts');
+  });
+});
+
+describe('initiateMemberDeletion — transaction rollback', () => {
+  it('rolls back the privacy request when the audit insert fails', async () => {
+    requireRoleState.currentActor = { id: manager1, role: 'manager' };
+    await setTestUid(pg, manager1);
+    await asAuthenticated(pg, manager1);
+
+    await expect(
+      initiateMemberDeletion(
+        { profileId: target1, reason: 'duplicate account submitted by member' },
+        pgliteRunner(pg, true),
+      ),
+    ).rejects.toThrow('test audit insert failure');
+
+    expect(await readPrivacyRequests(target1)).toHaveLength(0);
+    expect(await readAuditRows(target1)).toHaveLength(0);
+    expect(cacheSpy.revalidateTag).not.toHaveBeenCalled();
+  });
+
+  it('writes no audit row when the privacy-request insert fails', async () => {
+    requireRoleState.currentActor = { id: manager1, role: 'manager' };
+    await setTestUid(pg, manager1);
+    await asAuthenticated(pg, manager1);
+
+    await expect(
+      initiateMemberDeletion(
+        { profileId: target1, reason: 'duplicate account submitted by member' },
+        pgliteRunner(pg, false, true),
+      ),
+    ).rejects.toThrow('test mutation failure');
+
+    expect(await readPrivacyRequests(target1)).toHaveLength(0);
+    expect(await readAuditRows(target1)).toHaveLength(0);
   });
 });
 

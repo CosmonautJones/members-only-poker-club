@@ -174,12 +174,22 @@ interface PgliteTxLike {
  * `TransactionRunner` shape the action expects. Mirrors the txClient
  * helper in tests/audit/with-audit.test.ts.
  */
-function pgliteRunner(p: PGlite): TransactionRunner {
+function pgliteRunner(
+  p: PGlite,
+  rejectAuditInsert = false,
+  rejectMutation = false,
+): TransactionRunner {
   return {
     transaction: async (callback) => {
       return p.transaction(async (tx: PgliteTxLike) => {
         return callback({
           query: async (sql, params) => {
+            if (rejectAuditInsert && /^\s*INSERT\s+INTO\s+audit_log/i.test(sql)) {
+              throw new Error('test audit insert failure');
+            }
+            if (rejectMutation && /^\s*UPDATE\s+profiles\s+SET\s+role/i.test(sql)) {
+              throw new Error('test mutation failure');
+            }
             const r = await tx.query(sql, params);
             return { rows: r.rows as unknown[] };
           },
@@ -368,6 +378,38 @@ describe('changeRole — AC15 promotion-as-owner succeeds + 2 audit rows', () =>
 
     // revalidateTag('admin-dashboard-counts') was called post-tx.
     expect(cacheSpy.revalidateTag).toHaveBeenCalledWith('admin-dashboard-counts');
+  });
+});
+
+describe('changeRole — transaction rollback', () => {
+  it('rolls back the role mutation and trigger audit when the application audit insert fails', async () => {
+    requireRoleState.currentActor = { id: owner1, role: 'owner' };
+    await setTestUid(pg, owner1);
+    await asAuthenticated(pg, owner1);
+
+    await expect(
+      changeRole({ profileId: memberTarget, newRole: 'cashier' }, pgliteRunner(pg, true)),
+    ).rejects.toThrow('test audit insert failure');
+
+    await asServiceRole(pg);
+    const profile = await pg.query<{ role: string }>('SELECT role FROM profiles WHERE id = $1', [
+      memberTarget,
+    ]);
+    expect(profile.rows[0]!.role).toBe('member');
+    expect(await readAuditRows(memberTarget)).toHaveLength(0);
+    expect(cacheSpy.revalidateTag).not.toHaveBeenCalled();
+  });
+
+  it('writes no audit row when the role mutation fails', async () => {
+    requireRoleState.currentActor = { id: owner1, role: 'owner' };
+    await setTestUid(pg, owner1);
+    await asAuthenticated(pg, owner1);
+
+    await expect(
+      changeRole({ profileId: memberTarget, newRole: 'cashier' }, pgliteRunner(pg, false, true)),
+    ).rejects.toThrow('test mutation failure');
+
+    expect(await readAuditRows(memberTarget)).toHaveLength(0);
   });
 });
 

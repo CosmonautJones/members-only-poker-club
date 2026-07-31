@@ -50,20 +50,9 @@ import 'server-only';
  *      so a Next-cache outage cannot roll back the audit-tx commit
  *      (premortem R2).
  *
- * Production note — `db` injection point:
- *   - Default `db` uses the supabase service-role admin client wrapped
- *     in a structural `TransactionRunner` adapter (see `defaultDb()`).
- *     Because supabase-js does NOT expose a real Postgres transaction
- *     API as of cycle 3, the production adapter runs the SELECT-FOR-
- *     UPDATE → UPDATE → SELECT-after sequence as serial REST calls and
- *     emits the audit row via a final `INSERT INTO audit_log`. This is
- *     NOT atomic in production until ADR-0017's server-side pg driver
- *     lands. The pglite-backed tests DO get atomicity (real `pg.transaction()`)
- *     so the spec's `withAudit` invariant is exercised end-to-end in CI.
- *   - Tests inject a pglite-backed `TransactionRunner` via the `db`
- *     parameter; see `tests/admin/change-role-action.test.ts`.
- *   - When ADR-0017 ships, swap `defaultDb()` to return a real
- *     pg-driver-backed adapter — no call-site changes needed.
+ * Production defaults to the shared Postgres transaction runner, so the
+ * locked reads, role mutation, trigger audit, and application audit commit
+ * or roll back together. Tests inject the same runner seam with PGlite.
  *
  * See ADR-0035 §Role-change flow + AC15.
  */
@@ -72,8 +61,9 @@ import { revalidateTag } from 'next/cache';
 
 import { requireRole } from '@/lib/auth/requireRole';
 import { ROLE_RANK, type Role } from '@/lib/auth/types';
-import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { withAudit } from '@/lib/audit/withAudit';
+import { postgresTransactionRunner } from '@/lib/db/postgres-transaction-runner';
+import type { TransactionRunner } from '@/lib/db/transactions';
 
 import { SelfEditViolation, RoleLadderViolation } from '@/app/(admin)/admin/_errors';
 import { trackAdminEvent } from '@/lib/analytics/admin-events';
@@ -102,20 +92,17 @@ export interface ChangeRoleResult {
  * `withAudit` call in `db.transaction(...)` so the SELECT-FOR-UPDATE +
  * UPDATE + audit-INSERT either all commit or all roll back.
  *
- * Tests pass a pglite-backed adapter (real txn semantics). Production
- * uses `defaultDb()` — see file header for the transaction-fidelity
- * caveat.
+ * Tests pass a PGlite-backed adapter; production uses the shared
+ * Postgres transaction runner.
  */
-export interface TransactionRunner {
-  transaction<T>(callback: (tx: TransactionClient) => Promise<T>): Promise<T>;
-}
+export type { TransactionRunner } from '@/lib/db/transactions';
 
 // ---- The action ------------------------------------------------------------
 
 /**
  * Promote or demote a member's role. See file header for the full
  * contract. The `db` parameter is for test injection only — production
- * callers MUST omit it so the default service-role adapter is used.
+ * callers omit it so the shared Postgres runner is used.
  *
  * @param params.profileId — UUID of the target profile.
  * @param params.newRole — the requested role (one of `Role`).
@@ -144,7 +131,7 @@ export async function changeRole(
     throw new SelfEditViolation('cannot change own role');
   }
 
-  const runner = db ?? defaultDb();
+  const runner = db ?? postgresTransactionRunner;
 
   // Read the target's current role for the ladder-math gate. This read
   // is OUTSIDE the audit tx — used only to decide which of the four
@@ -218,8 +205,7 @@ export async function changeRole(
 
   // Perform the role change inside a transaction so the application
   // audit row (admin.member.role_changed) and the DB-trigger-emitted
-  // audit row (profile.role_change) both land atomically. See file
-  // header §Production note for the supabase-js no-real-tx caveat.
+  // audit row (profile.role_change) both land atomically.
   await runner.transaction(async (tx) =>
     withAudit(
       tx,
@@ -310,13 +296,9 @@ export async function changeRole(
  * surfaces this as a typed error so the page renders a "member not
  * found" toast.
  *
- * The read goes through the supabase cookie-scoped client (RLS applies
- * to the caller). The caller is `manager+` (gated by `requireRole`
- * above), and `profiles_select_self_or_staff` allows manager+ to read
- * any row. Using the cookie-scoped client here keeps the read on the
- * "respects RLS" side of the line — only the audit-tx itself uses the
- * admin client (which BYPASSes RLS for the trigger's INSERT into
- * audit_log).
+ * The caller is `manager+` (gated by `requireRole` above). The read uses
+ * the shared transaction seam so production and PGlite exercise the same
+ * SQL surface.
  */
 async function readCurrentRole(runner: TransactionRunner, profileId: string): Promise<Role | null> {
   // The TransactionRunner abstraction is the test seam; calling
@@ -324,13 +306,8 @@ async function readCurrentRole(runner: TransactionRunner, profileId: string): Pr
   // the production / test injection point identical. Tests can stub
   // both `runner.transaction` and the inner `tx.query` calls.
   //
-  // We deliberately do NOT reach for the cookie-scoped supabase
-  // client here (despite the file-header note about RLS reads). The
-  // ladder-math read MUST share the test seam with the audit-tx
-  // read; otherwise a pglite-backed test would have to mock two
-  // different DB surfaces. The `manager+` role gate above is the
-  // authorization checkpoint — the ladder-math read is downstream
-  // of that gate and doesn't need a second RLS evaluation.
+  // The ladder-math read shares the test seam with the audit-tx read.
+  // The `manager+` role gate above is the authorization checkpoint.
   let role: Role | null = null;
   await runner.transaction(async (tx) => {
     const result = await tx.query('SELECT role FROM profiles WHERE id = $1', [profileId]);
@@ -339,166 +316,4 @@ async function readCurrentRole(runner: TransactionRunner, profileId: string): Pr
     return undefined;
   });
   return role;
-}
-
-// ---- Default production adapter -------------------------------------------
-//
-// Defined BELOW `changeRole` so the file's first `await` token is the
-// `await requireRole('manager')` inside `changeRole`. AC5's regex-tier
-// defense-in-depth walker scans for the first `\bawait\b` token in
-// source order; placing the adapter (which contains internal `await`
-// calls against the supabase client) above the action would silently
-// fail the gate. Function declarations are hoisted in JS, so the
-// `db ?? defaultDb()` reference in `changeRole` resolves correctly
-// despite the textual ordering.
-
-/**
- * Construct the production `TransactionRunner` backed by the supabase
- * service-role admin client. The admin client BYPASSes RLS — required
- * because the `profiles_protect_role_change` trigger writes to
- * `audit_log`, and the service-role posture matches the cycle-1 design
- * for trigger-emitted audit rows.
- *
- * STRUCTURAL ONLY — supabase-js has no Postgres transaction API; the
- * adapter runs queries sequentially through the admin client. Atomicity
- * is provided by the pglite tests, not by this default. When ADR-0017
- * lands a pg driver, swap this body to a real `pg.transaction()` call.
- *
- * The adapter parameterizes a narrow `TransactionClient` surface
- * (`query(sql, params) -> { rows }`) so the action's `withAudit`
- * callback doesn't have to know whether it's running under pglite,
- * supabase RPC, or a future pg driver. The supabase admin client's
- * `.rpc('exec_sql', { sql, params })` shape is NOT available out of the
- * box — the production adapter below uses the REST/PostgREST surface
- * via `from('table').select/update/insert` chains, parsing a small
- * inline SQL dialect to translate the action's queries.
- *
- * SAFETY POSTURE: this adapter is exercised in production only when
- * cycle 4's pg driver is unavailable. If you find yourself adding new
- * SQL shapes here that the adapter must learn to translate, STOP — the
- * answer is to add the pg driver (ADR-0017), not to grow this
- * translator. The adapter recognizes ONLY the four query shapes this
- * action issues; any other SQL throws so the failure mode is loud.
- */
-function defaultDb(): TransactionRunner {
-  // Hoist the admin client into a closure variable so multiple
-  // `tx.query(...)` calls inside a single transaction share the same
-  // PostgREST client + auth context. Re-instantiating per-call would
-  // also re-read the env vars (per-call factory pattern) on every
-  // query, which is wasted work inside the same logical tx.
-  let admin: ReturnType<typeof createAdminClient> | null = null;
-  const getAdmin = () => {
-    if (admin === null) admin = createAdminClient();
-    return admin;
-  };
-
-  // Safe string-or-null coercion for the positional parameters that
-  // withAudit / this action pass in. The action only ever passes
-  // `string` (or `null` for `actor_id`, `ip`, `user_agent`); the
-  // explicit narrowing here defends against a future refactor that
-  // might pass a non-string (e.g. an enum instance) — that would
-  // otherwise serialize to '[object Object]' and silently corrupt
-  // the audit row.
-  const asStringOrNull = (v: unknown): string | null => {
-    if (v === null || v === undefined) return null;
-    if (typeof v === 'string') return v;
-    throw new Error(`changeRole defaultDb: expected string|null param, got ${typeof v}`);
-  };
-  const asString = (v: unknown): string => {
-    if (typeof v === 'string') return v;
-    throw new Error(`changeRole defaultDb: expected string param, got ${typeof v}`);
-  };
-
-  // Build the narrow `TransactionClient` shim. The action issues these
-  // four query shapes (see the body below):
-  //
-  //   (1) SELECT role FROM profiles WHERE id = $1 FOR UPDATE
-  //   (2) UPDATE profiles SET role = $1 WHERE id = $2
-  //   (3) SELECT role FROM profiles WHERE id = $1
-  //   (4) INSERT INTO audit_log (...)  ← issued by withAudit itself
-  //
-  // Shape (4) is opaque to this adapter — `withAudit` builds the SQL
-  // and passes it through `tx.query(sql, params)`. PostgREST doesn't
-  // accept raw SQL; we translate (4) into an equivalent `.from('audit_log').insert({...})`
-  // call. Shapes (1), (2), (3) get the same treatment via from(...).select/update.
-  const txClient: TransactionClient = {
-    async query(sql, params) {
-      const adminClient = getAdmin();
-      const normalized = sql.replace(/\s+/g, ' ').trim();
-
-      // Shape (1) + (3): SELECT role FROM profiles WHERE id = $1 [FOR UPDATE]
-      if (/^SELECT\s+role\s+FROM\s+profiles\s+WHERE\s+id\s*=\s*\$1/i.test(normalized)) {
-        const id = asString(params?.[0]);
-        const { data, error } = await adminClient
-          .from('profiles')
-          .select('role')
-          .eq('id', id)
-          .maybeSingle();
-        if (error) {
-          throw new Error(`changeRole defaultDb: SELECT role failed: ${error.message}`);
-        }
-        return { rows: data ? [data] : [] };
-      }
-
-      // Shape (2): UPDATE profiles SET role = $1 WHERE id = $2
-      if (/^UPDATE\s+profiles\s+SET\s+role\s*=\s*\$1\s+WHERE\s+id\s*=\s*\$2/i.test(normalized)) {
-        const newRole = asString(params?.[0]);
-        const id = asString(params?.[1]);
-        const { error } = await adminClient.from('profiles').update({ role: newRole }).eq('id', id);
-        if (error) {
-          throw new Error(`changeRole defaultDb: UPDATE role failed: ${error.message}`);
-        }
-        return { rows: [] };
-      }
-
-      // Shape (4): INSERT INTO audit_log (...) — emitted by withAudit.
-      // Parse the positional params into the column dict PostgREST wants.
-      if (/^INSERT\s+INTO\s+audit_log\s*\(/i.test(normalized)) {
-        // withAudit emits the canonical 8-column INSERT in fixed order:
-        // [actor_id, action, target_type, target_id, before, after, ip, user_agent]
-        // The `before` and `after` values are pre-stringified JSON; we
-        // parse them back so PostgREST handles jsonb serialization.
-        const parseJson = (v: unknown): unknown => {
-          if (typeof v !== 'string') return v;
-          try {
-            return JSON.parse(v);
-          } catch {
-            return v;
-          }
-        };
-        const row = {
-          actor_id: asStringOrNull(params?.[0]),
-          action: asString(params?.[1]),
-          target_type: asString(params?.[2]),
-          target_id: asString(params?.[3]),
-          before: parseJson(params?.[4]),
-          after: parseJson(params?.[5]),
-          ip: asStringOrNull(params?.[6]),
-          user_agent: asStringOrNull(params?.[7]),
-        };
-        const { error } = await adminClient.from('audit_log').insert(row);
-        if (error) {
-          throw new Error(`changeRole defaultDb: audit_log INSERT failed: ${error.message}`);
-        }
-        return { rows: [] };
-      }
-
-      // Loud failure for unrecognized SQL — see file header SAFETY POSTURE.
-      throw new Error(
-        `changeRole defaultDb: unsupported SQL shape ` +
-          `(this adapter only translates the action's four canonical shapes; ` +
-          `add a pg driver via ADR-0017 rather than growing this translator). ` +
-          `Got: ${normalized.slice(0, 120)}`,
-      );
-    },
-  };
-
-  return {
-    transaction: async (callback) => {
-      // No real transaction semantics in supabase-js — see file header
-      // §Production note. The pglite-backed tests provide the atomicity
-      // exercise; this default just runs the callback against the shim.
-      return callback(txClient);
-    },
-  };
 }
