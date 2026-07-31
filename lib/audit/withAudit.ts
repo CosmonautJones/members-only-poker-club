@@ -1,26 +1,8 @@
 import 'server-only';
 
-/**
- * Database client interface that {@link withAudit} accepts and that its
- * {@link WithAuditMutateResult mutate} callback receives.
- *
- * Structural / driver-agnostic on purpose (Open Question §1 of the cycle 2
- * spec — Option A). Any driver whose `query(sql, params)` shape matches
- * (pglite under tests, `pg`-style connection in production, a thin
- * Supabase-server-client shim once cycle 3 lands `lib/supabase/{server,admin}.ts`)
- * will satisfy this interface without the helper depending on a concrete
- * SDK.
- *
- * The CALLER promotes a base client to a transaction (e.g.
- * `db.transaction(async (tx) => ...)`) and passes the resulting
- * tx-scoped client here. The `mutate` callback receives the SAME `tx`
- * client — it MUST run all of its reads and writes through this `tx`
- * so that the mutation and the audit-log INSERT share a single
- * transaction.
- */
-export interface TransactionClient {
-  query(sql: string, params?: unknown[]): Promise<{ rows: unknown[] }>;
-}
+import type { TransactionClient } from '@/lib/db/transactions';
+
+export type { TransactionClient } from '@/lib/db/transactions';
 
 /**
  * Parameters for {@link withAudit}. These describe the audit row that will
@@ -127,11 +109,11 @@ export interface WithAuditMutateResult<T> {
  * CALLING CONVENTION — the caller MUST open the transaction and pass the
  * tx-scoped client to `withAudit`. The helper does NOT issue
  * `BEGIN` / `COMMIT` / `ROLLBACK` / `SAVEPOINT` itself. This matches the
- * idiomatic transaction API of pglite, supabase-js, node-postgres, and
- * most other Postgres drivers, where transactions are exposed as a
+ * shared transaction API of pglite and the production Postgres.js adapter,
+ * where transactions are exposed as a
  * callback that yields a tx-scoped client.
  *
- * Caller pattern (production — supabase-js / pg pool):
+ * Caller pattern (production — shared Postgres.js runner):
  * ```ts
  *   await db.transaction(async (tx) =>
  *     withAudit(tx, params, async (tx) => {
