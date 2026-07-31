@@ -5,8 +5,8 @@
  * (ADR-0035 AC23-26, WC.T17).
  *
  * Mirrors the pattern in `app/(admin)/admin/members/[id]/_actions/index.ts`.
- * The underlying action files import `'server-only'` + `createAdminClient`
- * and cannot be bundled to the client; this shim carries the
+ * The underlying action files import `'server-only'` and cannot be
+ * bundled to the client; this shim carries the
  * `'use server'` directive and re-exports thin async wrappers the
  * client component can reference.
  *

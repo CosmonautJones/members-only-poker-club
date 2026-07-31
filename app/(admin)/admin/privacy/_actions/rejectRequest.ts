@@ -37,10 +37,10 @@ import 'server-only';
 import { revalidateTag } from 'next/cache';
 
 import { requireRole } from '@/lib/auth/requireRole';
-import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { withAudit } from '@/lib/audit/withAudit';
+import { postgresTransactionRunner } from '@/lib/db/postgres-transaction-runner';
+import type { TransactionRunner } from '@/lib/db/transactions';
 import { trackAdminEvent } from '@/lib/analytics/admin-events';
-import { nowUtc } from '@/lib/time';
 
 import { RequestNotPending, RejectReasonInvalid } from '@/app/(admin)/admin/_errors';
 
@@ -65,9 +65,7 @@ export interface RejectRequestResult {
  * Structural transaction runner — same shape as the pglite
  * `pg.transaction(async (tx) => ...)` callback API.
  */
-export interface TransactionRunner {
-  transaction<T>(callback: (tx: TransactionClient) => Promise<T>): Promise<T>;
-}
+export type { TransactionRunner };
 
 // ---- Validation constants -------------------------------------------------
 
@@ -105,7 +103,7 @@ export async function rejectRequest(
     );
   }
 
-  const runner = db ?? defaultDb();
+  const runner = db ?? postgresTransactionRunner;
 
   await runner.transaction(async (tx) =>
     withAudit(
@@ -179,107 +177,4 @@ export async function rejectRequest(
   });
 
   return { ok: true };
-}
-
-// ---- Default production adapter -------------------------------------------
-//
-// Defined BELOW `rejectRequest` so the file's first `await` token is
-// the `await requireRole('manager')` inside the action.
-
-function defaultDb(): TransactionRunner {
-  let admin: ReturnType<typeof createAdminClient> | null = null;
-  const getAdmin = () => {
-    if (admin === null) admin = createAdminClient();
-    return admin;
-  };
-
-  const asStringOrNull = (v: unknown): string | null => {
-    if (v === null || v === undefined) return null;
-    if (typeof v === 'string') return v;
-    throw new Error(`rejectRequest defaultDb: expected string|null param, got ${typeof v}`);
-  };
-  const asString = (v: unknown): string => {
-    if (typeof v === 'string') return v;
-    throw new Error(`rejectRequest defaultDb: expected string param, got ${typeof v}`);
-  };
-
-  const txClient: TransactionClient = {
-    async query(sql, params) {
-      const adminClient = getAdmin();
-      const normalized = sql.replace(/\s+/g, ' ').trim();
-
-      // SELECT status FROM privacy_requests WHERE id = $1 [FOR UPDATE]
-      if (/^SELECT\s+status\s+FROM\s+privacy_requests\s+WHERE\s+id\s*=\s*\$1/i.test(normalized)) {
-        const id = asString(params?.[0]);
-        const { data, error } = await adminClient
-          .from('privacy_requests')
-          .select('status')
-          .eq('id', id)
-          .maybeSingle();
-        if (error) {
-          throw new Error(`rejectRequest defaultDb: SELECT status failed: ${error.message}`);
-        }
-        return { rows: data ? [data] : [] };
-      }
-
-      // UPDATE privacy_requests SET status='rejected', ... WHERE id=$1 AND status='pending'
-      if (/^UPDATE\s+privacy_requests\s+SET\s+status\s*=\s*'rejected'/i.test(normalized)) {
-        const id = asString(params?.[0]);
-        const resolvedBy = asStringOrNull(params?.[1]);
-        const reason = asString(params?.[2]);
-        const { error } = await adminClient
-          .from('privacy_requests')
-          .update({
-            status: 'rejected',
-            resolved_at: nowUtc().toISOString(),
-            resolved_by: resolvedBy,
-            reject_reason: reason,
-          })
-          .eq('id', id)
-          .eq('status', 'pending');
-        if (error) {
-          throw new Error(`rejectRequest defaultDb: UPDATE rejected failed: ${error.message}`);
-        }
-        return { rows: [] };
-      }
-
-      // INSERT INTO audit_log — emitted by withAudit.
-      if (/^INSERT\s+INTO\s+audit_log\s*\(/i.test(normalized)) {
-        const parseJson = (v: unknown): unknown => {
-          if (typeof v !== 'string') return v;
-          try {
-            return JSON.parse(v);
-          } catch {
-            return v;
-          }
-        };
-        const row = {
-          actor_id: asStringOrNull(params?.[0]),
-          action: asString(params?.[1]),
-          target_type: asString(params?.[2]),
-          target_id: asString(params?.[3]),
-          before: parseJson(params?.[4]),
-          after: parseJson(params?.[5]),
-          ip: asStringOrNull(params?.[6]),
-          user_agent: asStringOrNull(params?.[7]),
-        };
-        const { error } = await adminClient.from('audit_log').insert(row);
-        if (error) {
-          throw new Error(`rejectRequest defaultDb: audit_log INSERT failed: ${error.message}`);
-        }
-        return { rows: [] };
-      }
-
-      throw new Error(
-        `rejectRequest defaultDb: unsupported SQL shape ` +
-          `(this adapter only translates the action's canonical shapes; ` +
-          `add a pg driver via ADR-0017 rather than growing this translator). ` +
-          `Got: ${normalized.slice(0, 120)}`,
-      );
-    },
-  };
-
-  return {
-    transaction: async (callback) => callback(txClient),
-  };
 }

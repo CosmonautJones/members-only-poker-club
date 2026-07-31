@@ -48,16 +48,16 @@ import 'server-only';
  *      back the audit-tx commit (premortem R2).
  *
  * Production note:
- *   - Same `db` injection pattern as `changeRole`. See `changeRole.ts`
- *     header for the supabase-js no-real-tx caveat and the ADR-0017
- *     pg-driver migration plan.
+ *   - Default `db` is `postgresTransactionRunner`; tests may inject the
+ *     same structural transaction seam.
  */
 
 import { revalidateTag } from 'next/cache';
 
 import { requireRole } from '@/lib/auth/requireRole';
-import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { withAudit } from '@/lib/audit/withAudit';
+import { postgresTransactionRunner } from '@/lib/db/postgres-transaction-runner';
+import type { TransactionRunner } from '@/lib/db/transactions';
 
 import { SelfEditViolation, MessageInvalid } from '@/app/(admin)/admin/_errors';
 import { trackAdminEvent, readVerificationQueueDepth } from '@/lib/analytics/admin-events';
@@ -78,12 +78,9 @@ export interface RequestVerificationInfoResult {
 }
 
 /**
- * Structural transaction runner — mirrors `changeRole.ts`. Tests inject
- * a pglite-backed adapter; production uses the supabase-admin shim.
+ * Shared production/pglite transaction seam.
  */
-export interface TransactionRunner {
-  transaction<T>(callback: (tx: TransactionClient) => Promise<T>): Promise<T>;
-}
+export type { TransactionRunner };
 
 // ---- Validation constants ------------------------------------------------
 
@@ -126,7 +123,7 @@ export async function requestVerificationInfo(
     );
   }
 
-  const runner = db ?? defaultDb();
+  const runner = db ?? postgresTransactionRunner;
 
   await runner.transaction(async (tx) =>
     withAudit(
@@ -207,86 +204,4 @@ export async function requestVerificationInfo(
   })();
 
   return { ok: true };
-}
-
-// ---- Default production adapter -------------------------------------------
-//
-// Defined BELOW `requestVerificationInfo` so the file's first `await`
-// token is the `await requireRole('manager')` inside the action.
-// AC5's regex-tier defense-in-depth walker scans for the first
-// `\bawait\b` in source order.
-
-/**
- * Production `TransactionRunner` — see `changeRole.ts` §Production note
- * for the supabase-js no-real-tx caveat. This action issues only ONE
- * query shape:
- *
- *   (1) INSERT INTO audit_log (...)  ← issued by withAudit itself
- *
- * No `profiles` reads or writes — see file header §4.
- */
-function defaultDb(): TransactionRunner {
-  let admin: ReturnType<typeof createAdminClient> | null = null;
-  const getAdmin = () => {
-    if (admin === null) admin = createAdminClient();
-    return admin;
-  };
-
-  const asStringOrNull = (v: unknown): string | null => {
-    if (v === null || v === undefined) return null;
-    if (typeof v === 'string') return v;
-    throw new Error(
-      `requestVerificationInfo defaultDb: expected string|null param, got ${typeof v}`,
-    );
-  };
-  const asString = (v: unknown): string => {
-    if (typeof v === 'string') return v;
-    throw new Error(`requestVerificationInfo defaultDb: expected string param, got ${typeof v}`);
-  };
-
-  const txClient: TransactionClient = {
-    async query(sql, params) {
-      const adminClient = getAdmin();
-      const normalized = sql.replace(/\s+/g, ' ').trim();
-
-      // Shape (1): INSERT INTO audit_log — emitted by withAudit.
-      if (/^INSERT\s+INTO\s+audit_log\s*\(/i.test(normalized)) {
-        const parseJson = (v: unknown): unknown => {
-          if (typeof v !== 'string') return v;
-          try {
-            return JSON.parse(v);
-          } catch {
-            return v;
-          }
-        };
-        const row = {
-          actor_id: asStringOrNull(params?.[0]),
-          action: asString(params?.[1]),
-          target_type: asString(params?.[2]),
-          target_id: asString(params?.[3]),
-          before: parseJson(params?.[4]),
-          after: parseJson(params?.[5]),
-          ip: asStringOrNull(params?.[6]),
-          user_agent: asStringOrNull(params?.[7]),
-        };
-        const { error } = await adminClient.from('audit_log').insert(row);
-        if (error) {
-          throw new Error(
-            `requestVerificationInfo defaultDb: audit_log INSERT failed: ${error.message}`,
-          );
-        }
-        return { rows: [] };
-      }
-
-      throw new Error(
-        `requestVerificationInfo defaultDb: unsupported SQL shape ` +
-          `(this action only issues an audit_log INSERT — no profile reads/writes). ` +
-          `Got: ${normalized.slice(0, 120)}`,
-      );
-    },
-  };
-
-  return {
-    transaction: async (callback) => callback(txClient),
-  };
 }

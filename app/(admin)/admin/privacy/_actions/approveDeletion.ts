@@ -58,11 +58,11 @@ import 'server-only';
 import { revalidateTag } from 'next/cache';
 
 import { requireRole } from '@/lib/auth/requireRole';
-import { withAudit, type TransactionClient } from '@/lib/audit/withAudit';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { withAudit } from '@/lib/audit/withAudit';
+import { postgresTransactionRunner } from '@/lib/db/postgres-transaction-runner';
+import type { TransactionRunner } from '@/lib/db/transactions';
 import { softDeleteProfile } from '@/lib/privacy/soft-delete';
 import { trackAdminEvent } from '@/lib/analytics/admin-events';
-import { nowUtc } from '@/lib/time';
 
 import { RequestNotPending, ConfirmEmailMismatch } from '@/app/(admin)/admin/_errors';
 
@@ -87,9 +87,7 @@ export interface ApproveDeletionResult {
  * Structural transaction runner — same shape as the pglite
  * `pg.transaction(async (tx) => ...)` callback API.
  */
-export interface TransactionRunner {
-  transaction<T>(callback: (tx: TransactionClient) => Promise<T>): Promise<T>;
-}
+export type { TransactionRunner };
 
 // ---- The action ------------------------------------------------------------
 
@@ -115,7 +113,7 @@ export async function approveDeletion(
   // AC5 first-statement defense-in-depth.
   const { profile: actor } = await requireRole('manager');
 
-  const runner = db ?? defaultDb();
+  const runner = db ?? postgresTransactionRunner;
 
   // Pre-probe outside the audit-tx to discover profile_id for the
   // audit row's targetId. profile_id on a privacy_requests row is
@@ -285,154 +283,4 @@ export async function approveDeletion(
   });
 
   return { ok: true };
-}
-
-// ---- Default production adapter -------------------------------------------
-//
-// Defined BELOW `approveDeletion` so the file's first `await` token is
-// the `await requireRole('manager')` inside the action.
-
-function defaultDb(): TransactionRunner {
-  let admin: ReturnType<typeof createAdminClient> | null = null;
-  const getAdmin = () => {
-    if (admin === null) admin = createAdminClient();
-    return admin;
-  };
-
-  const asStringOrNull = (v: unknown): string | null => {
-    if (v === null || v === undefined) return null;
-    if (typeof v === 'string') return v;
-    throw new Error(`approveDeletion defaultDb: expected string|null param, got ${typeof v}`);
-  };
-  const asString = (v: unknown): string => {
-    if (typeof v === 'string') return v;
-    throw new Error(`approveDeletion defaultDb: expected string param, got ${typeof v}`);
-  };
-
-  const txClient: TransactionClient = {
-    async query(sql, params) {
-      const adminClient = getAdmin();
-      const normalized = sql.replace(/\s+/g, ' ').trim();
-
-      // SELECT profile_id FROM privacy_requests WHERE id = $1 (pre-probe)
-      if (
-        /^SELECT\s+profile_id\s+FROM\s+privacy_requests\s+WHERE\s+id\s*=\s*\$1/i.test(normalized)
-      ) {
-        const id = asString(params?.[0]);
-        const { data, error } = await adminClient
-          .from('privacy_requests')
-          .select('profile_id')
-          .eq('id', id)
-          .maybeSingle();
-        if (error) {
-          throw new Error(`approveDeletion defaultDb: SELECT profile_id failed: ${error.message}`);
-        }
-        return { rows: data ? [data] : [] };
-      }
-
-      // SELECT profile_id, requester_email, kind, status FROM privacy_requests WHERE id = $1 [FOR UPDATE]
-      if (
-        /^SELECT\s+profile_id\s*,\s*requester_email\s*,\s*kind\s*,\s*status\s+FROM\s+privacy_requests/i.test(
-          normalized,
-        )
-      ) {
-        const id = asString(params?.[0]);
-        const { data, error } = await adminClient
-          .from('privacy_requests')
-          .select('profile_id, requester_email, kind, status')
-          .eq('id', id)
-          .maybeSingle();
-        if (error) {
-          throw new Error(
-            `approveDeletion defaultDb: SELECT privacy_requests failed: ${error.message}`,
-          );
-        }
-        return { rows: data ? [data] : [] };
-      }
-
-      // softDeleteProfile's UPDATE — the pgcrypto encode(digest(...))
-      // expression is server-side SQL only and supabase-js's
-      // .update({...}) cannot express it. In production this path
-      // requires the ADR-0017 pg driver OR a dedicated RPC. Until then
-      // we emit a loud error so a misconfigured prod deploy is obvious.
-      if (/^UPDATE\s+profiles\s+SET\s+full_name\s*=\s*'del:'/i.test(normalized)) {
-        throw new Error(
-          'approveDeletion defaultDb: softDeleteProfile UPDATE requires a ' +
-            'real pg driver (ADR-0017) or a dedicated RPC. supabase-js ' +
-            '.update() cannot express the pgcrypto encode(digest(...)) ' +
-            'computation. The pglite-backed tests cover the atomic path.',
-        );
-      }
-
-      // SELECT deleted_at FROM profiles WHERE id = $1
-      if (/^SELECT\s+deleted_at\s+FROM\s+profiles\s+WHERE\s+id\s*=\s*\$1/i.test(normalized)) {
-        const id = asString(params?.[0]);
-        const { data, error } = await adminClient
-          .from('profiles')
-          .select('deleted_at')
-          .eq('id', id)
-          .maybeSingle();
-        if (error) {
-          throw new Error(`approveDeletion defaultDb: SELECT deleted_at failed: ${error.message}`);
-        }
-        return { rows: data ? [data] : [] };
-      }
-
-      // UPDATE privacy_requests SET status='completed', resolved_at=now(), resolved_by=$2 WHERE id=$1
-      if (/^UPDATE\s+privacy_requests\s+SET\s+status\s*=\s*'completed'/i.test(normalized)) {
-        const id = asString(params?.[0]);
-        const resolvedBy = asStringOrNull(params?.[1]);
-        const { error } = await adminClient
-          .from('privacy_requests')
-          .update({
-            status: 'completed',
-            resolved_at: nowUtc().toISOString(),
-            resolved_by: resolvedBy,
-          })
-          .eq('id', id);
-        if (error) {
-          throw new Error(`approveDeletion defaultDb: UPDATE completed failed: ${error.message}`);
-        }
-        return { rows: [] };
-      }
-
-      // INSERT INTO audit_log — emitted by withAudit.
-      if (/^INSERT\s+INTO\s+audit_log\s*\(/i.test(normalized)) {
-        const parseJson = (v: unknown): unknown => {
-          if (typeof v !== 'string') return v;
-          try {
-            return JSON.parse(v);
-          } catch {
-            return v;
-          }
-        };
-        const row = {
-          actor_id: asStringOrNull(params?.[0]),
-          action: asString(params?.[1]),
-          target_type: asString(params?.[2]),
-          target_id: asString(params?.[3]),
-          before: parseJson(params?.[4]),
-          after: parseJson(params?.[5]),
-          ip: asStringOrNull(params?.[6]),
-          user_agent: asStringOrNull(params?.[7]),
-        };
-        const { error } = await adminClient.from('audit_log').insert(row);
-        if (error) {
-          throw new Error(`approveDeletion defaultDb: audit_log INSERT failed: ${error.message}`);
-        }
-        return { rows: [] };
-      }
-
-      throw new Error(
-        `approveDeletion defaultDb: unsupported SQL shape ` +
-          `(this adapter only translates the action's canonical shapes; ` +
-          `add a pg driver via ADR-0017 rather than growing this translator). ` +
-          `Got: ${normalized.slice(0, 120)}`,
-      );
-    },
-  };
-
-  return {
-    transaction: async (callback) => callback(txClient),
-  };
 }

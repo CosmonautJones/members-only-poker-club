@@ -1,21 +1,9 @@
 import 'server-only';
 
-/**
- * `cancelTournament` — set a tournament instance's status to `canceled`.
- *
- * Per ADR-0037: template-sourced tournaments MUST be canceled (not hard-
- * deleted) so the materializer's idempotency anchor still resolves to a
- * row on the next run, preventing immediate re-creation. One-off
- * tournaments (`source_template_id IS NULL`) can be hard-deleted by a
- * separate `deleteTournament` action — not implemented in this slice.
- *
- * Same best-effort audit-pairing posture as `setTemplateActive` and other
- * admin actions; see ADR-0006 + ADR-0017 follow-up.
- */
-
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { requireRole } from '@/lib/auth/requireRole';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { postgresTransactionRunner } from '@/lib/db/postgres-transaction-runner';
+import type { TransactionRunner } from '@/lib/db/transactions';
 import { BadRequest, NoChange } from '@/app/(admin)/admin/_errors';
 
 export interface CancelTournamentParams {
@@ -26,10 +14,20 @@ export interface CancelTournamentResult {
   ok: true;
 }
 
+export type { TransactionRunner };
+
+interface TournamentBefore {
+  id: string;
+  status: 'scheduled' | 'registering' | 'live' | 'complete' | 'canceled';
+  slug: string;
+  source_template_id: string | null;
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function cancelTournament(
   params: CancelTournamentParams,
+  db: TransactionRunner = postgresTransactionRunner,
 ): Promise<CancelTournamentResult> {
   const { profile: actor } = await requireRole('manager');
 
@@ -37,68 +35,50 @@ export async function cancelTournament(
     throw new BadRequest(`cancelTournament: invalid tournamentId (${params.tournamentId})`);
   }
 
-  const supabase = createAdminClient();
-
-  interface BeforeShape {
-    id: string;
-    status: 'scheduled' | 'registering' | 'live' | 'complete' | 'canceled';
-    slug: string;
-    source_template_id: string | null;
-  }
-  const { data: beforeData, error: beforeErr } = await supabase
-    .from('tournaments')
-    .select('id, status, slug, source_template_id')
-    .eq('id', params.tournamentId)
-    .maybeSingle<BeforeShape>();
-  if (beforeErr) {
-    throw new Error(`cancelTournament: SELECT failed: ${beforeErr.message}`);
-  }
-  if (!beforeData) {
-    throw new BadRequest(`cancelTournament: tournament not found (${params.tournamentId})`);
-  }
-  const before: BeforeShape = beforeData;
-  if (before.status === 'canceled') {
-    throw new NoChange(`cancelTournament: tournament ${params.tournamentId} is already canceled`);
-  }
-  if (before.status === 'complete') {
-    throw new BadRequest(
-      `cancelTournament: tournament ${params.tournamentId} is already complete and cannot be canceled`,
+  const before = await db.transaction(async (tx) => {
+    const beforeRead = await tx.query(
+      `SELECT id, status, slug, source_template_id
+         FROM tournaments
+        WHERE id = $1
+          FOR UPDATE`,
+      [params.tournamentId],
     );
-  }
+    const row = beforeRead.rows[0] as TournamentBefore | undefined;
+    if (!row) {
+      throw new BadRequest(`cancelTournament: tournament not found (${params.tournamentId})`);
+    }
+    if (row.status === 'canceled') {
+      throw new NoChange(`cancelTournament: tournament ${params.tournamentId} is already canceled`);
+    }
+    if (row.status === 'complete') {
+      throw new BadRequest(
+        `cancelTournament: tournament ${params.tournamentId} is already complete and cannot be canceled`,
+      );
+    }
 
-  const { error: updErr } = await supabase
-    .from('tournaments')
-    .update({ status: 'canceled' })
-    .eq('id', params.tournamentId);
-  if (updErr) {
-    throw new Error(`cancelTournament: UPDATE failed: ${updErr.message}`);
-  }
+    await tx.query("UPDATE tournaments SET status = 'canceled' WHERE id = $1", [
+      params.tournamentId,
+    ]);
+    await tx.query(
+      `INSERT INTO audit_log
+        (actor_id, action, target_type, target_id, before, after)
+       VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb)`,
+      [
+        actor.id,
+        'tournament.cancel',
+        'tournament',
+        params.tournamentId,
+        JSON.stringify({ status: row.status, slug: row.slug }),
+        JSON.stringify({ status: 'canceled', slug: row.slug }),
+      ],
+    );
 
-  const { error: auditErr } = await supabase.from('audit_log').insert({
-    actor_id: actor.id,
-    action: 'tournament.cancel',
-    target_type: 'tournament',
-    target_id: params.tournamentId,
-    before: { status: before.status, slug: before.slug },
-    after: { status: 'canceled', slug: before.slug },
+    return row;
   });
-  if (auditErr) {
-    console.error(
-      JSON.stringify({
-        event: 'admin_action_audit_write_failed',
-        action: 'tournament.cancel',
-        target_id: params.tournamentId,
-        message: auditErr.message,
-      }),
-    );
-    throw new Error('cancelTournament: audit write failed (mutation already applied)');
-  }
 
   revalidatePath('/admin/tournaments');
   revalidatePath('/games');
   revalidatePath(`/games/${before.slug}`);
-  // ADR-0035 AC35: bust the admin-dashboard-counts tag in case a future
-  // dashboard widget surfaces upcoming-tournament counts. Harmless today.
   try {
     revalidateTag('admin-dashboard-counts');
   } catch (err) {
