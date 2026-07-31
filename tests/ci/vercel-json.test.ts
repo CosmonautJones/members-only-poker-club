@@ -12,4 +12,18 @@ describe('vercel.json', () => {
     expect(typeof data.buildCommand).toBe('string');
     expect(data.buildCommand.length).toBeGreaterThan(0);
   });
+
+  it('schedules the tournament materializer once nightly', () => {
+    const path = resolve(__dirname, '..', '..', 'vercel.json');
+    const data = JSON.parse(readFileSync(path, 'utf8'));
+
+    // Vercel cron is UTC-only: 08:00 UTC is 03:00 CDT / 02:00 CST.
+    // The one-hour winter shift is acceptable because the 60-day horizon is date-based.
+    expect(data.crons).toEqual([
+      {
+        path: '/api/cron/tournament-materialize',
+        schedule: '0 8 * * *',
+      },
+    ]);
+  });
 });
